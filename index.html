@@ -5,17 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Dashboard TPM Urea 1B</title>
 
-  <!-- Tag Pengenal Web App PWA untuk iOS Safari & Android -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Dashboard TPM">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#121212">
 
-  <!-- Manifest PWA Data URL -->
   <link rel="manifest" href='data:application/manifest+json,{"name":"Dashboard TPM Urea 1B","short_name":"TPM 1B","start_url":".","display":"standalone","background_color":"#121212","theme_color":"#121212"}'>
 
-  <!-- Ikon SVG Aplikasi -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%23007AFF'/><rect x='110' y='130' width='130' height='252' rx='16' fill='%23FFFFFF' fill-opacity='0.85'/><rect x='272' y='130' width='130' height='252' rx='16' fill='%23FFFFFF'/><circle cx='337' cy='200' r='22' fill='%23007AFF'/><path d='M292 340 L330 280 L355 315 L372 295 L392 340 Z' fill='%23007AFF'/></svg>">
   <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%23007AFF'/><rect x='110' y='130' width='130' height='252' rx='16' fill='%23FFFFFF' fill-opacity='0.85'/><rect x='272' y='130' width='130' height='252' rx='16' fill='%23FFFFFF'/><circle cx='337' cy='200' r='22' fill='%23007AFF'/><path d='M292 340 L330 280 L355 315 L372 295 L392 340 Z' fill='%23007AFF'/></svg>">
 
@@ -26,7 +23,6 @@
       --accent-color: #007aff;
       --text-color: #ffffff;
       --text-muted: #aaaaaa;
-      --success-color: #34c759;
     }
 
     * {
@@ -72,7 +68,6 @@
       color: var(--text-muted);
     }
 
-    /* Sub-Menu Navigation */
     .nav-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -155,14 +150,6 @@
       color: var(--accent-color);
     }
 
-    .badge {
-      background: var(--accent-color);
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 0.75rem;
-      font-weight: bold;
-    }
-
     .tpm-list {
       display: flex;
       flex-direction: column;
@@ -174,46 +161,21 @@
       padding: 14px;
       border-radius: 8px;
       display: flex;
-      justify-content: space-between;
-      align-items: center;
+      flex-direction: column;
+      gap: 4px;
       border-left: 4px solid var(--accent-color);
     }
 
-    .tpm-item.done {
-      border-left-color: var(--success-color);
-      opacity: 0.75;
-    }
-
-    .tpm-item.done .tpm-title {
-      text-decoration: line-through;
+    .shift-tag {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--accent-color);
+      text-transform: uppercase;
     }
 
     .tpm-title {
       font-weight: 600;
-      font-size: 0.95rem;
-      margin-bottom: 2px;
-    }
-
-    .tpm-detail {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-    }
-    
-    .btn-check {
-      background: none;
-      border: 2px solid var(--accent-color);
-      color: var(--accent-color);
-      border-radius: 6px;
-      padding: 6px 12px;
-      font-weight: bold;
-      font-size: 0.8rem;
-      cursor: pointer;
-    }
-
-    .tpm-item.done .btn-check {
-      background: var(--success-color);
-      border-color: var(--success-color);
-      color: #fff;
+      font-size: 1rem;
     }
 
     .add-form {
@@ -268,13 +230,12 @@
 
     <div class="schedule-header">
       <h2 id="scheduleTitle">Jadwal TPM Hari Ini</h2>
-      <span class="badge" id="taskCounter">0 Tugas</span>
     </div>
 
     <div class="tpm-list" id="tpmList"></div>
 
     <div class="add-form">
-      <input type="text" id="newTaskInput" placeholder="+ Tambah item/mesin inspeksi manual...">
+      <input type="text" id="newTaskInput" placeholder="+ Tambah catatan/item inspeksi tambahan...">
       <button class="btn-add" id="addTaskBtn">Tambah</button>
     </div>
   </div>
@@ -284,11 +245,10 @@
   const tpmDate = document.getElementById('tpmDate');
   const scheduleTitle = document.getElementById('scheduleTitle');
   const tpmList = document.getElementById('tpmList');
-  const taskCounter = document.getElementById('taskCounter');
   const newTaskInput = document.getElementById('newTaskInput');
   const addTaskBtn = document.getElementById('addTaskBtn');
 
-  // Matriks Master Rotasi 15 Hari TPM Urea 1B
+  // Database Master Rotasi 15 Hari TPM Urea 1B
   const masterTPMUrea1B = {
     1:  { PAGI: "GA122", SORE: "GA123 & GB801", MALAM: "GB701" },
     2:  { PAGI: "GA101A", SORE: "GA103", MALAM: "GA104" },
@@ -311,7 +271,7 @@
   tpmDate.value = today;
 
   function getStorageKey(dateStr) {
-    return `tpm_schedule_${dateStr}`;
+    return `tpm_schedule_view_${dateStr}`;
   }
 
   function loadSchedule(dateStr) {
@@ -320,7 +280,6 @@
     
     let tasks = JSON.parse(localStorage.getItem(getStorageKey(dateStr))) || [];
     
-    // Auto-fill dari Matriks Excel jika tanggal belum pernah disimpan
     if (tasks.length === 0) {
       const dayOfMonth = parseInt(dateStr.split('-')[2], 10);
       const cycleDay = ((dayOfMonth - 1) % 15) + 1;
@@ -328,51 +287,34 @@
       const dayData = masterTPMUrea1B[cycleDay];
       if (dayData) {
         tasks = [
-          { id: 1, text: `Shift PAGI: ${dayData.PAGI}`, done: false },
-          { id: 2, text: `Shift SORE: ${dayData.SORE}`, done: false },
-          { id: 3, text: `Shift MALAM: ${dayData.MALAM}`, done: false }
+          { shift: "PAGI", text: dayData.PAGI },
+          { shift: "SORE", text: dayData.SORE },
+          { shift: "MALAM", text: dayData.MALAM }
         ];
         localStorage.setItem(getStorageKey(dateStr), JSON.stringify(tasks));
       }
     }
 
-    renderTasks(tasks, dateStr);
+    renderTasks(tasks);
   }
 
-  function renderTasks(tasks, dateStr) {
+  function renderTasks(tasks) {
     tpmList.innerHTML = '';
-    let completedCount = 0;
 
     if (tasks.length === 0) {
       tpmList.innerHTML = `<p style="text-align:center; color:#888; padding: 20px 0;">Belum ada jadwal di tanggal ini.</p>`;
-      taskCounter.textContent = `0 Tugas`;
       return;
     }
 
-    tasks.forEach((task, index) => {
-      if (task.done) completedCount++;
+    tasks.forEach((task) => {
       const item = document.createElement('div');
-      item.className = `tpm-item ${task.done ? 'done' : ''}`;
+      item.className = 'tpm-item';
       item.innerHTML = `
-        <div>
-          <div class="tpm-title">${task.text}</div>
-          <div class="tpm-detail">${task.done ? 'Selesai Diinspeksi' : 'Perlu Cek'}</div>
-        </div>
-        <button class="btn-check" onclick="toggleTask('${dateStr}', ${index})">
-          ${task.done ? '✓ OK' : 'Cek'}
-        </button>
+        <span class="shift-tag">SHIFT ${task.shift || 'TAMBAHAN'}</span>
+        <div class="tpm-title">${task.text}</div>
       `;
       tpmList.appendChild(item);
     });
-
-    taskCounter.textContent = `${completedCount}/${tasks.length} Selesai`;
-  }
-
-  function toggleTask(dateStr, index) {
-    let tasks = JSON.parse(localStorage.getItem(getStorageKey(dateStr))) || [];
-    tasks[index].done = !tasks[index].done;
-    localStorage.setItem(getStorageKey(dateStr), JSON.stringify(tasks));
-    loadSchedule(dateStr);
   }
 
   addTaskBtn.addEventListener('click', () => {
@@ -381,7 +323,7 @@
 
     const dateStr = tpmDate.value;
     let tasks = JSON.parse(localStorage.getItem(getStorageKey(dateStr))) || [];
-    tasks.push({ id: Date.now(), text: text, done: false });
+    tasks.push({ shift: "CATATAN", text: text });
     localStorage.setItem(getStorageKey(dateStr), JSON.stringify(tasks));
     
     newTaskInput.value = '';

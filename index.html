@@ -3,20 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Kolase Foto TPM</title>
+  <title>Dashboard TPM Urea 1B</title>
 
-  <!-- Tag Pengenal Web App PWA untuk iOS Safari -->
+  <!-- Tag Pengenal Web App PWA untuk iOS Safari & Android -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Kolase TPM">
+  <meta name="apple-mobile-web-app-title" content="Dashboard TPM">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#121212">
 
-  <!-- Manifest PWA Data URL (Tanpa perlu buat file terpisah) -->
-  <link rel="manifest" href='data:application/manifest+json,{"name":"Kolase Foto TPM","short_name":"Kolase TPM","start_url":".","display":"standalone","background_color":"#121212","theme_color":"#121212"}'>
+  <!-- Manifest PWA Data URL -->
+  <link rel="manifest" href='data:application/manifest+json,{"name":"Dashboard TPM Urea 1B","short_name":"TPM 1B","start_url":".","display":"standalone","background_color":"#121212","theme_color":"#121212"}'>
 
-  <!-- Ikon Aplikasi Bawaan untuk Home Screen iOS -->
-  <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23007aff'><rect width='512' height='512' rx='100' fill='%231e1e1e'/><path d='M160 140h80v232h-80zM272 140h80v232h-80z' fill='%23007aff'/></svg>">
+  <!-- Ikon SVG Aplikasi -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%23007AFF'/><rect x='110' y='130' width='130' height='252' rx='16' fill='%23FFFFFF' fill-opacity='0.85'/><rect x='272' y='130' width='130' height='252' rx='16' fill='%23FFFFFF'/><circle cx='337' cy='200' r='22' fill='%23007AFF'/><path d='M292 340 L330 280 L355 315 L372 295 L392 340 Z' fill='%23007AFF'/></svg>">
+  <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%23007AFF'/><rect x='110' y='130' width='130' height='252' rx='16' fill='%23FFFFFF' fill-opacity='0.85'/><rect x='272' y='130' width='130' height='252' rx='16' fill='%23FFFFFF'/><circle cx='337' cy='200' r='22' fill='%23007AFF'/><path d='M292 340 L330 280 L355 315 L372 295 L392 340 Z' fill='%23007AFF'/></svg>">
 
   <style>
     :root {
@@ -25,6 +26,7 @@
       --accent-color: #007aff;
       --text-color: #ffffff;
       --text-muted: #aaaaaa;
+      --success-color: #34c759;
     }
 
     * {
@@ -61,8 +63,8 @@
     }
 
     header h1 {
-      font-size: 1.5rem;
-      margin-bottom: 5px;
+      font-size: 1.6rem;
+      margin-bottom: 4px;
     }
 
     header p {
@@ -70,48 +72,56 @@
       color: var(--text-muted);
     }
 
+    /* Sub-Menu Navigation */
+    .nav-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .nav-card {
+      background: var(--card-bg);
+      padding: 14px;
+      border-radius: 12px;
+      text-decoration: none;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border: 1px solid #333;
+      transition: 0.2s;
+    }
+
+    .nav-card.active {
+      border-color: var(--accent-color);
+      background: #1a2736;
+    }
+
+    .nav-icon {
+      font-size: 1.4rem;
+    }
+
+    .nav-info h3 {
+      font-size: 0.95rem;
+    }
+
+    .nav-info p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
     .card {
-      background-color: var(--card-bg);
+      background: var(--card-bg);
       border-radius: 12px;
       padding: 20px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      width: 100%;
-      overflow: hidden;
-    }
-
-    .control-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-      width: 100%;
-    }
-
-    @media (max-width: 600px) {
-      .control-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .control-grid > div, .form-group, .color-pickers {
-      min-width: 0;
-      max-width: 100%;
-      width: 100%;
     }
 
     .form-group {
       display: flex;
       flex-direction: column;
-      gap: 6px;
-    }
-
-    .section-title {
-      font-size: 0.95rem;
-      font-weight: 700;
-      color: var(--accent-color);
-      grid-column: 1 / -1;
-      margin-top: 5px;
-      border-bottom: 1px solid #333;
-      padding-bottom: 4px;
+      gap: 8px;
+      margin-bottom: 15px;
     }
 
     label {
@@ -120,97 +130,106 @@
       color: var(--text-muted);
     }
 
-    input[type="text"], input[type="file"], select, input[type="color"] {
+    input[type="date"], input[type="text"] {
       -webkit-appearance: none;
-      -moz-appearance: none;
-      appearance: none;
-      background-color: #2a2a2a;
+      background: #2a2a2a;
       border: 1px solid #3a3a3a;
       color: #fff;
       padding: 12px;
       border-radius: 8px;
-      font-size: 0.95rem;
-      width: 100%;
-      max-width: 100%;
-      min-width: 0;
-      box-sizing: border-box;
-    }
-
-    select {
-      background-image: url("data:image/svg+xml;utf8,<svg fill='white' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
-      background-repeat: no-repeat;
-      background-position: right 10px center;
-      padding-right: 34px;
-    }
-
-    .color-pickers {
-      display: flex;
-      width: 100%;
-    }
-
-    input[type="color"] {
-      height: 44px;
-      padding: 4px;
-      cursor: pointer;
-    }
-
-    input[type="color"]::-webkit-color-swatch-wrapper {
-      padding: 0;
-      border-radius: 6px;
-    }
-
-    input[type="color"]::-webkit-color-swatch {
-      border: none;
-      border-radius: 6px;
-    }
-
-    .btn {
-      background-color: var(--accent-color);
-      color: white;
-      border: none;
-      padding: 14px 20px;
-      border-radius: 8px;
-      font-weight: bold;
       font-size: 1rem;
-      cursor: pointer;
       width: 100%;
-      max-width: 100%;
-      transition: opacity 0.2s;
-      -webkit-appearance: none;
     }
 
-    .btn:hover {
-      opacity: 0.9;
+    .schedule-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #333;
+      padding-bottom: 8px;
     }
 
-    .btn:disabled {
-      background-color: #444;
-      color: #888;
-      cursor: not-allowed;
+    .schedule-header h2 {
+      font-size: 1.1rem;
+      color: var(--accent-color);
     }
 
-    .preview-container {
+    .badge {
+      background: var(--accent-color);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+
+    .tpm-list {
       display: flex;
       flex-direction: column;
-      align-items: center;
-      gap: 15px;
-      margin-bottom: 20px;
+      gap: 10px;
     }
 
-    canvas {
-      max-width: 100%;
-      height: auto;
+    .tpm-item {
+      background: #252525;
+      padding: 14px;
       border-radius: 8px;
-      background-color: #000;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-left: 4px solid var(--accent-color);
     }
 
-    .file-hint {
-      font-size: 0.85rem;
-      color: #ff9500;
-      margin-top: 4px;
-      word-break: break-word;
-      font-weight: 500;
+    .tpm-item.done {
+      border-left-color: var(--success-color);
+      opacity: 0.75;
+    }
+
+    .tpm-item.done .tpm-title {
+      text-decoration: line-through;
+    }
+
+    .tpm-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-bottom: 2px;
+    }
+
+    .tpm-detail {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    
+    .btn-check {
+      background: none;
+      border: 2px solid var(--accent-color);
+      color: var(--accent-color);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-weight: bold;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .tpm-item.done .btn-check {
+      background: var(--success-color);
+      border-color: var(--success-color);
+      color: #fff;
+    }
+
+    .add-form {
+      display: flex;
+      gap: 8px;
+      margin-top: 15px;
+    }
+
+    .btn-add {
+      background: var(--accent-color);
+      color: #fff;
+      border: none;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -218,418 +237,165 @@
 
 <div class="container">
   <header>
-    <h1 id="appTitle">Kolase Foto TPM</h1>
-    <p id="appSubtitle">Template Grid untuk Foto TPM</p>
+    <h1>Dashboard TPM Urea 1B</h1>
+    <p>Monitoring & Jadwal Inspeksi Mesin</p>
   </header>
 
-  <!-- Panel Kontrol -->
-  <div class="card">
-    <div class="control-grid">
-      <!-- Section Format Grid -->
-      <div class="section-title">Format Grid Layout</div>
-
-      <div class="form-group" style="grid-column: 1 / -1;">
-        <label for="gridType">Pilih Ukuran Grid</label>
-        <select id="gridType">
-          <option value="2x1">2x1 (1 Baris - Total 2 Foto)</option>
-          <option value="2x2">2x2 (2 Baris - Total 4 Foto)</option>
-          <option value="2x3" selected>2x3 (3 Baris - Total 6 Foto)</option>
-        </select>
+  <!-- Navigasi Sub-Menu -->
+  <div class="nav-grid">
+    <a href="index.html" class="nav-card active">
+      <span class="nav-icon">📅</span>
+      <div class="nav-info">
+        <h3>Jadwal TPM</h3>
+        <p>Inspeksi & Shift</p>
       </div>
-
-      <!-- Section Upload -->
-      <div class="section-title">Upload Foto</div>
-
-      <div class="form-group">
-        <label for="beforeInput" id="beforeLabel">Foto BEFORE (Kolom Kiri - Max 3)</label>
-        <input type="file" id="beforeInput" accept="image/*" multiple>
-        <span class="file-hint" id="beforeCount">Belum ada foto dipilih</span>
+    </a>
+    <a href="kolase.html" class="nav-card">
+      <span class="nav-icon">📸</span>
+      <div class="nav-info">
+        <h3>Kolase Foto</h3>
+        <p>Before & After</p>
       </div>
-
-      <div class="form-group">
-        <label for="afterInput" id="afterLabel">Foto AFTER (Kolom Kanan - Max 3)</label>
-        <input type="file" id="afterInput" accept="image/*" multiple>
-        <span class="file-hint" id="afterCount">Belum ada foto dipilih</span>
-      </div>
-
-      <!-- Section Header Atas -->
-      <div class="section-title">Pengaturan Header Utama (Atas)</div>
-
-      <div class="form-group">
-        <label for="leftHeaderText">Header Kolom Kiri</label>
-        <input type="text" id="leftHeaderText" value="BEFORE">
-      </div>
-
-      <div class="form-group">
-        <label for="rightHeaderText">Header Kolom Kanan</label>
-        <input type="text" id="rightHeaderText" value="AFTER">
-      </div>
-
-      <!-- Section Overlay Per Baris -->
-      <div class="section-title">Teks Overlay</div>
-
-      <div class="form-group" style="grid-column: 1 / -1;" id="row1Group">
-        <label for="row1Text">Overlay Baris 1</label>
-        <input type="text" id="row1Text" placeholder="Kosongkan jika tidak dipakai">
-      </div>
-
-      <div class="form-group" style="grid-column: 1 / -1;" id="row2Group">
-        <label for="row2Text">Overlay Baris 2</label>
-        <input type="text" id="row2Text" placeholder="Kosongkan jika tidak dipakai">
-      </div>
-
-      <div class="form-group" style="grid-column: 1 / -1;" id="row3Group">
-        <label for="row3Text">Overlay Baris 3</label>
-        <input type="text" id="row3Text" placeholder="Kosongkan jika tidak dipakai">
-      </div>
-
-      <!-- Section Gaya & Tampilan -->
-      <div class="section-title">Gaya & Format Gambar</div>
-
-      <div class="form-group">
-        <label for="bgColor">Warna Latar Header & Celah</label>
-        <div class="color-pickers">
-          <input type="color" id="bgColor" value="#000000">
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label for="textColor">Warna Teks Header Utama</label>
-        <div class="color-pickers">
-          <input type="color" id="textColor" value="#ffffff">
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label for="gapSize">Ukuran Celah Antarfoto (px)</label>
-        <select id="gapSize">
-          <option value="0">Tanpa Celah (0px)</option>
-          <option value="12" selected>Sedang (12px)</option>
-          <option value="24">Tebal (24px)</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label for="aspectRatio">Rasio Potongan Foto</label>
-        <select id="aspectRatio">
-          <option value="1" selected>1:1 (Persegi)</option>
-          <option value="1.25">4:5 (Portrait)</option>
-          <option value="0.75">4:3 (Landscape)</option>
-        </select>
-      </div>
-    </div>
+    </a>
   </div>
 
-  <!-- Pratinjau & Unduh -->
-  <div class="card preview-container">
-    <canvas id="collageCanvas"></canvas>
-    <button id="downloadBtn" class="btn" disabled>Unduh Hasil Kolase</button>
+  <!-- Card Utama: Jadwal TPM -->
+  <div class="card">
+    <div class="form-group">
+      <label for="tpmDate">Pilih Tanggal Jadwal:</label>
+      <input type="date" id="tpmDate">
+    </div>
+
+    <div class="schedule-header">
+      <h2 id="scheduleTitle">Jadwal TPM Hari Ini</h2>
+      <span class="badge" id="taskCounter">0 Tugas</span>
+    </div>
+
+    <div class="tpm-list" id="tpmList"></div>
+
+    <div class="add-form">
+      <input type="text" id="newTaskInput" placeholder="+ Tambah item/mesin inspeksi manual...">
+      <button class="btn-add" id="addTaskBtn">Tambah</button>
+    </div>
   </div>
 </div>
 
 <script>
-  const gridTypeInput = document.getElementById('gridType');
-  const beforeInput = document.getElementById('beforeInput');
-  const afterInput = document.getElementById('afterInput');
-  const beforeCount = document.getElementById('beforeCount');
-  const afterCount = document.getElementById('afterCount');
-  const beforeLabel = document.getElementById('beforeLabel');
-  const afterLabel = document.getElementById('afterLabel');
+  const tpmDate = document.getElementById('tpmDate');
+  const scheduleTitle = document.getElementById('scheduleTitle');
+  const tpmList = document.getElementById('tpmList');
+  const taskCounter = document.getElementById('taskCounter');
+  const newTaskInput = document.getElementById('newTaskInput');
+  const addTaskBtn = document.getElementById('addTaskBtn');
 
-  const appTitle = document.getElementById('appTitle');
-  const row1Group = document.getElementById('row1Group');
-  const row2Group = document.getElementById('row2Group');
-  const row3Group = document.getElementById('row3Group');
+  // Matriks Master Rotasi 15 Hari TPM Urea 1B
+  const masterTPMUrea1B = {
+    1:  { PAGI: "GA122", SORE: "GA123 & GB801", MALAM: "GB701" },
+    2:  { PAGI: "GA101A", SORE: "GA103", MALAM: "GA104" },
+    3:  { PAGI: "GA101B", SORE: "GA105", MALAM: "GA106" },
+    4:  { PAGI: "GA102A", SORE: "GA107", MALAM: "GA109" },
+    5:  { PAGI: "GA102B", SORE: "GA110", MALAM: "GA121" },
+    6:  { PAGI: "GT 101", SORE: "GA201", MALAM: "GA204" },
+    7:  { PAGI: "GB101LP", SORE: "GA401", MALAM: "GA402" },
+    8:  { PAGI: "GB101HP", SORE: "GA403", MALAM: "GA404" },
+    9:  { PAGI: "IA301", SORE: "GA405", MALAM: "GB 301" },
+    10: { PAGI: "JW301", SORE: "GB302", MALAM: "GA301" },
+    11: { PAGI: "JD301", SORE: "GA302", MALAM: "GA303" },
+    12: { PAGI: "FD304", SORE: "GA501", MALAM: "GA502" },
+    13: { PAGI: "FD305", SORE: "GA503", MALAM: "GA 504 & 704" },
+    14: { PAGI: "GA 101A OIL", SORE: "GA 101B OIL", MALAM: "GA801 & GA803" },
+    15: { PAGI: "GA 102A OIL", SORE: "GA 102B OIL", MALAM: "FLARE" }
+  };
 
-  const leftHeaderInput = document.getElementById('leftHeaderText');
-  const rightHeaderInput = document.getElementById('rightHeaderText');
-  const row1Input = document.getElementById('row1Text');
-  const row2Input = document.getElementById('row2Text');
-  const row3Input = document.getElementById('row3Text');
-  const bgColorInput = document.getElementById('bgColor');
-  const textColorInput = document.getElementById('textColor');
-  const gapSizeInput = document.getElementById('gapSize');
-  const aspectRatioInput = document.getElementById('aspectRatio');
-  const canvas = document.getElementById('collageCanvas');
-  const ctx = canvas.getContext('2d');
-  const downloadBtn = document.getElementById('downloadBtn');
+  const today = new Date().toISOString().split('T')[0];
+  tpmDate.value = today;
 
-  let loadedBeforeImages = [];
-  let loadedAfterImages = [];
-
-  function getSelectedRows() {
-    return parseInt(gridTypeInput.value.split('x')[1], 10);
+  function getStorageKey(dateStr) {
+    return `tpm_schedule_${dateStr}`;
   }
 
-  function updateGridUI() {
-    const rows = getSelectedRows();
-    appTitle.textContent = "Kolase Foto TPM";
-    beforeLabel.textContent = `Foto BEFORE (Kolom Kiri - Max ${rows})`;
-    afterLabel.textContent = `Foto AFTER (Kolom Kanan - Max ${rows})`;
-
-    row2Group.style.display = rows >= 2 ? 'flex' : 'none';
-    row3Group.style.display = rows >= 3 ? 'flex' : 'none';
-
-    if (beforeInput.files.length > 0) {
-      readImages(beforeInput, beforeCount, (images) => {
-        loadedBeforeImages = images;
-        updateStateAndGenerate();
-      });
-    }
-
-    if (afterInput.files.length > 0) {
-      readImages(afterInput, afterCount, (images) => {
-        loadedAfterImages = images;
-        updateStateAndGenerate();
-      });
-    }
-
-    if (loadedBeforeImages.length > 0 || loadedAfterImages.length > 0) {
-      generateCollage();
-    }
-  }
-
-  gridTypeInput.addEventListener('change', updateGridUI);
-
-  [leftHeaderInput, rightHeaderInput, row1Input, row2Input, row3Input, bgColorInput, textColorInput, gapSizeInput, aspectRatioInput].forEach(element => {
-    element.addEventListener('input', () => {
-      if (loadedBeforeImages.length > 0 || loadedAfterImages.length > 0) generateCollage();
-    });
-  });
-
-  async function processAndResizeFile(file) {
-    if ('createImageBitmap' in window) {
-      try {
-        const bitmap = await createImageBitmap(file, {
-          resizeWidth: 1600,
-          resizeQuality: 'medium'
-        });
-        return bitmap;
-      } catch (err) {
-        console.warn("createImageBitmap gagal, beralih ke FileReader fallback", err);
+  function loadSchedule(dateStr) {
+    const isToday = dateStr === today;
+    scheduleTitle.textContent = isToday ? "Jadwal TPM Hari Ini" : `Jadwal TPM (${formatDateIndo(dateStr)})`;
+    
+    let tasks = JSON.parse(localStorage.getItem(getStorageKey(dateStr))) || [];
+    
+    // Auto-fill dari Matriks Excel jika tanggal belum pernah disimpan
+    if (tasks.length === 0) {
+      const dayOfMonth = parseInt(dateStr.split('-')[2], 10);
+      const cycleDay = ((dayOfMonth - 1) % 15) + 1;
+      
+      const dayData = masterTPMUrea1B[cycleDay];
+      if (dayData) {
+        tasks = [
+          { id: 1, text: `Shift PAGI: ${dayData.PAGI}`, done: false },
+          { id: 2, text: `Shift SORE: ${dayData.SORE}`, done: false },
+          { id: 3, text: `Shift MALAM: ${dayData.MALAM}`, done: false }
+        ];
+        localStorage.setItem(getStorageKey(dateStr), JSON.stringify(tasks));
       }
     }
 
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = () => resolve(null);
-        img.src = e.target.result;
-      };
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(file);
-    });
+    renderTasks(tasks, dateStr);
   }
 
-  function readImages(inputElement, statusElement, callback) {
-    const files = Array.from(inputElement.files);
-    
-    if (files.length === 0) {
-      statusElement.textContent = "Belum ada foto dipilih";
-      callback([]);
+  function renderTasks(tasks, dateStr) {
+    tpmList.innerHTML = '';
+    let completedCount = 0;
+
+    if (tasks.length === 0) {
+      tpmList.innerHTML = `<p style="text-align:center; color:#888; padding: 20px 0;">Belum ada jadwal di tanggal ini.</p>`;
+      taskCounter.textContent = `0 Tugas`;
       return;
     }
 
-    const maxRows = getSelectedRows();
-    statusElement.textContent = "Memproses foto...";
-    const filesToProcess = files.slice(0, maxRows);
-
-    const promises = filesToProcess.map(file => processAndResizeFile(file));
-
-    Promise.all(promises).then(results => {
-      const validImages = results.filter(img => img !== null);
-      if (validImages.length === 0) {
-        statusElement.textContent = "Gagal memuat foto.";
-      } else {
-        statusElement.textContent = `${validImages.length} foto dimuat`;
-      }
-      callback(validImages);
+    tasks.forEach((task, index) => {
+      if (task.done) completedCount++;
+      const item = document.createElement('div');
+      item.className = `tpm-item ${task.done ? 'done' : ''}`;
+      item.innerHTML = `
+        <div>
+          <div class="tpm-title">${task.text}</div>
+          <div class="tpm-detail">${task.done ? 'Selesai Diinspeksi' : 'Perlu Cek'}</div>
+        </div>
+        <button class="btn-check" onclick="toggleTask('${dateStr}', ${index})">
+          ${task.done ? '✓ OK' : 'Cek'}
+        </button>
+      `;
+      tpmList.appendChild(item);
     });
+
+    taskCounter.textContent = `${completedCount}/${tasks.length} Selesai`;
   }
 
-  beforeInput.addEventListener('change', () => {
-    readImages(beforeInput, beforeCount, (images) => {
-      loadedBeforeImages = images;
-      updateStateAndGenerate();
-    });
+  function toggleTask(dateStr, index) {
+    let tasks = JSON.parse(localStorage.getItem(getStorageKey(dateStr))) || [];
+    tasks[index].done = !tasks[index].done;
+    localStorage.setItem(getStorageKey(dateStr), JSON.stringify(tasks));
+    loadSchedule(dateStr);
+  }
+
+  addTaskBtn.addEventListener('click', () => {
+    const text = newTaskInput.value.trim();
+    if (!text) return;
+
+    const dateStr = tpmDate.value;
+    let tasks = JSON.parse(localStorage.getItem(getStorageKey(dateStr))) || [];
+    tasks.push({ id: Date.now(), text: text, done: false });
+    localStorage.setItem(getStorageKey(dateStr), JSON.stringify(tasks));
+    
+    newTaskInput.value = '';
+    loadSchedule(dateStr);
   });
 
-  afterInput.addEventListener('change', () => {
-    readImages(afterInput, afterCount, (images) => {
-      loadedAfterImages = images;
-      updateStateAndGenerate();
-    });
-  });
+  tpmDate.addEventListener('change', (e) => loadSchedule(e.target.value));
 
-  function updateStateAndGenerate() {
-    if (loadedBeforeImages.length > 0 || loadedAfterImages.length > 0) {
-      downloadBtn.disabled = false;
-      generateCollage();
-    } else {
-      downloadBtn.disabled = true;
-    }
+  function formatDateIndo(dateStr) {
+    const [y, m, d] = dateStr.split('-');
+    return `${d}/${m}/${y}`;
   }
 
-  function generateCollage() {
-    try {
-      const rows = getSelectedRows();
-      const cellWidth = 800;
-      const ratio = parseFloat(aspectRatioInput.value);
-      const cellHeight = Math.round(cellWidth * ratio);
-      
-      const gap = parseInt(gapSizeInput.value, 10);
-      const headerHeight = 200;
-      const padding = gap;
-
-      const canvasWidth = (cellWidth * 2) + (gap) + (padding * 2);
-      const canvasHeight = headerHeight + (cellHeight * rows) + (gap * (rows - 1)) + (padding * 2);
-
-      canvas.width = canvasWidth;
-      canvas.height = canvasHeight;
-
-      // 1. Background
-      ctx.fillStyle = bgColorInput.value;
-      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-
-      // 2. Header Utama ("BEFORE" & "AFTER")
-      ctx.fillStyle = textColorInput.value;
-      ctx.font = 'bold 80px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-
-      const leftColCenterX = padding + (cellWidth / 2);
-      const rightColCenterX = padding + cellWidth + gap + (cellWidth / 2);
-      const headerCenterY = padding + (headerHeight / 2);
-
-      ctx.fillText(leftHeaderInput.value, leftColCenterX, headerCenterY);
-      ctx.fillText(rightHeaderInput.value, rightColCenterX, headerCenterY);
-
-      // 3. Render Foto
-      const startY = padding + headerHeight;
-
-      for (let r = 0; r < rows; r++) {
-        const y = startY + r * (cellHeight + gap);
-
-        if (loadedBeforeImages[r]) {
-          const xLeft = padding;
-          drawImageCover(ctx, loadedBeforeImages[r], xLeft, y, cellWidth, cellHeight);
-        }
-
-        if (loadedAfterImages[r]) {
-          const xRight = padding + cellWidth + gap;
-          drawImageCover(ctx, loadedAfterImages[r], xRight, y, cellWidth, cellHeight);
-        }
-      }
-
-      // 4. Render Teks Overlay
-      const rawRowTexts = [
-        row1Input ? row1Input.value : '',
-        row2Input ? row2Input.value : '',
-        row3Input ? row3Input.value : ''
-      ];
-      
-      const rowTexts = rawRowTexts.slice(0, rows);
-
-      rowTexts.forEach((text, r) => {
-        if (!text || !text.trim()) return;
-
-        const centerX = canvasWidth / 2;
-        const rowBottomY = startY + (r + 1) * cellHeight + r * gap;
-        const textY = rowBottomY - 60;
-
-        ctx.save();
-        ctx.font = 'bold 60px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-
-        const metrics = ctx.measureText(text);
-        const padX = 32;
-        const padY = 16;
-        const bgW = metrics.width + (padX * 2);
-        const bgH = 68 + (padY * 2);
-
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
-        drawRoundedRect(ctx, centerX - (bgW / 2), textY - (bgH / 2), bgW, bgH, 20);
-        ctx.fill();
-
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText(text, centerX, textY);
-        ctx.restore();
-      });
-    } catch (err) {
-      console.error("Gagal generate kolase:", err);
-    }
-  }
-
-  function drawRoundedRect(ctx, x, y, width, height, radius) {
-    ctx.beginPath();
-    ctx.moveTo(x + radius, y);
-    ctx.lineTo(x + width - radius, y);
-    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-    ctx.lineTo(x + width, y + height - radius);
-    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-    ctx.lineTo(x + radius, y + height);
-    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-    ctx.lineTo(x, y + radius);
-    ctx.quadraticCurveTo(x, y, x + radius, y);
-    ctx.closePath();
-  }
-
-  function drawImageCover(ctx, img, x, y, w, h) {
-    const imgRatio = img.width / img.height;
-    const targetRatio = w / h;
-    let sx, sy, sw, sh;
-
-    if (imgRatio > targetRatio) {
-      sh = img.height;
-      sw = img.height * targetRatio;
-      sx = (img.width - sw) / 2;
-      sy = 0;
-    } else {
-      sw = img.width;
-      sh = img.width / targetRatio;
-      sx = 0;
-      sy = (img.height - sh) / 2;
-    }
-
-    ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
-  }
-
-  downloadBtn.addEventListener('click', () => {
-    canvas.toBlob(async (blob) => {
-      if (!blob) return;
-
-      const filename = `kolase-tpm-${gridTypeInput.value}-${Date.now()}.jpg`;
-      const file = new File([blob], filename, { type: 'image/jpeg' });
-
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({
-            files: [file],
-            title: 'Kolase Foto TPM',
-            text: `Hasil Kolase Foto TPM ${gridTypeInput.value}`
-          });
-          return;
-        } catch (err) {
-          if (err.name === 'AbortError') return;
-        }
-      }
-
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-    }, 'image/jpeg', 0.95);
-  });
-
-  updateGridUI();
+  loadSchedule(today);
 </script>
 
 </body>

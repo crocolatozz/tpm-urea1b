@@ -39,7 +39,7 @@
     body {
       background-color: var(--bg-color);
       color: var(--text-color);
-      /* Jarak atas disesuaikan aman dari Notch / Dynamic Island iPhone */
+      /* Jarak atas aman dari Notch / Dynamic Island iPhone */
       padding: calc(40px + env(safe-area-inset-top)) 15px calc(60px + env(safe-area-inset-bottom)) 15px;
       display: flex;
       flex-direction: column;
@@ -171,11 +171,20 @@
       border-left: 4px solid var(--accent-color);
     }
 
+    .tpm-item.off-day {
+      border-left-color: #ff9500;
+      background: #2a2419;
+    }
+
     .shift-tag {
       font-size: 0.75rem;
       font-weight: 700;
       color: var(--accent-color);
       text-transform: uppercase;
+    }
+
+    .tpm-item.off-day .shift-tag {
+      color: #ff9500;
     }
 
     .tpm-title {
@@ -257,16 +266,22 @@
     scheduleTitle.textContent = isToday ? "Jadwal TPM Hari Ini" : `Jadwal TPM (${formatDateIndo(dateStr)})`;
     
     const dayOfMonth = parseInt(dateStr.split('-')[2], 10);
-    const cycleDay = ((dayOfMonth - 1) % 15) + 1;
     
-    const dayData = masterTPMUrea1B[cycleDay];
     let tasks = [];
-    if (dayData) {
+    if (dayOfMonth === 31) {
       tasks = [
-        { shift: "PAGI", text: dayData.PAGI },
-        { shift: "SORE", text: dayData.SORE },
-        { shift: "MALAM", text: dayData.MALAM }
+        { shift: "INFO", text: "TIDAK ADA KEGIATAN", isOff: true }
       ];
+    } else {
+      const cycleDay = ((dayOfMonth - 1) % 15) + 1;
+      const dayData = masterTPMUrea1B[cycleDay];
+      if (dayData) {
+        tasks = [
+          { shift: "PAGI", text: dayData.PAGI },
+          { shift: "SORE", text: dayData.SORE },
+          { shift: "MALAM", text: dayData.MALAM }
+        ];
+      }
     }
 
     renderTasks(tasks);
@@ -282,9 +297,9 @@
 
     tasks.forEach((task) => {
       const item = document.createElement('div');
-      item.className = 'tpm-item';
+      item.className = `tpm-item ${task.isOff ? 'off-day' : ''}`;
       item.innerHTML = `
-        <span class="shift-tag">SHIFT ${task.shift}</span>
+        <span class="shift-tag">${task.shift === 'INFO' ? 'STATUS' : 'SHIFT ' + task.shift}</span>
         <div class="tpm-title">${task.text}</div>
       `;
       tpmList.appendChild(item);

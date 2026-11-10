@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Dashboard TPM Urea 1B</title>
 
-  <!-- Tag Pengenal Web App PWA -->
+  <!-- Tag Pengenal Web App PWA untuk iOS Safari & Android -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Dashboard TPM">
@@ -15,9 +15,9 @@
   <!-- Manifest PWA Data URL -->
   <link rel="manifest" href='data:application/manifest+json,{"name":"Dashboard TPM Urea 1B","short_name":"TPM 1B","start_url":".","display":"standalone","background_color":"#121212","theme_color":"#121212"}'>
 
-  <!-- Ikon Aplikasi Alternatif 2 (Kalender + Kamera) -->
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%23007AFF'/><path d='M140 120 h232 a20 20 0 0 1 20 20 v60 h-272 v-60 a20 20 0 0 1 20-20 z' fill='%23FFFFFF' fill-opacity='0.3'/><rect x='120' y='120' width='272' height='272' rx='28' fill='none' stroke='%23FFFFFF' stroke-width='24'/><circle cx='310' cy='310' r='65' fill='%23007AFF' stroke='%23FFFFFF' stroke-width='18'/><circle cx='310' cy='310' r='25' fill='%23FFFFFF'/><path d='M170 230 h40 M250 230 h40 M170 290 h40' stroke='%23FFFFFF' stroke-width='18' stroke-linecap='round'/></svg>">
-  <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%23007AFF'/><path d='M140 120 h232 a20 20 0 0 1 20 20 v60 h-272 v-60 a20 20 0 0 1 20-20 z' fill='%23FFFFFF' fill-opacity='0.3'/><rect x='120' y='120' width='272' height='272' rx='28' fill='none' stroke='%23FFFFFF' stroke-width='24'/><circle cx='310' cy='310' r='65' fill='%23007AFF' stroke='%23FFFFFF' stroke-width='18'/><circle cx='310' cy='310' r='25' fill='%23FFFFFF'/><path d='M170 230 h40 M250 230 h40 M170 290 h40' stroke='%23FFFFFF' stroke-width='18' stroke-linecap='round'/></svg>">
+  <!-- Pemanggilan File Ikon Asli Transparan -->
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="apple-touch-icon" href="icon.png">
 
   <style>
     :root {
@@ -39,7 +39,8 @@
     body {
       background-color: var(--bg-color);
       color: var(--text-color);
-      padding: 20px 15px calc(60px + env(safe-area-inset-bottom)) 15px;
+      /* Jarak atas disesuaikan aman dari Notch / Dynamic Island iPhone */
+      padding: calc(40px + env(safe-area-inset-top)) 15px calc(60px + env(safe-area-inset-bottom)) 15px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -128,6 +129,7 @@
       color: var(--text-muted);
     }
 
+    /* Kunci minimal 16px agar Safari iOS tidak auto-zoom */
     input[type="date"] {
       -webkit-appearance: none;
       background: #2a2a2a;
@@ -135,7 +137,7 @@
       color: #fff;
       padding: 12px;
       border-radius: 8px;
-      font-size: 1rem;
+      font-size: 16px !important;
       width: 100%;
     }
 
@@ -196,7 +198,7 @@
       <span class="nav-icon">📅</span>
       <div class="nav-info">
         <h3>Jadwal TPM</h3>
-        <p>Monitoring & Inspeksi</p>
+        <p>Monitoring Rutin</p>
       </div>
     </a>
     <a href="kolase.html" class="nav-card">

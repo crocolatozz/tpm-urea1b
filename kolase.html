@@ -39,7 +39,7 @@
     body {
       background-color: var(--bg-color);
       color: var(--text-color);
-      /* Jarak atas disesuaikan aman dari Notch / Dynamic Island iPhone */
+      /* Jarak atas aman dari Notch / Dynamic Island iPhone */
       padding: calc(40px + env(safe-area-inset-top)) 15px calc(60px + env(safe-area-inset-bottom)) 15px;
       display: flex;
       flex-direction: column;
@@ -159,7 +159,7 @@
       color: var(--text-muted);
     }
 
-    /* Kunci minimal 16px agar Safari iOS tidak auto-zoom saat diklik */
+    /* Kunci minimal 16px agar Safari iOS tidak auto-zoom */
     input[type="text"], input[type="file"], input[type="date"], select, input[type="color"] {
       -webkit-appearance: none;
       -moz-appearance: none;
@@ -504,11 +504,16 @@
     const dateVal = tpmDateInput.value;
     if (!dateVal) return;
     const dayOfMonth = parseInt(dateVal.split('-')[2], 10);
-    const cycleDay = ((dayOfMonth - 1) % 15) + 1;
-    const shiftVal = tpmShiftInput.value;
+    
+    if (dayOfMonth === 31) {
+      tpmAreaInput.value = "TIDAK ADA KEGIATAN";
+    } else {
+      const cycleDay = ((dayOfMonth - 1) % 15) + 1;
+      const shiftVal = tpmShiftInput.value;
 
-    if (masterTPMUrea1B[cycleDay] && masterTPMUrea1B[cycleDay][shiftVal]) {
-      tpmAreaInput.value = masterTPMUrea1B[cycleDay][shiftVal];
+      if (masterTPMUrea1B[cycleDay] && masterTPMUrea1B[cycleDay][shiftVal]) {
+        tpmAreaInput.value = masterTPMUrea1B[cycleDay][shiftVal];
+      }
     }
     updateCaption();
   }
@@ -527,11 +532,12 @@
     const rows = getSelectedRows();
     const overlayInputs = [row1Input, row2Input, row3Input];
 
+    // Format bullet resmi WhatsApp (- spasi)
     const bullets = [];
     for (let i = 0; i < rows; i++) {
       const text = overlayInputs[i] ? overlayInputs[i].value.trim() : "";
       if (text) {
-        bullets.push(`• ${text}`);
+        bullets.push(`- ${text}`);
       }
     }
 
@@ -630,7 +636,7 @@
         const img = new Image();
         img.onload = () => resolve(img);
         img.onerror = () => resolve(null);
-        img.src = e.target.result;
+        img.src = e.result;
       };
       reader.onerror = () => resolve(null);
       reader.readAsDataURL(file);

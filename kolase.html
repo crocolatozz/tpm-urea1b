@@ -5,16 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Kolase Foto TPM</title>
 
+  <!-- Tag Pengenal Web App PWA -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Kolase TPM">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#121212">
 
+  <!-- Manifest PWA Data URL -->
   <link rel="manifest" href='data:application/manifest+json,{"name":"Kolase Foto TPM","short_name":"Kolase TPM","start_url":".","display":"standalone","background_color":"#121212","theme_color":"#121212"}'>
 
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%23007AFF'/><rect x='110' y='130' width='130' height='252' rx='16' fill='%23FFFFFF' fill-opacity='0.85'/><rect x='272' y='130' width='130' height='252' rx='16' fill='%23FFFFFF'/><circle cx='337' cy='200' r='22' fill='%23007AFF'/><path d='M292 340 L330 280 L355 315 L372 295 L392 340 Z' fill='%23007AFF'/></svg>">
-  <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%23007AFF'/><rect x='110' y='130' width='130' height='252' rx='16' fill='%23FFFFFF' fill-opacity='0.85'/><rect x='272' y='130' width='130' height='252' rx='16' fill='%23FFFFFF'/><circle cx='337' cy='200' r='22' fill='%23007AFF'/><path d='M292 340 L330 280 L355 315 L372 295 L392 340 Z' fill='%23007AFF'/></svg>">
+  <!-- Ikon Aplikasi Alternatif 2 (Kalender + Kamera) -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%23007AFF'/><path d='M140 120 h232 a20 20 0 0 1 20 20 v60 h-272 v-60 a20 20 0 0 1 20-20 z' fill='%23FFFFFF' fill-opacity='0.3'/><rect x='120' y='120' width='272' height='272' rx='28' fill='none' stroke='%23FFFFFF' stroke-width='24'/><circle cx='310' cy='310' r='65' fill='%23007AFF' stroke='%23FFFFFF' stroke-width='18'/><circle cx='310' cy='310' r='25' fill='%23FFFFFF'/><path d='M170 230 h40 M250 230 h40 M170 290 h40' stroke='%23FFFFFF' stroke-width='18' stroke-linecap='round'/></svg>">
+  <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%23007AFF'/><path d='M140 120 h232 a20 20 0 0 1 20 20 v60 h-272 v-60 a20 20 0 0 1 20-20 z' fill='%23FFFFFF' fill-opacity='0.3'/><rect x='120' y='120' width='272' height='272' rx='28' fill='none' stroke='%23FFFFFF' stroke-width='24'/><circle cx='310' cy='310' r='65' fill='%23007AFF' stroke='%23FFFFFF' stroke-width='18'/><circle cx='310' cy='310' r='25' fill='%23FFFFFF'/><path d='M170 230 h40 M250 230 h40 M170 290 h40' stroke='%23FFFFFF' stroke-width='18' stroke-linecap='round'/></svg>">
 
   <style>
     :root {
@@ -23,7 +26,6 @@
       --accent-color: #007aff;
       --text-color: #ffffff;
       --text-muted: #aaaaaa;
-      --success-color: #34c759;
     }
 
     * {
@@ -156,7 +158,7 @@
       color: var(--text-muted);
     }
 
-    input[type="text"], input[type="file"], input[type="date"], select, input[type="color"], textarea {
+    input[type="text"], input[type="file"], input[type="date"], select, input[type="color"] {
       -webkit-appearance: none;
       -moz-appearance: none;
       appearance: none;
@@ -289,7 +291,7 @@
       <span class="nav-icon">📅</span>
       <div class="nav-info">
         <h3>Jadwal TPM</h3>
-        <p>Dashboard Utama</p>
+        <p>Monitoring & Inspeksi</p>
       </div>
     </a>
     <a href="kolase.html" class="nav-card active">
@@ -305,8 +307,8 @@
   <div class="card">
     <div class="control-grid">
       
-      <!-- Section Informasi TPM & WhatsApp Caption -->
-      <div class="section-title">Informasi TPM & Caption WhatsApp</div>
+      <!-- Section Informasi TPM -->
+      <div class="section-title">Informasi Jadwal & Area TPM</div>
 
       <div class="form-group">
         <label for="tpmDateInput">Tanggal Kegiatan</label>
@@ -372,17 +374,17 @@
 
       <div class="form-group" style="grid-column: 1 / -1;" id="row1Group">
         <label for="row1Text">Overlay Baris 1</label>
-        <input type="text" id="row1Text" placeholder="Contoh: Pembersihan area valve">
+        <input type="text" id="row1Text" placeholder="Contoh: Cleaning baseplate pompa">
       </div>
 
       <div class="form-group" style="grid-column: 1 / -1;" id="row2Group">
         <label for="row2Text">Overlay Baris 2</label>
-        <input type="text" id="row2Text" placeholder="Contoh: Pelumasan bearing pump">
+        <input type="text" id="row2Text" placeholder="Contoh: Cleaning instrumentasi">
       </div>
 
       <div class="form-group" style="grid-column: 1 / -1;" id="row3Group">
         <label for="row3Text">Overlay Baris 3</label>
-        <input type="text" id="row3Text" placeholder="Contoh: Tightening bolt flange">
+        <input type="text" id="row3Text" placeholder="Contoh: Cleaning area">
       </div>
 
       <!-- Section Gaya & Tampilan -->
@@ -493,7 +495,6 @@
   let loadedBeforeImages = [];
   let loadedAfterImages = [];
 
-  // Default tanggal hari ini
   const todayStr = new Date().toISOString().split('T')[0];
   tpmDateInput.value = todayStr;
 
@@ -518,7 +519,8 @@
     const shiftVal = tpmShiftInput.value;
     const areaName = tpmAreaInput.value.trim() || "-";
 
-    let caption = `TPM ${areaName}\n${shiftVal} ~ ${dateFormatted}`;
+    // Format bold 2 baris pertama (fitur bold WhatsApp pakai *)
+    let caption = `*TPM ${areaName}*\n*${shiftVal} ~ ${dateFormatted}*`;
 
     const rows = getSelectedRows();
     const overlayInputs = [row1Input, row2Input, row3Input];

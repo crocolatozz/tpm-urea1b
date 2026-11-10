@@ -5,17 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Kolase Foto TPM</title>
 
-  <!-- Tag Pengenal Web App PWA untuk iOS Safari & Android -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Kolase TPM">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#121212">
 
-  <!-- Manifest PWA Data URL -->
   <link rel="manifest" href='data:application/manifest+json,{"name":"Kolase Foto TPM","short_name":"Kolase TPM","start_url":".","display":"standalone","background_color":"#121212","theme_color":"#121212"}'>
 
-  <!-- Ikon SVG Aplikasi -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%23007AFF'/><rect x='110' y='130' width='130' height='252' rx='16' fill='%23FFFFFF' fill-opacity='0.85'/><rect x='272' y='130' width='130' height='252' rx='16' fill='%23FFFFFF'/><circle cx='337' cy='200' r='22' fill='%23007AFF'/><path d='M292 340 L330 280 L355 315 L372 295 L392 340 Z' fill='%23007AFF'/></svg>">
   <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%23007AFF'/><rect x='110' y='130' width='130' height='252' rx='16' fill='%23FFFFFF' fill-opacity='0.85'/><rect x='272' y='130' width='130' height='252' rx='16' fill='%23FFFFFF'/><circle cx='337' cy='200' r='22' fill='%23007AFF'/><path d='M292 340 L330 280 L355 315 L372 295 L392 340 Z' fill='%23007AFF'/></svg>">
 
@@ -26,6 +23,7 @@
       --accent-color: #007aff;
       --text-color: #ffffff;
       --text-muted: #aaaaaa;
+      --success-color: #34c759;
     }
 
     * {
@@ -71,7 +69,6 @@
       color: var(--text-muted);
     }
 
-    /* Sub-Menu Navigation */
     .nav-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -159,7 +156,7 @@
       color: var(--text-muted);
     }
 
-    input[type="text"], input[type="file"], select, input[type="color"] {
+    input[type="text"], input[type="file"], input[type="date"], select, input[type="color"], textarea {
       -webkit-appearance: none;
       -moz-appearance: none;
       appearance: none;
@@ -218,7 +215,19 @@
       -webkit-appearance: none;
     }
 
-    .btn:hover {
+    .btn-secondary {
+      background-color: #333;
+      color: #fff;
+      border: 1px solid #444;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+
+    .btn:hover, .btn-secondary:hover {
       opacity: 0.9;
     }
 
@@ -251,6 +260,19 @@
       word-break: break-word;
       font-weight: 500;
     }
+
+    .caption-preview-box {
+      background: #252525;
+      border: 1px solid #3a3a3a;
+      border-radius: 8px;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 0.85rem;
+      white-space: pre-wrap;
+      color: #72d572;
+      width: 100%;
+      min-height: 80px;
+    }
   </style>
 </head>
 <body>
@@ -282,6 +304,29 @@
   <!-- Panel Kontrol -->
   <div class="card">
     <div class="control-grid">
+      
+      <!-- Section Informasi TPM & WhatsApp Caption -->
+      <div class="section-title">Informasi TPM & Caption WhatsApp</div>
+
+      <div class="form-group">
+        <label for="tpmDateInput">Tanggal Kegiatan</label>
+        <input type="date" id="tpmDateInput">
+      </div>
+
+      <div class="form-group">
+        <label for="tpmShiftInput">Shift Pekerjaan</label>
+        <select id="tpmShiftInput">
+          <option value="PAGI" selected>PAGI</option>
+          <option value="SORE">SORE</option>
+          <option value="MALAM">MALAM</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="grid-column: 1 / -1;">
+        <label for="tpmAreaInput">Nama Area / Alat TPM</label>
+        <input type="text" id="tpmAreaInput" placeholder="Otomatis atau isi manual...">
+      </div>
+
       <!-- Section Format Grid -->
       <div class="section-title">Format Grid Layout</div>
 
@@ -323,21 +368,21 @@
       </div>
 
       <!-- Section Overlay Per Baris -->
-      <div class="section-title">Teks Overlay</div>
+      <div class="section-title">Teks Overlay (Muncul di Foto & Caption)</div>
 
       <div class="form-group" style="grid-column: 1 / -1;" id="row1Group">
         <label for="row1Text">Overlay Baris 1</label>
-        <input type="text" id="row1Text" placeholder="Kosongkan jika tidak dipakai">
+        <input type="text" id="row1Text" placeholder="Contoh: Pembersihan area valve">
       </div>
 
       <div class="form-group" style="grid-column: 1 / -1;" id="row2Group">
         <label for="row2Text">Overlay Baris 2</label>
-        <input type="text" id="row2Text" placeholder="Kosongkan jika tidak dipakai">
+        <input type="text" id="row2Text" placeholder="Contoh: Pelumasan bearing pump">
       </div>
 
       <div class="form-group" style="grid-column: 1 / -1;" id="row3Group">
         <label for="row3Text">Overlay Baris 3</label>
-        <input type="text" id="row3Text" placeholder="Kosongkan jika tidak dipakai">
+        <input type="text" id="row3Text" placeholder="Contoh: Tightening bolt flange">
       </div>
 
       <!-- Section Gaya & Tampilan -->
@@ -374,17 +419,51 @@
           <option value="0.75">4:3 (Landscape)</option>
         </select>
       </div>
+
+      <!-- Section Pratinjau Caption -->
+      <div class="section-title">Pratinjau Caption WhatsApp</div>
+
+      <div class="form-group" style="grid-column: 1 / -1;">
+        <div class="caption-preview-box" id="captionPreview"></div>
+        <button type="button" class="btn-secondary" id="copyCaptionBtn">📋 Salin Teks Caption</button>
+      </div>
+
     </div>
   </div>
 
   <!-- Pratinjau & Unduh -->
   <div class="card preview-container">
     <canvas id="collageCanvas"></canvas>
-    <button id="downloadBtn" class="btn" disabled>Unduh Hasil Kolase</button>
+    <button id="downloadBtn" class="btn" disabled>Unduh / Kirim Kolase + Caption</button>
   </div>
 </div>
 
 <script>
+  // Master Database Rotasi 15 Hari TPM Urea 1B
+  const masterTPMUrea1B = {
+    1:  { PAGI: "GA122", SORE: "GA123 & GB801", MALAM: "GB701" },
+    2:  { PAGI: "GA101A", SORE: "GA103", MALAM: "GA104" },
+    3:  { PAGI: "GA101B", SORE: "GA105", MALAM: "GA106" },
+    4:  { PAGI: "GA102A", SORE: "GA107", MALAM: "GA109" },
+    5:  { PAGI: "GA102B", SORE: "GA110", MALAM: "GA121" },
+    6:  { PAGI: "GT 101", SORE: "GA201", MALAM: "GA204" },
+    7:  { PAGI: "GB101LP", SORE: "GA401", MALAM: "GA402" },
+    8:  { PAGI: "GB101HP", SORE: "GA403", MALAM: "GA404" },
+    9:  { PAGI: "IA301", SORE: "GA405", MALAM: "GB 301" },
+    10: { PAGI: "JW301", SORE: "GB302", MALAM: "GA301" },
+    11: { PAGI: "JD301", SORE: "GA302", MALAM: "GA303" },
+    12: { PAGI: "FD304", SORE: "GA501", MALAM: "GA502" },
+    13: { PAGI: "FD305", SORE: "GA503", MALAM: "GA 504 & 704" },
+    14: { PAGI: "GA 101A OIL", SORE: "GA 101B OIL", MALAM: "GA801 & GA803" },
+    15: { PAGI: "GA 102A OIL", SORE: "GA 102B OIL", MALAM: "FLARE" }
+  };
+
+  const tpmDateInput = document.getElementById('tpmDateInput');
+  const tpmShiftInput = document.getElementById('tpmShiftInput');
+  const tpmAreaInput = document.getElementById('tpmAreaInput');
+  const captionPreview = document.getElementById('captionPreview');
+  const copyCaptionBtn = document.getElementById('copyCaptionBtn');
+
   const gridTypeInput = document.getElementById('gridType');
   const beforeInput = document.getElementById('beforeInput');
   const afterInput = document.getElementById('afterInput');
@@ -414,6 +493,67 @@
   let loadedBeforeImages = [];
   let loadedAfterImages = [];
 
+  // Default tanggal hari ini
+  const todayStr = new Date().toISOString().split('T')[0];
+  tpmDateInput.value = todayStr;
+
+  function updateAutoAreaName() {
+    const dateVal = tpmDateInput.value;
+    if (!dateVal) return;
+    const dayOfMonth = parseInt(dateVal.split('-')[2], 10);
+    const cycleDay = ((dayOfMonth - 1) % 15) + 1;
+    const shiftVal = tpmShiftInput.value;
+
+    if (masterTPMUrea1B[cycleDay] && masterTPMUrea1B[cycleDay][shiftVal]) {
+      tpmAreaInput.value = masterTPMUrea1B[cycleDay][shiftVal];
+    }
+    updateCaption();
+  }
+
+  function generateCaptionText() {
+    const dateVal = tpmDateInput.value;
+    if (!dateVal) return "";
+    const [y, m, d] = dateVal.split('-');
+    const dateFormatted = `${d}/${m}/${y}`;
+    const shiftVal = tpmShiftInput.value;
+    const areaName = tpmAreaInput.value.trim() || "-";
+
+    let caption = `TPM ${areaName}\n${shiftVal} ~ ${dateFormatted}`;
+
+    const rows = getSelectedRows();
+    const overlayInputs = [row1Input, row2Input, row3Input];
+
+    const bullets = [];
+    for (let i = 0; i < rows; i++) {
+      const text = overlayInputs[i] ? overlayInputs[i].value.trim() : "";
+      if (text) {
+        bullets.push(`• ${text}`);
+      }
+    }
+
+    if (bullets.length > 0) {
+      caption += `\n\n` + bullets.join('\n');
+    }
+
+    return caption;
+  }
+
+  function updateCaption() {
+    captionPreview.textContent = generateCaptionText();
+  }
+
+  tpmDateInput.addEventListener('change', updateAutoAreaName);
+  tpmShiftInput.addEventListener('change', updateAutoAreaName);
+  tpmAreaInput.addEventListener('input', updateCaption);
+
+  copyCaptionBtn.addEventListener('click', () => {
+    const captionText = generateCaptionText();
+    navigator.clipboard.writeText(captionText).then(() => {
+      copyCaptionBtn.textContent = "✓ Teks Caption Tersalin!";
+      setTimeout(() => copyCaptionBtn.textContent = "📋 Salin Teks Caption", 2000);
+    });
+  });
+
   function freeImages(imgArray) {
     imgArray.forEach(img => {
       if (img && typeof img.close === 'function') {
@@ -434,6 +574,8 @@
 
     row2Group.style.display = rows >= 2 ? 'flex' : 'none';
     row3Group.style.display = rows >= 3 ? 'flex' : 'none';
+
+    updateCaption();
 
     if (beforeInput.files.length > 0) {
       readImages(beforeInput, beforeCount, (images) => {
@@ -460,6 +602,7 @@
 
   [leftHeaderInput, rightHeaderInput, row1Input, row2Input, row3Input, bgColorInput, textColorInput, gapSizeInput, aspectRatioInput].forEach(element => {
     element.addEventListener('input', () => {
+      updateCaption();
       if (loadedBeforeImages.length > 0 || loadedAfterImages.length > 0) generateCollage();
     });
   });
@@ -678,15 +821,17 @@
     canvas.toBlob(async (blob) => {
       if (!blob) return;
 
-      const filename = `kolase-tpm-${gridTypeInput.value}-${Date.now()}.jpg`;
+      const areaNameClean = (tpmAreaInput.value || "TPM").replace(/[^a-zA-Z0-9]/g, "_");
+      const filename = `Kolase_${areaNameClean}_${Date.now()}.jpg`;
       const file = new File([blob], filename, { type: 'image/jpeg' });
+      const captionText = generateCaptionText();
 
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({
             files: [file],
-            title: 'Kolase Foto TPM',
-            text: `Hasil Kolase Foto TPM ${gridTypeInput.value}`
+            title: `TPM ${tpmAreaInput.value}`,
+            text: captionText
           });
           return;
         } catch (err) {
@@ -706,6 +851,7 @@
     }, 'image/jpeg', 0.95);
   });
 
+  updateAutoAreaName();
   updateGridUI();
 </script>
 

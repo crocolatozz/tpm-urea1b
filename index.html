@@ -5,16 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Dashboard TPM Urea 1B</title>
 
+  <!-- Tag Pengenal Web App PWA -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Dashboard TPM">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#121212">
 
+  <!-- Manifest PWA Data URL -->
   <link rel="manifest" href='data:application/manifest+json,{"name":"Dashboard TPM Urea 1B","short_name":"TPM 1B","start_url":".","display":"standalone","background_color":"#121212","theme_color":"#121212"}'>
 
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%23007AFF'/><rect x='110' y='130' width='130' height='252' rx='16' fill='%23FFFFFF' fill-opacity='0.85'/><rect x='272' y='130' width='130' height='252' rx='16' fill='%23FFFFFF'/><circle cx='337' cy='200' r='22' fill='%23007AFF'/><path d='M292 340 L330 280 L355 315 L372 295 L392 340 Z' fill='%23007AFF'/></svg>">
-  <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%23007AFF'/><rect x='110' y='130' width='130' height='252' rx='16' fill='%23FFFFFF' fill-opacity='0.85'/><rect x='272' y='130' width='130' height='252' rx='16' fill='%23FFFFFF'/><circle cx='337' cy='200' r='22' fill='%23007AFF'/><path d='M292 340 L330 280 L355 315 L372 295 L392 340 Z' fill='%23007AFF'/></svg>">
+  <!-- Ikon Aplikasi Alternatif 2 (Kalender + Kamera) -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%23007AFF'/><path d='M140 120 h232 a20 20 0 0 1 20 20 v60 h-272 v-60 a20 20 0 0 1 20-20 z' fill='%23FFFFFF' fill-opacity='0.3'/><rect x='120' y='120' width='272' height='272' rx='28' fill='none' stroke='%23FFFFFF' stroke-width='24'/><circle cx='310' cy='310' r='65' fill='%23007AFF' stroke='%23FFFFFF' stroke-width='18'/><circle cx='310' cy='310' r='25' fill='%23FFFFFF'/><path d='M170 230 h40 M250 230 h40 M170 290 h40' stroke='%23FFFFFF' stroke-width='18' stroke-linecap='round'/></svg>">
+  <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%23007AFF'/><path d='M140 120 h232 a20 20 0 0 1 20 20 v60 h-272 v-60 a20 20 0 0 1 20-20 z' fill='%23FFFFFF' fill-opacity='0.3'/><rect x='120' y='120' width='272' height='272' rx='28' fill='none' stroke='%23FFFFFF' stroke-width='24'/><circle cx='310' cy='310' r='65' fill='%23007AFF' stroke='%23FFFFFF' stroke-width='18'/><circle cx='310' cy='310' r='25' fill='%23FFFFFF'/><path d='M170 230 h40 M250 230 h40 M170 290 h40' stroke='%23FFFFFF' stroke-width='18' stroke-linecap='round'/></svg>">
 
   <style>
     :root {
@@ -125,7 +128,7 @@
       color: var(--text-muted);
     }
 
-    input[type="date"], input[type="text"] {
+    input[type="date"] {
       -webkit-appearance: none;
       background: #2a2a2a;
       border: 1px solid #3a3a3a;
@@ -177,22 +180,6 @@
       font-weight: 600;
       font-size: 1rem;
     }
-
-    .add-form {
-      display: flex;
-      gap: 8px;
-      margin-top: 15px;
-    }
-
-    .btn-add {
-      background: var(--accent-color);
-      color: #fff;
-      border: none;
-      padding: 12px 16px;
-      border-radius: 8px;
-      font-weight: bold;
-      cursor: pointer;
-    }
   </style>
 </head>
 <body>
@@ -209,7 +196,7 @@
       <span class="nav-icon">📅</span>
       <div class="nav-info">
         <h3>Jadwal TPM</h3>
-        <p>Inspeksi & Shift</p>
+        <p>Monitoring & Inspeksi</p>
       </div>
     </a>
     <a href="kolase.html" class="nav-card">
@@ -221,7 +208,7 @@
     </a>
   </div>
 
-  <!-- Card Utama: Jadwal TPM -->
+  <!-- Card Utama: Jadwal TPM Fix -->
   <div class="card">
     <div class="form-group">
       <label for="tpmDate">Pilih Tanggal Jadwal:</label>
@@ -233,11 +220,6 @@
     </div>
 
     <div class="tpm-list" id="tpmList"></div>
-
-    <div class="add-form">
-      <input type="text" id="newTaskInput" placeholder="+ Tambah catatan/item inspeksi tambahan...">
-      <button class="btn-add" id="addTaskBtn">Tambah</button>
-    </div>
   </div>
 </div>
 
@@ -245,8 +227,6 @@
   const tpmDate = document.getElementById('tpmDate');
   const scheduleTitle = document.getElementById('scheduleTitle');
   const tpmList = document.getElementById('tpmList');
-  const newTaskInput = document.getElementById('newTaskInput');
-  const addTaskBtn = document.getElementById('addTaskBtn');
 
   // Database Master Rotasi 15 Hari TPM Urea 1B
   const masterTPMUrea1B = {
@@ -270,29 +250,21 @@
   const today = new Date().toISOString().split('T')[0];
   tpmDate.value = today;
 
-  function getStorageKey(dateStr) {
-    return `tpm_schedule_view_${dateStr}`;
-  }
-
   function loadSchedule(dateStr) {
     const isToday = dateStr === today;
     scheduleTitle.textContent = isToday ? "Jadwal TPM Hari Ini" : `Jadwal TPM (${formatDateIndo(dateStr)})`;
     
-    let tasks = JSON.parse(localStorage.getItem(getStorageKey(dateStr))) || [];
+    const dayOfMonth = parseInt(dateStr.split('-')[2], 10);
+    const cycleDay = ((dayOfMonth - 1) % 15) + 1;
     
-    if (tasks.length === 0) {
-      const dayOfMonth = parseInt(dateStr.split('-')[2], 10);
-      const cycleDay = ((dayOfMonth - 1) % 15) + 1;
-      
-      const dayData = masterTPMUrea1B[cycleDay];
-      if (dayData) {
-        tasks = [
-          { shift: "PAGI", text: dayData.PAGI },
-          { shift: "SORE", text: dayData.SORE },
-          { shift: "MALAM", text: dayData.MALAM }
-        ];
-        localStorage.setItem(getStorageKey(dateStr), JSON.stringify(tasks));
-      }
+    const dayData = masterTPMUrea1B[cycleDay];
+    let tasks = [];
+    if (dayData) {
+      tasks = [
+        { shift: "PAGI", text: dayData.PAGI },
+        { shift: "SORE", text: dayData.SORE },
+        { shift: "MALAM", text: dayData.MALAM }
+      ];
     }
 
     renderTasks(tasks);
@@ -310,25 +282,12 @@
       const item = document.createElement('div');
       item.className = 'tpm-item';
       item.innerHTML = `
-        <span class="shift-tag">SHIFT ${task.shift || 'TAMBAHAN'}</span>
+        <span class="shift-tag">SHIFT ${task.shift}</span>
         <div class="tpm-title">${task.text}</div>
       `;
       tpmList.appendChild(item);
     });
   }
-
-  addTaskBtn.addEventListener('click', () => {
-    const text = newTaskInput.value.trim();
-    if (!text) return;
-
-    const dateStr = tpmDate.value;
-    let tasks = JSON.parse(localStorage.getItem(getStorageKey(dateStr))) || [];
-    tasks.push({ shift: "CATATAN", text: text });
-    localStorage.setItem(getStorageKey(dateStr), JSON.stringify(tasks));
-    
-    newTaskInput.value = '';
-    loadSchedule(dateStr);
-  });
 
   tpmDate.addEventListener('change', (e) => loadSchedule(e.target.value));
 

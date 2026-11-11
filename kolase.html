@@ -287,7 +287,7 @@
     <p id="appSubtitle">Template Grid untuk Foto TPM</p>
   </header>
 
-  <!-- Navigasi Sub-Menu -->
+  <!-- Navigasi Sub-Menu (Emoji Kalender & Kamera Original) -->
   <div class="nav-grid">
     <a href="index.html" class="nav-card">
       <span class="nav-icon">📅</span>
@@ -526,8 +526,8 @@
     const shiftVal = tpmShiftInput.value;
     const areaName = tpmAreaInput.value.trim() || "-";
 
-    // Format bold 2 baris pertama untuk WhatsApp (*teks*)
-    let caption = `*TPM ${areaName}*\n*${shiftVal} ~ ${dateFormatted}*`;
+    // Format bold 2 baris pertama WhatsApp (*teks*) + Tambahan "SHIFT" di baris kedua
+    let caption = `*TPM ${areaName}*\n*SHIFT ${shiftVal} ~ ${dateFormatted}*`;
 
     const rows = getSelectedRows();
     const overlayInputs = [row1Input, row2Input, row3Input];
@@ -636,7 +636,7 @@
         const img = new Image();
         img.onload = () => resolve(img);
         img.onerror = () => resolve(null);
-        img.src = e.result;
+        img.src = e.target.result;
       };
       reader.onerror = () => resolve(null);
       reader.readAsDataURL(file);

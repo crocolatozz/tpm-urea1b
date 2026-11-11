@@ -5,193 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Dashboard TPM Urea 1B</title>
 
-  <!-- Tag Pengenal Web App PWA untuk iOS Safari & Android -->
+  <!-- PWA Metadata -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Dashboard TPM">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#121212">
 
-  <!-- Manifest PWA Data URL -->
   <link rel="manifest" href='data:application/manifest+json,{"name":"Dashboard TPM Urea 1B","short_name":"TPM 1B","start_url":".","display":"standalone","background_color":"#121212","theme_color":"#121212"}'>
-
-  <!-- Pemanggilan File Ikon Asli Transparan -->
+  
+  <!-- Favicon -->
   <link rel="icon" type="image/png" href="icon.png">
   <link rel="apple-touch-icon" href="icon.png">
 
-  <style>
-    :root {
-      --bg-color: #121212;
-      --card-bg: #1e1e1e;
-      --accent-color: #007aff;
-      --text-color: #ffffff;
-      --text-muted: #aaaaaa;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    body {
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      /* Jarak atas aman dari Notch / Dynamic Island iPhone */
-      padding: calc(40px + env(safe-area-inset-top)) 15px calc(60px + env(safe-area-inset-bottom)) 15px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-      width: 100%;
-      overflow-x: hidden;
-    }
-
-    .container {
-      max-width: 800px;
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    header {
-      text-align: center;
-      margin-bottom: 5px;
-    }
-
-    header h1 {
-      font-size: 1.6rem;
-      margin-bottom: 4px;
-    }
-
-    header p {
-      font-size: 0.9rem;
-      color: var(--text-muted);
-    }
-
-    .nav-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-
-    .nav-card {
-      background: var(--card-bg);
-      padding: 14px;
-      border-radius: 12px;
-      text-decoration: none;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      border: 1px solid #333;
-      transition: 0.2s;
-    }
-
-    .nav-card.active {
-      border-color: var(--accent-color);
-      background: #1a2736;
-    }
-
-    .nav-icon {
-      font-size: 1.4rem;
-    }
-
-    .nav-info h3 {
-      font-size: 0.95rem;
-    }
-
-    .nav-info p {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-
-    .card {
-      background: var(--card-bg);
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
-
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-bottom: 15px;
-    }
-
-    label {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--text-muted);
-    }
-
-    /* Kunci minimal 16px agar Safari iOS tidak auto-zoom */
-    input[type="date"] {
-      -webkit-appearance: none;
-      background: #2a2a2a;
-      border: 1px solid #3a3a3a;
-      color: #fff;
-      padding: 12px;
-      border-radius: 8px;
-      font-size: 16px !important;
-      width: 100%;
-    }
-
-    .schedule-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-      border-bottom: 1px solid #333;
-      padding-bottom: 8px;
-    }
-
-    .schedule-header h2 {
-      font-size: 1.1rem;
-      color: var(--accent-color);
-    }
-
-    .tpm-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .tpm-item {
-      background: #252525;
-      padding: 14px;
-      border-radius: 8px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      border-left: 4px solid var(--accent-color);
-    }
-
-    .tpm-item.off-day {
-      border-left-color: #ff9500;
-      background: #2a2419;
-    }
-
-    .shift-tag {
-      font-size: 0.75rem;
-      font-weight: 700;
-      color: var(--accent-color);
-      text-transform: uppercase;
-    }
-
-    .tpm-item.off-day .shift-tag {
-      color: #ff9500;
-    }
-
-    .tpm-title {
-      font-weight: 600;
-      font-size: 1rem;
-    }
-  </style>
+  <!-- CSS External -->
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -201,7 +29,7 @@
     <p>Monitoring & Jadwal Inspeksi Mesin</p>
   </header>
 
-  <!-- Navigasi Sub-Menu (Emoji Kalender & Kamera Original) -->
+  <!-- Navigasi -->
   <div class="nav-grid">
     <a href="index.html" class="nav-card active">
       <span class="nav-icon">📅</span>
@@ -219,7 +47,7 @@
     </a>
   </div>
 
-  <!-- Card Utama: Jadwal TPM Fix -->
+  <!-- Content -->
   <div class="card">
     <div class="form-group">
       <label for="tpmDate">Pilih Tanggal Jadwal:</label>
@@ -234,87 +62,8 @@
   </div>
 </div>
 
-<script>
-  const tpmDate = document.getElementById('tpmDate');
-  const scheduleTitle = document.getElementById('scheduleTitle');
-  const tpmList = document.getElementById('tpmList');
-
-  // Database Master Rotasi 15 Hari TPM Urea 1B
-  const masterTPMUrea1B = {
-    1:  { PAGI: "GA122", SORE: "GA123 & GB801", MALAM: "GB701" },
-    2:  { PAGI: "GA101A", SORE: "GA103", MALAM: "GA104" },
-    3:  { PAGI: "GA101B", SORE: "GA105", MALAM: "GA106" },
-    4:  { PAGI: "GA102A", SORE: "GA107", MALAM: "GA109" },
-    5:  { PAGI: "GA102B", SORE: "GA110", MALAM: "GA121" },
-    6:  { PAGI: "GT 101", SORE: "GA201", MALAM: "GA204" },
-    7:  { PAGI: "GB101LP", SORE: "GA401", MALAM: "GA402" },
-    8:  { PAGI: "GB101HP", SORE: "GA403", MALAM: "GA404" },
-    9:  { PAGI: "IA301", SORE: "GA405", MALAM: "GB 301" },
-    10: { PAGI: "JW301", SORE: "GB302", MALAM: "GA301" },
-    11: { PAGI: "JD301", SORE: "GA302", MALAM: "GA303" },
-    12: { PAGI: "FD304", SORE: "GA501", MALAM: "GA502" },
-    13: { PAGI: "FD305", SORE: "GA503", MALAM: "GA 504 & 704" },
-    14: { PAGI: "GA 101A OIL", SORE: "GA 101B OIL", MALAM: "GA801 & GA803" },
-    15: { PAGI: "GA 102A OIL", SORE: "GA 102B OIL", MALAM: "FLARE" }
-  };
-
-  const today = new Date().toISOString().split('T')[0];
-  tpmDate.value = today;
-
-  function loadSchedule(dateStr) {
-    const isToday = dateStr === today;
-    scheduleTitle.textContent = isToday ? "Jadwal TPM Hari Ini" : `Jadwal TPM (${formatDateIndo(dateStr)})`;
-    
-    const dayOfMonth = parseInt(dateStr.split('-')[2], 10);
-    
-    let tasks = [];
-    if (dayOfMonth === 31) {
-      tasks = [
-        { shift: "INFO", text: "TIDAK ADA KEGIATAN", isOff: true }
-      ];
-    } else {
-      const cycleDay = ((dayOfMonth - 1) % 15) + 1;
-      const dayData = masterTPMUrea1B[cycleDay];
-      if (dayData) {
-        tasks = [
-          { shift: "PAGI", text: dayData.PAGI },
-          { shift: "SORE", text: dayData.SORE },
-          { shift: "MALAM", text: dayData.MALAM }
-        ];
-      }
-    }
-
-    renderTasks(tasks);
-  }
-
-  function renderTasks(tasks) {
-    tpmList.innerHTML = '';
-
-    if (tasks.length === 0) {
-      tpmList.innerHTML = `<p style="text-align:center; color:#888; padding: 20px 0;">Belum ada jadwal di tanggal ini.</p>`;
-      return;
-    }
-
-    tasks.forEach((task) => {
-      const item = document.createElement('div');
-      item.className = `tpm-item ${task.isOff ? 'off-day' : ''}`;
-      item.innerHTML = `
-        <span class="shift-tag">${task.shift === 'INFO' ? 'STATUS' : 'SHIFT ' + task.shift}</span>
-        <div class="tpm-title">${task.text}</div>
-      `;
-      tpmList.appendChild(item);
-    });
-  }
-
-  tpmDate.addEventListener('change', (e) => loadSchedule(e.target.value));
-
-  function formatDateIndo(dateStr) {
-    const [y, m, d] = dateStr.split('-');
-    return `${d}/${m}/${y}`;
-  }
-
-  loadSchedule(today);
-</script>
-
+<!-- JS Modular -->
+<script src="tpm-data.js"></script>
+<script src="dashboard.js"></script>
 </body>
 </html>

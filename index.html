@@ -12,7 +12,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#121212">
 
-  <link rel="manifest" href='data:application/manifest+json,{"name":"Dashboard TPM Urea 1B","short_name":"TPM 1B","start_url":".","display":"standalone","background_color":"#121212","theme_color":"#121212"}'>
+  <link rel="manifest" href="manifest.json">
   
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="icon.png">
@@ -59,6 +59,26 @@
     </div>
 
     <div class="tpm-list" id="tpmList"></div>
+  </div>
+
+  <!-- Footer dengan Tombol Smart Install -->
+  <footer class="app-footer">
+    <button id="installAppBtn" class="btn-install" style="display: none;">
+      📲 Install Aplikasi PWA
+    </button>
+  </footer>
+</div>
+
+<!-- Modal Petunjuk iOS Safari -->
+<div id="iosInstallModal" class="modal-overlay" style="display: none;">
+  <div class="modal-content">
+    <h3>Cara Install di iPhone / iPad</h3>
+    <ol>
+      <li>Tap tombol <strong>Share 📤</strong> di bagian bawah Safari.</li>
+      <li>Scroll ke bawah lalu pilih <strong>"Tambah ke Layar Utama" ➕</strong>.</li>
+      <li>Tap <strong>"Tambah"</strong> di pojok kanan atas.</li>
+    </ol>
+    <button id="closeIosModalBtn" class="btn-secondary" style="width: 100%;">Mengerti</button>
   </div>
 </div>
 

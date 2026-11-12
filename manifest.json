@@ -1,0 +1,16 @@
+{
+  "name": "Dashboard TPM Urea 1B",
+  "short_name": "TPM 1B",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#121212",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

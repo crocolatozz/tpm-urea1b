@@ -17,7 +17,6 @@
 body {
   background-color: var(--bg-color);
   color: var(--text-color);
-  /* Proteksi Notch / Dynamic Island iPhone */
   padding: calc(40px + env(safe-area-inset-top)) 15px calc(60px + env(safe-area-inset-bottom)) 15px;
   display: flex;
   flex-direction: column;
@@ -138,7 +137,6 @@ label {
   color: var(--text-muted);
 }
 
-/* Proteksi Minimal 16px Cegah Safari iOS Auto-Zoom */
 input[type="text"], input[type="file"], input[type="date"], select, input[type="color"] {
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -306,4 +304,76 @@ canvas {
 .tpm-title {
   font-weight: 600;
   font-size: 1rem;
+}
+
+/* Footer & Smart Install Button */
+.app-footer {
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.btn-install {
+  background: linear-gradient(135deg, #007aff, #0056b3);
+  color: #fff;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 25px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(0, 122, 255, 0.4);
+  transition: transform 0.2s, background 0.2s;
+}
+
+.btn-install:active {
+  transform: scale(0.96);
+}
+
+/* Modal Petunjuk iOS */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.modal-content {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 400px;
+  width: 100%;
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+
+.modal-content h3 {
+  color: var(--accent-color);
+  font-size: 1.1rem;
+  margin-bottom: 12px;
+}
+
+.modal-content ol {
+  padding-left: 20px;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #ddd;
+  margin-bottom: 18px;
+}
+
+.modal-content ol li {
+  margin-bottom: 8px;
 }

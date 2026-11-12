@@ -61,14 +61,11 @@ function generateCaptionText() {
   const shiftVal = tpmShiftInput.value;
   const areaName = tpmAreaInput.value.trim() || "-";
 
-  // Format bold 2 baris pertama WhatsApp (*teks*) + "SHIFT"
-  let caption = `*TPM ${areaName}*
-*SHIFT ${shiftVal} ~ ${dateFormatted}*`;
+  let caption = `*TPM ${areaName}*\n*SHIFT ${shiftVal} ~ ${dateFormatted}*`;
 
   const rows = getSelectedRows();
   const overlayInputs = [row1Input, row2Input, row3Input];
 
-  // Bullet list resmi WhatsApp (- spasi)
   const bullets = [];
   for (let i = 0; i < rows; i++) {
     const text = overlayInputs[i] ? overlayInputs[i].value.trim() : "";
@@ -255,11 +252,9 @@ function generateCollage() {
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
 
-    // Background
     ctx.fillStyle = bgColorInput.value;
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-    // Header Utama
     ctx.fillStyle = textColorInput.value;
     ctx.font = 'bold 80px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
     ctx.textAlign = 'center';
@@ -272,7 +267,6 @@ function generateCollage() {
     ctx.fillText(leftHeaderInput.value, leftColCenterX, headerCenterY);
     ctx.fillText(rightHeaderInput.value, rightColCenterX, headerCenterY);
 
-    // Render Foto
     const startY = padding + headerHeight;
 
     for (let r = 0; r < rows; r++) {
@@ -289,7 +283,6 @@ function generateCollage() {
       }
     }
 
-    // Render Teks Overlay
     const rawRowTexts = [
       row1Input ? row1Input.value : '',
       row2Input ? row2Input.value : '',
@@ -399,3 +392,9 @@ downloadBtn.addEventListener('click', () => {
 
 updateAutoAreaName();
 updateGridUI();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW Registration error:', err));
+  });
+}

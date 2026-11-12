@@ -1,6 +1,6 @@
 {
   "name": "Dashboard TPM Urea 1B",
-  "short_name": "TPM 1B",
+  "short_name": "TPM Urea 1B",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#121212",

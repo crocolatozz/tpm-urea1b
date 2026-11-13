@@ -1,10 +1,11 @@
 const tpmDateInput = document.getElementById('tpmDateInput');
 const tpmShiftInput = document.getElementById('tpmShiftInput');
 const tpmAreaInput = document.getElementById('tpmAreaInput');
+const offDayWarning = document.getElementById('offDayWarning');
 const captionPreview = document.getElementById('captionPreview');
 const copyCaptionBtn = document.getElementById('copyCaptionBtn');
 
-const gridTypeInput = document.getElementById('gridType');
+const gridOptions = document.querySelectorAll('.grid-option');
 const beforeInput = document.getElementById('beforeInput');
 const afterInput = document.getElementById('afterInput');
 const beforeCount = document.getElementById('beforeCount');
@@ -14,6 +15,7 @@ const afterTip = document.getElementById('afterTip');
 const beforeLabel = document.getElementById('beforeLabel');
 const afterLabel = document.getElementById('afterLabel');
 
+const photoActionsGrid = document.getElementById('photoActionsGrid');
 const swapBeforeAfterBtn = document.getElementById('swapBeforeAfterBtn');
 const swapRow12Btn = document.getElementById('swapRow12Btn');
 const swapRow23Btn = document.getElementById('swapRow23Btn');
@@ -39,6 +41,7 @@ const canvas = document.getElementById('collageCanvas');
 const ctx = canvas.getContext('2d');
 const downloadBtn = document.getElementById('downloadBtn');
 
+let selectedGridType = '2x3';
 let loadedBeforeImages = [];
 let loadedAfterImages = [];
 
@@ -107,10 +110,21 @@ if (paramShift && ['PAGI', 'SORE', 'MALAM'].includes(paramShift)) {
   tpmShiftInput.value = getCurrentActiveShift();
 }
 
+function checkOffDayIndicator(dateVal) {
+  if (!offDayWarning || !dateVal) return;
+  const dayOfMonth = parseInt(dateVal.split('-')[2], 10);
+  if (dayOfMonth === 31) {
+    offDayWarning.style.display = 'block';
+  } else {
+    offDayWarning.style.display = 'none';
+  }
+}
+
 function updateAutoAreaName() {
   const dateVal = tpmDateInput.value;
   if (!dateVal) return;
   const dayOfMonth = parseInt(dateVal.split('-')[2], 10);
+  checkOffDayIndicator(dateVal);
   
   if (dayOfMonth === 31) {
     tpmAreaInput.value = "TIDAK ADA KEGIATAN";
@@ -132,8 +146,9 @@ function generateCaptionText() {
   const shiftVal = tpmShiftInput.value;
   const areaName = tpmAreaInput.value.trim() || "-";
 
-  // Format bold 2 baris pertama WhatsApp (*teks*) + "SHIFT"
-  let caption = `*TPM ${areaName}*\n*SHIFT ${shiftVal} ~ ${dateFormatted}*`;
+  // Format bold 2 baris pertama WhatsApp (*teks*) + "SHIFT" + simbol "~"
+  let caption = `*TPM ${areaName}*
+*SHIFT ${shiftVal} ~ ${dateFormatted}*`;
 
   const rows = getSelectedRows();
   const overlayInputs = [row1Input, row2Input, row3Input];
@@ -148,7 +163,10 @@ function generateCaptionText() {
   }
 
   if (bullets.length > 0) {
-    caption += `\n\n` + bullets.join('\n');
+    caption += `
+
+` + bullets.join('
+');
   }
 
   return caption;
@@ -166,7 +184,7 @@ copyCaptionBtn.addEventListener('click', () => {
   saveOverlayHistory();
   const captionText = generateCaptionText();
   navigator.clipboard.writeText(captionText).then(() => {
-    copyCaptionBtn.textContent = "✓ Caption Tersalin!";
+    copyCaptionBtn.textContent = "✅ Caption Tersalin!";
     setTimeout(() => copyCaptionBtn.textContent = "📋 Salin Caption", 2000);
   });
 });
@@ -180,7 +198,7 @@ function freeImages(imgArray) {
 }
 
 function getSelectedRows() {
-  return parseInt(gridTypeInput.value.split('x')[1], 10);
+  return parseInt(selectedGridType.split('x')[1], 10);
 }
 
 function countValidImages(arr) {
@@ -234,8 +252,8 @@ function updateGridUI() {
   row2Group.style.display = rows >= 2 ? 'flex' : 'none';
   row3Group.style.display = rows >= 3 ? 'flex' : 'none';
 
-  if (swapRow12Btn) swapRow12Btn.style.display = rows >= 2 ? 'inline-block' : 'none';
-  if (swapRow23Btn) swapRow23Btn.style.display = rows >= 3 ? 'inline-block' : 'none';
+  if (swapRow12Btn) swapRow12Btn.style.display = rows >= 2 ? 'flex' : 'none';
+  if (swapRow23Btn) swapRow23Btn.style.display = rows >= 3 ? 'flex' : 'none';
 
   // Trim foto berlebih jika user menurunkan ukuran grid (misal 2x3 -> 2x2)
   if (loadedBeforeImages.length > rows) {
@@ -252,7 +270,17 @@ function updateGridUI() {
   updateStateAndGenerate();
 }
 
-gridTypeInput.addEventListener('change', updateGridUI);
+gridOptions.forEach(optionBtn => {
+  optionBtn.addEventListener('click', () => {
+    const newGrid = optionBtn.dataset.grid;
+    if (!newGrid || newGrid === selectedGridType) return;
+    selectedGridType = newGrid;
+    gridOptions.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.grid === selectedGridType);
+    });
+    updateGridUI();
+  });
+});
 
 [leftHeaderInput, rightHeaderInput, row1Input, row2Input, row3Input, bgColorInput, textColorInput, gapSizeInput, aspectRatioInput].forEach(element => {
   element.addEventListener('input', () => {
@@ -408,6 +436,7 @@ function updateStateAndGenerate() {
   if (hasPhotos) {
     if (previewPlaceholder) previewPlaceholder.style.display = 'none';
     canvas.style.display = 'block';
+    if (photoActionsGrid) photoActionsGrid.style.display = 'grid';
     downloadBtn.disabled = false;
     generateCollage();
   } else {
@@ -415,6 +444,7 @@ function updateStateAndGenerate() {
     canvas.width = 0;
     canvas.height = 0;
     canvas.style.display = 'none';
+    if (photoActionsGrid) photoActionsGrid.style.display = 'none';
     if (previewPlaceholder) previewPlaceholder.style.display = 'block';
     downloadBtn.disabled = true;
   }
@@ -596,6 +626,7 @@ downloadBtn.addEventListener('click', () => {
 // Inisialisasi Awal
 if (paramArea) {
   tpmAreaInput.value = paramArea;
+  checkOffDayIndicator(tpmDateInput.value);
   updateCaption();
 } else {
   updateAutoAreaName();
@@ -603,3 +634,4 @@ if (paramArea) {
 loadOverlayHistory();
 updateGridUI();
 initGuideModal();
+initAppVersionCheck();

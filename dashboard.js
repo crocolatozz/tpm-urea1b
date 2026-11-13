@@ -62,6 +62,7 @@ function renderTasks(tasks, dateStr, isToday) {
 tpmDate.addEventListener('change', (e) => loadSchedule(e.target.value));
 loadSchedule(today);
 initGuideModal();
+initAppVersionCheck();
 
 // Register Service Worker
 if ('serviceWorker' in navigator) {

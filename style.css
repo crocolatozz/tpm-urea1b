@@ -211,6 +211,88 @@ input[type="color"]::-webkit-color-swatch {
   border-radius: 6px;
 }
 
+/* Visual Grid Selector ala Instagram */
+.grid-selector {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  width: 100%;
+}
+
+.grid-option {
+  background-color: #252525;
+  border: 1.5px solid #3a3a3a;
+  border-radius: 10px;
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  color: #ccc;
+  transition: border-color 0.15s, background-color 0.15s, transform 0.1s;
+  -webkit-appearance: none;
+}
+
+.grid-option:active {
+  transform: scale(0.97);
+}
+
+.grid-option.active {
+  background-color: #1a2736;
+  border-color: var(--accent-color);
+  color: #fff;
+}
+
+.grid-wireframe {
+  width: 38px;
+  height: 44px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  padding: 3px;
+  background-color: #181818;
+  border: 1px solid #444;
+  border-radius: 5px;
+}
+
+.grid-option.active .grid-wireframe {
+  border-color: #64b5f6;
+  background-color: #101b27;
+}
+
+.grid-wireframe span {
+  background-color: #555;
+  border-radius: 2px;
+  display: block;
+}
+
+.grid-option.active .grid-wireframe span {
+  background-color: var(--accent-color);
+}
+
+.grid-option-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.grid-option-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.grid-option-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.grid-option.active .grid-option-sub {
+  color: #8ab4f8;
+}
+
 .btn {
   background-color: var(--accent-color);
   color: white;
@@ -222,6 +304,10 @@ input[type="color"]::-webkit-color-swatch {
   cursor: pointer;
   width: 100%;
   max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   transition: opacity 0.2s;
   -webkit-appearance: none;
 }
@@ -233,8 +319,12 @@ input[type="color"]::-webkit-color-swatch {
   padding: 10px 12px;
   border-radius: 8px;
   font-weight: 600;
-  font-size: 0.83rem;
+  font-size: 0.85rem;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   transition: background-color 0.15s, transform 0.1s;
 }
 
@@ -250,8 +340,12 @@ input[type="color"]::-webkit-color-swatch {
   padding: 10px 12px;
   border-radius: 8px;
   font-weight: 600;
-  font-size: 0.83rem;
+  font-size: 0.85rem;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   transition: background-color 0.15s, transform 0.1s;
 }
 
@@ -270,13 +364,43 @@ input[type="color"]::-webkit-color-swatch {
   cursor: not-allowed;
 }
 
-/* Quick Photo Action Buttons */
+/* Cerminkan simbol ➔ agar tombol Sebelumnya 100% kembar identik */
+.arrow-mirror {
+  display: inline-block;
+  transform: scaleX(-1);
+}
+
+/* Spinner Loading Murni CSS (Tanpa GIF) */
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2.5px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  display: inline-block;
+  animation: spin 0.75s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Quick Photo Action Buttons (Tinggi Seragam di Area Pratinjau) */
 .photo-actions-grid {
-  grid-column: 1 / -1;
+  width: 100%;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-  margin-top: 2px;
+}
+
+.photo-actions-grid button {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.25;
 }
 
 /* Collapsible Cosmetic Settings */
@@ -335,7 +459,7 @@ input[type="color"]::-webkit-color-swatch {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 15px;
+  gap: 14px;
   margin-bottom: 10px;
 }
 
@@ -526,24 +650,45 @@ canvas {
 
 .footer-credit {
   font-size: 0.78rem;
-  color: #777777;
+  color: #888888;
   letter-spacing: 0.2px;
+  line-height: 1.55;
 }
 
-/* Modal Umum (Panduan Interaktif & Petunjuk iOS) */
+.footer-copy {
+  display: block;
+  margin-top: 2px;
+  color: #777777;
+  font-weight: 500;
+}
+
+.footer-version {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  background-color: #1c1c1c;
+  border: 1px solid #303030;
+  color: #7a7a7a;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+/* Modal Umum (Panduan Interaktif, Petunjuk iOS & Force Update) */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.82);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
   padding: 18px;
-  backdrop-filter: blur(3px);
+  backdrop-filter: blur(4px);
 }
 
 .modal-content {
@@ -554,7 +699,7 @@ canvas {
   max-width: 440px;
   width: 100%;
   color: #fff;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.65);
   animation: modalPop 0.18s ease-out;
 }
 
@@ -623,7 +768,9 @@ canvas {
   font-size: 0.9rem;
   line-height: 1.55;
   color: #e0e0e0;
-  min-height: 165px;
+  height: 245px;
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
 .guide-step-panel.active {
@@ -646,7 +793,7 @@ canvas {
 .guide-nav-buttons {
   display: flex;
   gap: 10px;
-  margin-top: 18px;
+  margin-top: 16px;
   padding-top: 12px;
   border-top: 1px solid #333;
 }
@@ -665,4 +812,101 @@ canvas {
 
 .modal-content ol li {
   margin-bottom: 8px;
+}
+
+/* Force Update Pop-Up Styling */
+.update-version-box {
+  background: #252525;
+  border: 1px solid #363636;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 10px;
+  text-align: center;
+}
+
+.update-ver-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.update-ver-label {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.update-ver-val {
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.update-ver-val.old {
+  color: #ff9500;
+}
+
+.update-ver-val.new {
+  color: var(--success-color);
+}
+
+.update-arrow {
+  font-size: 1.2rem;
+  color: #8ab4f8;
+  font-weight: 700;
+}
+
+.update-desc {
+  font-size: 0.88rem;
+  color: #d8d8d8;
+  line-height: 1.5;
+  margin-bottom: 14px;
+  text-align: center;
+}
+
+.update-warning-note {
+  background: rgba(255, 149, 0, 0.12);
+  border: 1px solid rgba(255, 149, 0, 0.35);
+  color: #ffb340;
+  font-size: 0.8rem;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.update-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.update-success-body {
+  text-align: center;
+  padding: 8px 0 4px 0;
+}
+
+.update-success-icon {
+  font-size: 2.6rem;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.update-success-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 6px;
+}
+
+.update-success-sub {
+  font-size: 0.86rem;
+  color: var(--text-muted);
+  margin-bottom: 18px;
+  line-height: 1.45;
 }

@@ -12,7 +12,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#121212">
 
-  <link rel="manifest" href="manifest.json?v=4">
+  <link rel="manifest" href="manifest.json?v=6">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="icon.png">
@@ -25,9 +25,9 @@
 
 <div class="container">
   <header>
-    <h1 id="appTitle">Kolase Foto TPM</h1>
-    <p id="appSubtitle">Template Grid untuk Foto TPM</p>
-    <button type="button" id="openGuideBtn" class="btn-guide-pill">❓ Panduan Penggunaan</button>
+    <h1 id="appTitle">🖼️ Kolase Foto TPM</h1>
+    <p id="appSubtitle">Susun Dokumentasi Before & After</p>
+    <button type="button" id="openGuideBtn" class="btn-guide-pill">❓ Panduan</button>
   </header>
 
   <!-- Navigasi -->
@@ -52,7 +52,7 @@
   <div class="card">
     <div class="control-grid">
       
-      <div class="section-title">Informasi Jadwal & Area TPM</div>
+      <div class="section-title">📋 Jadwal & Area TPM</div>
 
       <div class="form-group">
         <label for="tpmDateInput">Tanggal Kegiatan</label>
@@ -62,9 +62,9 @@
       <div class="form-group">
         <label for="tpmShiftInput">Shift Pekerjaan</label>
         <select id="tpmShiftInput">
-          <option value="PAGI">PAGI</option>
-          <option value="SORE">SORE</option>
-          <option value="MALAM">MALAM</option>
+          <option value="PAGI">☀️ PAGI</option>
+          <option value="SORE">🌤️ SORE</option>
+          <option value="MALAM">🌙 MALAM</option>
         </select>
       </div>
 
@@ -73,7 +73,7 @@
         <input type="text" id="tpmAreaInput" placeholder="Otomatis atau isi manual...">
       </div>
 
-      <div class="section-title">Format Grid & Upload Foto</div>
+      <div class="section-title">📸 Grid & Upload Foto</div>
 
       <div class="form-group" style="grid-column: 1 / -1;">
         <label for="gridType">Pilih Ukuran Grid</label>
@@ -85,15 +85,17 @@
       </div>
 
       <div class="form-group">
-        <label for="beforeInput" id="beforeLabel">Foto BEFORE (Kolom Kiri - Max 3)</label>
+        <label for="beforeInput" id="beforeLabel">Foto BEFORE (Pilih 3 Foto Sekaligus)</label>
         <input type="file" id="beforeInput" accept="image/*" multiple>
         <span class="file-hint" id="beforeCount">Belum ada foto dipilih</span>
+        <span class="file-tip" id="beforeTip">💡 Bisa langsung pilih/centang 3 foto sekaligus</span>
       </div>
 
       <div class="form-group">
-        <label for="afterInput" id="afterLabel">Foto AFTER (Kolom Kanan - Max 3)</label>
+        <label for="afterInput" id="afterLabel">Foto AFTER (Pilih 3 Foto Sekaligus)</label>
         <input type="file" id="afterInput" accept="image/*" multiple>
         <span class="file-hint" id="afterCount">Belum ada foto dipilih</span>
+        <span class="file-tip" id="afterTip">💡 Bisa langsung pilih/centang 3 foto sekaligus</span>
       </div>
 
       <!-- Tombol Cepat Tukar & Reset Foto -->
@@ -104,28 +106,28 @@
         <button type="button" class="btn-secondary" id="swapRow23Btn">⇅ Tukar Baris 2 & 3</button>
       </div>
 
-      <div class="section-title">Teks Overlay (Muncul di Foto & Caption)</div>
+      <div class="section-title">✍️ Keterangan Kegiatan (Foto & Caption)</div>
 
       <datalist id="overlayHistoryList"></datalist>
 
       <div class="form-group" style="grid-column: 1 / -1;" id="row1Group">
-        <label for="row1Text">Overlay Baris 1</label>
-        <input type="text" id="row1Text" list="overlayHistoryList" placeholder="Contoh: Cleaning baseplate pompa">
+        <label for="row1Text">Kegiatan Baris 1</label>
+        <input type="text" id="row1Text" list="overlayHistoryList" placeholder="Contoh: Regreasing BV">
       </div>
 
       <div class="form-group" style="grid-column: 1 / -1;" id="row2Group">
-        <label for="row2Text">Overlay Baris 2</label>
-        <input type="text" id="row2Text" list="overlayHistoryList" placeholder="Contoh: Cleaning instrumentasi">
+        <label for="row2Text">Kegiatan Baris 2</label>
+        <input type="text" id="row2Text" list="overlayHistoryList" placeholder="Contoh: Cleaning baseplate pompa">
       </div>
 
       <div class="form-group" style="grid-column: 1 / -1;" id="row3Group">
-        <label for="row3Text">Overlay Baris 3</label>
+        <label for="row3Text">Kegiatan Baris 3</label>
         <input type="text" id="row3Text" list="overlayHistoryList" placeholder="Contoh: Cleaning area & grating">
       </div>
 
       <!-- Pengaturan Kosmetik Dilipat -->
       <details class="collapsible-settings">
-        <summary>⚙️ Pengaturan Tampilan (Header, Warna & Rasio)</summary>
+        <summary>⚙️ Pengaturan Tampilan</summary>
         <div class="collapsible-content">
           <div class="form-group">
             <label for="leftHeaderText">Header Kolom Kiri</label>
@@ -171,19 +173,20 @@
         </div>
       </details>
 
-      <div class="section-title">Pratinjau Caption WhatsApp</div>
+      <div class="section-title">💬 Pratinjau Caption WhatsApp</div>
 
       <div class="form-group" style="grid-column: 1 / -1;">
         <div class="caption-preview-box" id="captionPreview"></div>
-        <button type="button" class="btn-secondary" id="copyCaptionBtn" style="margin-top: 6px;">📋 Salin Teks Caption</button>
+        <button type="button" class="btn-secondary" id="copyCaptionBtn" style="margin-top: 6px;">📋 Salin Caption</button>
       </div>
 
     </div>
   </div>
 
   <div class="card preview-container">
-    <canvas id="collageCanvas"></canvas>
-    <button id="downloadBtn" class="btn" disabled>Unduh / Kirim Kolase + Caption</button>
+    <div id="previewPlaceholder" class="preview-placeholder">🖼️ Pratinjau kolase otomatis muncul di sini setelah foto dipilih</div>
+    <canvas id="collageCanvas" style="display: none;"></canvas>
+    <button id="downloadBtn" class="btn" disabled>🚀 Kirim ke WhatsApp</button>
   </div>
 
   <footer class="app-footer">
@@ -217,17 +220,17 @@
     <div class="guide-step-panel" data-step="2">
       <h4>📸 Susun Kolase & Kirim WhatsApp</h4>
       <ul>
-        <li>Pilih ukuran grid (<strong>2x1</strong>, <strong>2x2</strong>, atau <strong>2x3</strong>), lalu upload foto <strong>BEFORE</strong> (kiri) & <strong>AFTER</strong> (kanan).</li>
-        <li>Isi <strong>Teks Overlay</strong> di tiap baris — teks muncul di foto sekaligus jadi poin di caption.</li>
-        <li>Tekan <strong>Unduh / Kirim Kolase + Caption</strong> $ightarrow$ pilih <strong>WhatsApp</strong>. Foto & teks caption langsung terkirim bersamaan di Android maupun iPhone.</li>
+        <li>Pilih ukuran grid (<strong>2x1</strong>, <strong>2x2</strong>, atau <strong>2x3</strong>). Bisa langsung pilih 3 foto sekaligus di galeri untuk <strong>BEFORE</strong> & <strong>AFTER</strong>.</li>
+        <li>Isi <strong>Kegiatan Baris 1–3</strong> — teks muncul di foto sekaligus jadi poin di caption.</li>
+        <li>Tekan <strong>🚀 Kirim ke WhatsApp</strong> ➔ pilih <strong>WhatsApp</strong>. Foto & teks caption langsung terkirim bersamaan di Android maupun iPhone.</li>
       </ul>
     </div>
 
     <div class="guide-step-panel" data-step="3">
       <h4>📲 Pasang di Layar Utama (Bisa Offline)</h4>
       <ul>
-        <li><strong>Android (Chrome):</strong> Tap tombol biru <strong>Install Aplikasi PWA</strong> di bagian bawah halaman utama.</li>
-        <li><strong>iPhone (Safari):</strong> Tap ikon <strong>Share 📤</strong> di bawah layar $ightarrow$ pilih <strong>Tambah ke Layar Utama ➕</strong>.</li>
+        <li><strong>Android (Chrome):</strong> Tap tombol biru <strong>📲 Install Aplikasi</strong> di bagian bawah halaman utama.</li>
+        <li><strong>iPhone (Safari):</strong> Tap ikon <strong>Share 📤</strong> di bawah layar ➔ pilih <strong>Tambah ke Layar Utama ➕</strong>.</li>
         <li>Setelah terpasang, aplikasi bisa dibuka kapan saja termasuk saat jaringan offline.</li>
       </ul>
     </div>

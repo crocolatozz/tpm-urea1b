@@ -9,6 +9,8 @@ const beforeInput = document.getElementById('beforeInput');
 const afterInput = document.getElementById('afterInput');
 const beforeCount = document.getElementById('beforeCount');
 const afterCount = document.getElementById('afterCount');
+const beforeTip = document.getElementById('beforeTip');
+const afterTip = document.getElementById('afterTip');
 const beforeLabel = document.getElementById('beforeLabel');
 const afterLabel = document.getElementById('afterLabel');
 
@@ -17,7 +19,6 @@ const swapRow12Btn = document.getElementById('swapRow12Btn');
 const swapRow23Btn = document.getElementById('swapRow23Btn');
 const resetPhotosBtn = document.getElementById('resetPhotosBtn');
 
-const appTitle = document.getElementById('appTitle');
 const row1Group = document.getElementById('row1Group');
 const row2Group = document.getElementById('row2Group');
 const row3Group = document.getElementById('row3Group');
@@ -33,6 +34,7 @@ const bgColorInput = document.getElementById('bgColor');
 const textColorInput = document.getElementById('textColor');
 const gapSizeInput = document.getElementById('gapSize');
 const aspectRatioInput = document.getElementById('aspectRatio');
+const previewPlaceholder = document.getElementById('previewPlaceholder');
 const canvas = document.getElementById('collageCanvas');
 const ctx = canvas.getContext('2d');
 const downloadBtn = document.getElementById('downloadBtn');
@@ -40,9 +42,10 @@ const downloadBtn = document.getElementById('downloadBtn');
 let loadedBeforeImages = [];
 let loadedAfterImages = [];
 
-// Riwayat Saran Teks Overlay (localStorage)
+// Riwayat Saran Kegiatan (localStorage)
 const HISTORY_STORAGE_KEY = 'tpm_overlay_history_v1';
 const DEFAULT_OVERLAY_SUGGESTIONS = [
+  "Regreasing BV",
   "Cleaning baseplate pompa",
   "Cleaning instrumentasi",
   "Cleaning area & grating",
@@ -163,8 +166,8 @@ copyCaptionBtn.addEventListener('click', () => {
   saveOverlayHistory();
   const captionText = generateCaptionText();
   navigator.clipboard.writeText(captionText).then(() => {
-    copyCaptionBtn.textContent = "✓ Teks Caption Tersalin!";
-    setTimeout(() => copyCaptionBtn.textContent = "📋 Salin Teks Caption", 2000);
+    copyCaptionBtn.textContent = "✓ Caption Tersalin!";
+    setTimeout(() => copyCaptionBtn.textContent = "📋 Salin Caption", 2000);
   });
 });
 
@@ -180,11 +183,53 @@ function getSelectedRows() {
   return parseInt(gridTypeInput.value.split('x')[1], 10);
 }
 
+function countValidImages(arr) {
+  return arr.filter(Boolean).length;
+}
+
+function refreshPhotoStatusHints() {
+  const maxRows = getSelectedRows();
+  const bCount = countValidImages(loadedBeforeImages);
+  const aCount = countValidImages(loadedAfterImages);
+
+  beforeCount.textContent = bCount > 0 ? `${bCount}/${maxRows} foto dimuat` : "Belum ada foto dipilih";
+  afterCount.textContent = aCount > 0 ? `${aCount}/${maxRows} foto dimuat` : "Belum ada foto dipilih";
+
+  if (beforeTip) {
+    if (maxRows > 1 && bCount === 0) {
+      beforeTip.textContent = `💡 Bisa langsung pilih/centang ${maxRows} foto sekaligus`;
+      beforeTip.style.display = 'block';
+    } else if (bCount > 0 && bCount < maxRows) {
+      const rem = maxRows - bCount;
+      beforeTip.textContent = `💡 Bisa tambah ${rem} foto lagi (tidak menimpa foto lama)`;
+      beforeTip.style.display = 'block';
+    } else {
+      beforeTip.style.display = 'none';
+    }
+  }
+
+  if (afterTip) {
+    if (maxRows > 1 && aCount === 0) {
+      afterTip.textContent = `💡 Bisa langsung pilih/centang ${maxRows} foto sekaligus`;
+      afterTip.style.display = 'block';
+    } else if (aCount > 0 && aCount < maxRows) {
+      const rem = maxRows - aCount;
+      afterTip.textContent = `💡 Bisa tambah ${rem} foto lagi (tidak menimpa foto lama)`;
+      afterTip.style.display = 'block';
+    } else {
+      afterTip.style.display = 'none';
+    }
+  }
+}
+
 function updateGridUI() {
   const rows = getSelectedRows();
-  appTitle.textContent = "Kolase Foto TPM";
-  beforeLabel.textContent = `Foto BEFORE (Kolom Kiri - Max ${rows})`;
-  afterLabel.textContent = `Foto AFTER (Kolom Kanan - Max ${rows})`;
+  beforeLabel.textContent = rows === 1
+    ? "Foto BEFORE (Pilih 1 Foto)"
+    : `Foto BEFORE (Pilih ${rows} Foto Sekaligus)`;
+  afterLabel.textContent = rows === 1
+    ? "Foto AFTER (Pilih 1 Foto)"
+    : `Foto AFTER (Pilih ${rows} Foto Sekaligus)`;
 
   row2Group.style.display = rows >= 2 ? 'flex' : 'none';
   row3Group.style.display = rows >= 3 ? 'flex' : 'none';
@@ -192,27 +237,19 @@ function updateGridUI() {
   if (swapRow12Btn) swapRow12Btn.style.display = rows >= 2 ? 'inline-block' : 'none';
   if (swapRow23Btn) swapRow23Btn.style.display = rows >= 3 ? 'inline-block' : 'none';
 
+  // Trim foto berlebih jika user menurunkan ukuran grid (misal 2x3 -> 2x2)
+  if (loadedBeforeImages.length > rows) {
+    freeImages(loadedBeforeImages.slice(rows));
+    loadedBeforeImages = loadedBeforeImages.slice(0, rows);
+  }
+  if (loadedAfterImages.length > rows) {
+    freeImages(loadedAfterImages.slice(rows));
+    loadedAfterImages = loadedAfterImages.slice(0, rows);
+  }
+
+  refreshPhotoStatusHints();
   updateCaption();
-
-  if (beforeInput.files.length > 0) {
-    readImages(beforeInput, beforeCount, (images) => {
-      freeImages(loadedBeforeImages);
-      loadedBeforeImages = images;
-      updateStateAndGenerate();
-    });
-  }
-
-  if (afterInput.files.length > 0) {
-    readImages(afterInput, afterCount, (images) => {
-      freeImages(loadedAfterImages);
-      loadedAfterImages = images;
-      updateStateAndGenerate();
-    });
-  }
-
-  if (loadedBeforeImages.length > 0 || loadedAfterImages.length > 0) {
-    generateCollage();
-  }
+  updateStateAndGenerate();
 }
 
 gridTypeInput.addEventListener('change', updateGridUI);
@@ -220,25 +257,15 @@ gridTypeInput.addEventListener('change', updateGridUI);
 [leftHeaderInput, rightHeaderInput, row1Input, row2Input, row3Input, bgColorInput, textColorInput, gapSizeInput, aspectRatioInput].forEach(element => {
   element.addEventListener('input', () => {
     updateCaption();
-    if (loadedBeforeImages.length > 0 || loadedAfterImages.length > 0) generateCollage();
+    if (countValidImages(loadedBeforeImages) > 0 || countValidImages(loadedAfterImages) > 0) {
+      generateCollage();
+    }
   });
 });
 
 [row1Input, row2Input, row3Input].forEach(input => {
   input.addEventListener('blur', saveOverlayHistory);
 });
-
-// Helper untuk hitung jumlah gambar terisi di array
-function countValidImages(arr) {
-  return arr.filter(Boolean).length;
-}
-
-function refreshPhotoStatusHints() {
-  const bCount = countValidImages(loadedBeforeImages);
-  const aCount = countValidImages(loadedAfterImages);
-  beforeCount.textContent = bCount > 0 ? `${bCount} foto dimuat` : "Belum ada foto dipilih";
-  afterCount.textContent = aCount > 0 ? `${aCount} foto dimuat` : "Belum ada foto dipilih";
-}
 
 // Tombol Tukar Before & After
 if (swapBeforeAfterBtn) {
@@ -252,7 +279,7 @@ if (swapBeforeAfterBtn) {
   });
 }
 
-// Helper Tukar Baris (Foto Before, Foto After, dan Teks Overlay ikut tertukar)
+// Helper Tukar Baris (Foto Before, Foto After, dan Teks Kegiatan ikut tertukar)
 function swapRowIndices(idxA, idxB, inputA, inputB) {
   const tempBefore = loadedBeforeImages[idxA];
   loadedBeforeImages[idxA] = loadedBeforeImages[idxB];
@@ -290,10 +317,7 @@ if (resetPhotosBtn) {
     beforeInput.value = '';
     afterInput.value = '';
     refreshPhotoStatusHints();
-    downloadBtn.disabled = true;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    canvas.width = 0;
-    canvas.height = 0;
+    updateStateAndGenerate();
   });
 }
 
@@ -323,61 +347,75 @@ async function processAndResizeFile(file) {
   });
 }
 
-async function readImages(inputElement, statusElement, callback) {
+// Baca foto dengan mode APPEND (nambah ke slot kosong tanpa menimpa foto lama)
+async function appendSelectedImages(inputElement, statusElement, currentArray, setArrayCallback) {
   const files = Array.from(inputElement.files);
-  
-  if (files.length === 0) {
-    statusElement.textContent = "Belum ada foto dipilih";
-    callback([]);
-    return;
-  }
+  inputElement.value = ''; // Reset input agar pemilihan file berikutnya selalu terdeteksi
+
+  if (files.length === 0) return;
 
   const maxRows = getSelectedRows();
-  const filesToProcess = files.slice(0, maxRows);
+  let workingArray = currentArray.filter(Boolean);
 
-  let limitWarning = "";
-  if (files.length > maxRows) {
-    limitWarning = ` (Dipilih ${files.length}, hanya ${maxRows} foto pertama yang dipakai)`;
+  // Jika slot sudah penuh sebelumnya, ganti dengan pilihan baru
+  if (workingArray.length >= maxRows) {
+    freeImages(workingArray);
+    workingArray = [];
   }
 
-  statusElement.textContent = "Memproses foto (0/" + filesToProcess.length + ")...";
+  const remainingSlots = maxRows - workingArray.length;
+  const filesToProcess = files.slice(0, remainingSlots);
 
-  const validImages = [];
+  let limitWarning = "";
+  if (files.length > remainingSlots) {
+    limitWarning = ` (Hanya ${remainingSlots} foto diambil sesuai sisa slot)`;
+  }
+
+  statusElement.textContent = `Memproses foto (0/${filesToProcess.length})...`;
+
+  const newlyLoaded = [];
   for (let i = 0; i < filesToProcess.length; i++) {
     statusElement.textContent = `Memproses foto (${i + 1}/${filesToProcess.length})...`;
     const img = await processAndResizeFile(filesToProcess[i]);
-    if (img) validImages.push(img);
+    if (img) newlyLoaded.push(img);
   }
 
-  if (validImages.length === 0) {
-    statusElement.textContent = "Gagal memuat foto.";
-  } else {
-    statusElement.textContent = `${validImages.length} foto dimuat${limitWarning}`;
+  const combined = [...workingArray, ...newlyLoaded].slice(0, maxRows);
+  setArrayCallback(combined);
+  refreshPhotoStatusHints();
+
+  if (limitWarning) {
+    statusElement.textContent = `${combined.length}/${maxRows} foto dimuat${limitWarning}`;
   }
-  callback(validImages);
+
+  updateStateAndGenerate();
 }
 
 beforeInput.addEventListener('change', () => {
-  readImages(beforeInput, beforeCount, (images) => {
-    freeImages(loadedBeforeImages);
-    loadedBeforeImages = images;
-    updateStateAndGenerate();
+  appendSelectedImages(beforeInput, beforeCount, loadedBeforeImages, (updated) => {
+    loadedBeforeImages = updated;
   });
 });
 
 afterInput.addEventListener('change', () => {
-  readImages(afterInput, afterCount, (images) => {
-    freeImages(loadedAfterImages);
-    loadedAfterImages = images;
-    updateStateAndGenerate();
+  appendSelectedImages(afterInput, afterCount, loadedAfterImages, (updated) => {
+    loadedAfterImages = updated;
   });
 });
 
 function updateStateAndGenerate() {
-  if (countValidImages(loadedBeforeImages) > 0 || countValidImages(loadedAfterImages) > 0) {
+  const hasPhotos = countValidImages(loadedBeforeImages) > 0 || countValidImages(loadedAfterImages) > 0;
+  if (hasPhotos) {
+    if (previewPlaceholder) previewPlaceholder.style.display = 'none';
+    canvas.style.display = 'block';
     downloadBtn.disabled = false;
     generateCollage();
   } else {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.width = 0;
+    canvas.height = 0;
+    canvas.style.display = 'none';
+    if (previewPlaceholder) previewPlaceholder.style.display = 'block';
     downloadBtn.disabled = true;
   }
 }

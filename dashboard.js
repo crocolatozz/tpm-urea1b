@@ -30,6 +30,7 @@ function renderTasks(tasks, dateStr, isToday) {
 
     const activeBadgeHTML = isCurrentShift ? `<span class="active-badge">● SHIFT AKTIF</span>` : '';
     const actionHintHTML = !task.isOff ? `<span class="tpm-action-hint">Buat Kolase ➔</span>` : '';
+    const subtextHTML = task.subtext ? `<div class="tpm-subtext">${task.subtext}</div>` : '';
 
     item.innerHTML = `
       <div class="tpm-item-top">
@@ -40,6 +41,7 @@ function renderTasks(tasks, dateStr, isToday) {
         ${actionHintHTML}
       </div>
       <div class="tpm-title">${task.text}</div>
+      ${subtextHTML}
     `;
 
     if (!task.isOff) {

@@ -47,7 +47,7 @@ header {
 }
 
 header h1 {
-  font-size: 1.55rem;
+  font-size: 1.5rem;
   margin-bottom: 4px;
 }
 
@@ -62,7 +62,7 @@ header p {
   background-color: #1a2736;
   color: #64b5f6;
   border: 1px solid #2b4c70;
-  padding: 7px 16px;
+  padding: 7px 18px;
   border-radius: 20px;
   font-size: 0.85rem;
   font-weight: 600;
@@ -157,7 +157,7 @@ header p {
   grid-column: 1 / -1;
   margin-top: 6px;
   border-bottom: 1px solid #333;
-  padding-bottom: 4px;
+  padding-bottom: 5px;
 }
 
 label {
@@ -339,6 +339,18 @@ input[type="color"]::-webkit-color-swatch {
   margin-bottom: 10px;
 }
 
+.preview-placeholder {
+  width: 100%;
+  padding: 28px 16px;
+  border: 1.5px dashed #3d3d3d;
+  border-radius: 10px;
+  background-color: #181818;
+  color: #9a9a9a;
+  font-size: 0.88rem;
+  text-align: center;
+  line-height: 1.5;
+}
+
 canvas {
   max-width: 100%;
   height: auto;
@@ -353,6 +365,12 @@ canvas {
   margin-top: 2px;
   word-break: break-word;
   font-weight: 500;
+}
+
+.file-tip {
+  font-size: 0.77rem;
+  color: #8ab4f8;
+  line-height: 1.35;
 }
 
 .caption-preview-box {
@@ -466,6 +484,12 @@ canvas {
 .tpm-title {
   font-weight: 700;
   font-size: 1.05rem;
+}
+
+.tpm-subtext {
+  font-size: 0.82rem;
+  color: #d8b47c;
+  margin-top: 2px;
 }
 
 /* Footer, Smart Install Button & Credit */
@@ -599,7 +623,7 @@ canvas {
   font-size: 0.9rem;
   line-height: 1.55;
   color: #e0e0e0;
-  min-height: 155px;
+  min-height: 165px;
 }
 
 .guide-step-panel.active {

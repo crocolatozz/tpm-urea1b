@@ -22,7 +22,12 @@ function getScheduleForDate(dateStr) {
   const dayOfMonth = parseInt(dateStr.split('-')[2], 10);
   
   if (dayOfMonth === 31) {
-    return [{ shift: "INFO", text: "TIDAK ADA KEGIATAN", isOff: true }];
+    return [{
+      shift: "INFO",
+      text: "TIDAK ADA KEGIATAN",
+      subtext: "🏖️ Libur rutin tiap tanggal 31",
+      isOff: true
+    }];
   }
 
   const cycleDay = ((dayOfMonth - 1) % 15) + 1;

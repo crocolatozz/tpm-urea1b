@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tpm-v4';
+const CACHE_NAME = 'tpm-v6';
 const urlsToCache = [
   './',
   './index.html',

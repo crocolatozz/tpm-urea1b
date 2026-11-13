@@ -1,11 +1,10 @@
 const tpmDateInput = document.getElementById('tpmDateInput');
 const tpmShiftInput = document.getElementById('tpmShiftInput');
 const tpmAreaInput = document.getElementById('tpmAreaInput');
-const offDayWarning = document.getElementById('offDayWarning');
 const captionPreview = document.getElementById('captionPreview');
 const copyCaptionBtn = document.getElementById('copyCaptionBtn');
 
-const gridOptions = document.querySelectorAll('.grid-option');
+const gridTypeInput = document.getElementById('gridType');
 const beforeInput = document.getElementById('beforeInput');
 const afterInput = document.getElementById('afterInput');
 const beforeCount = document.getElementById('beforeCount');
@@ -15,7 +14,6 @@ const afterTip = document.getElementById('afterTip');
 const beforeLabel = document.getElementById('beforeLabel');
 const afterLabel = document.getElementById('afterLabel');
 
-const photoActionsGrid = document.getElementById('photoActionsGrid');
 const swapBeforeAfterBtn = document.getElementById('swapBeforeAfterBtn');
 const swapRow12Btn = document.getElementById('swapRow12Btn');
 const swapRow23Btn = document.getElementById('swapRow23Btn');
@@ -41,7 +39,6 @@ const canvas = document.getElementById('collageCanvas');
 const ctx = canvas.getContext('2d');
 const downloadBtn = document.getElementById('downloadBtn');
 
-let selectedGridType = '2x3';
 let loadedBeforeImages = [];
 let loadedAfterImages = [];
 
@@ -103,39 +100,17 @@ const paramDate = urlParams.get('date');
 const paramShift = urlParams.get('shift');
 const paramArea = urlParams.get('area');
 
-const initialDateStr = (paramDate && /^\d{4}-\d{2}-\d{2}$/.test(paramDate)) ? paramDate : getLocalTodayStr();
-tpmDateInput.value = initialDateStr;
-tpmDateInput.setAttribute('value', initialDateStr);
-
+tpmDateInput.value = paramDate || getLocalTodayStr();
 if (paramShift && ['PAGI', 'SORE', 'MALAM'].includes(paramShift)) {
   tpmShiftInput.value = paramShift;
 } else {
   tpmShiftInput.value = getCurrentActiveShift();
 }
 
-function getEffectiveDateStr() {
-  if (!tpmDateInput.value) {
-    const fallback = getLocalTodayStr();
-    tpmDateInput.value = fallback;
-    tpmDateInput.setAttribute('value', fallback);
-  }
-  return tpmDateInput.value;
-}
-
-function checkOffDayIndicator(dateVal) {
-  if (!offDayWarning || !dateVal) return;
-  const dayOfMonth = parseInt(dateVal.split('-')[2], 10);
-  if (dayOfMonth === 31) {
-    offDayWarning.style.display = 'block';
-  } else {
-    offDayWarning.style.display = 'none';
-  }
-}
-
 function updateAutoAreaName() {
-  const dateVal = getEffectiveDateStr();
+  const dateVal = tpmDateInput.value;
+  if (!dateVal) return;
   const dayOfMonth = parseInt(dateVal.split('-')[2], 10);
-  checkOffDayIndicator(dateVal);
   
   if (dayOfMonth === 31) {
     tpmAreaInput.value = "TIDAK ADA KEGIATAN";
@@ -151,14 +126,14 @@ function updateAutoAreaName() {
 }
 
 function generateCaptionText() {
-  const dateVal = getEffectiveDateStr();
+  const dateVal = tpmDateInput.value;
+  if (!dateVal) return "";
   const dateFormatted = formatDateIndo(dateVal);
-  const shiftVal = tpmShiftInput.value || getCurrentActiveShift();
+  const shiftVal = tpmShiftInput.value;
   const areaName = tpmAreaInput.value.trim() || "-";
 
-  // Format bold 2 baris pertama WhatsApp (*teks*) + "SHIFT" + simbol "~"
-  let caption = `*TPM ${areaName}*
-*SHIFT ${shiftVal} ~ ${dateFormatted}*`;
+  // Format bold 2 baris pertama WhatsApp (*teks*) + "SHIFT"
+  let caption = `*TPM ${areaName}*\n*SHIFT ${shiftVal} ~ ${dateFormatted}*`;
 
   const rows = getSelectedRows();
   const overlayInputs = [row1Input, row2Input, row3Input];
@@ -173,10 +148,7 @@ function generateCaptionText() {
   }
 
   if (bullets.length > 0) {
-    caption += `
-
-` + bullets.join('
-');
+    caption += `\n\n` + bullets.join('\n');
   }
 
   return caption;
@@ -190,63 +162,25 @@ tpmDateInput.addEventListener('change', updateAutoAreaName);
 tpmShiftInput.addEventListener('change', updateAutoAreaName);
 tpmAreaInput.addEventListener('input', updateCaption);
 
-function fallbackCopyText(text) {
-  const textarea = document.createElement('textarea');
-  textarea.value = text;
-  textarea.setAttribute('readonly', '');
-  textarea.style.position = 'fixed';
-  textarea.style.top = '-9999px';
-  document.body.appendChild(textarea);
-  textarea.select();
-  textarea.setSelectionRange(0, textarea.value.length);
-  let ok = false;
-  try {
-    ok = document.execCommand('copy');
-  } catch (e) {
-    ok = false;
-  }
-  document.body.removeChild(textarea);
-  return ok;
-}
-
-copyCaptionBtn.addEventListener('click', async () => {
+copyCaptionBtn.addEventListener('click', () => {
   saveOverlayHistory();
   const captionText = generateCaptionText();
-  let copied = false;
-  if (navigator.clipboard && window.isSecureContext) {
-    try {
-      await navigator.clipboard.writeText(captionText);
-      copied = true;
-    } catch (e) {
-      copied = fallbackCopyText(captionText);
-    }
-  } else {
-    copied = fallbackCopyText(captionText);
-  }
-  if (copied) {
-    copyCaptionBtn.textContent = "✅ Caption Tersalin!";
+  navigator.clipboard.writeText(captionText).then(() => {
+    copyCaptionBtn.textContent = "✓ Caption Tersalin!";
     setTimeout(() => copyCaptionBtn.textContent = "📋 Salin Caption", 2000);
-  } else {
-    copyCaptionBtn.textContent = "⚠️ Tahan & Salin Manual";
-    setTimeout(() => copyCaptionBtn.textContent = "📋 Salin Caption", 2500);
-  }
+  });
 });
 
 function freeImages(imgArray) {
   imgArray.forEach(img => {
-    if (!img) return;
-    if (typeof img.close === 'function') {
-      try { img.close(); } catch (e) {}
-    }
-    if (img instanceof HTMLCanvasElement) {
-      img.width = 1;
-      img.height = 1;
+    if (img && typeof img.close === 'function') {
+      img.close();
     }
   });
 }
 
 function getSelectedRows() {
-  return parseInt(selectedGridType.split('x')[1], 10);
+  return parseInt(gridTypeInput.value.split('x')[1], 10);
 }
 
 function countValidImages(arr) {
@@ -300,8 +234,8 @@ function updateGridUI() {
   row2Group.style.display = rows >= 2 ? 'flex' : 'none';
   row3Group.style.display = rows >= 3 ? 'flex' : 'none';
 
-  if (swapRow12Btn) swapRow12Btn.style.display = rows >= 2 ? 'flex' : 'none';
-  if (swapRow23Btn) swapRow23Btn.style.display = rows >= 3 ? 'flex' : 'none';
+  if (swapRow12Btn) swapRow12Btn.style.display = rows >= 2 ? 'inline-block' : 'none';
+  if (swapRow23Btn) swapRow23Btn.style.display = rows >= 3 ? 'inline-block' : 'none';
 
   // Trim foto berlebih jika user menurunkan ukuran grid (misal 2x3 -> 2x2)
   if (loadedBeforeImages.length > rows) {
@@ -318,17 +252,7 @@ function updateGridUI() {
   updateStateAndGenerate();
 }
 
-gridOptions.forEach(optionBtn => {
-  optionBtn.addEventListener('click', () => {
-    const newGrid = optionBtn.dataset.grid;
-    if (!newGrid || newGrid === selectedGridType) return;
-    selectedGridType = newGrid;
-    gridOptions.forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.grid === selectedGridType);
-    });
-    updateGridUI();
-  });
-});
+gridTypeInput.addEventListener('change', updateGridUI);
 
 [leftHeaderInput, rightHeaderInput, row1Input, row2Input, row3Input, bgColorInput, textColorInput, gapSizeInput, aspectRatioInput].forEach(element => {
   element.addEventListener('input', () => {
@@ -397,68 +321,49 @@ if (resetPhotosBtn) {
   });
 }
 
-// Muat foto memakai jalur Image standar + resize aman ke offscreen canvas (100% stabil di Safari iOS, Android & PC)
-function processAndResizeFile(file) {
+async function processAndResizeFile(file) {
+  if ('createImageBitmap' in window) {
+    try {
+      const bitmap = await createImageBitmap(file, {
+        resizeWidth: 1200,
+        resizeQuality: 'low'
+      });
+      return bitmap;
+    } catch (err) {
+      console.warn("createImageBitmap gagal, beralih ke FileReader fallback", err);
+    }
+  }
+
   return new Promise((resolve) => {
-    const objectUrl = URL.createObjectURL(file);
-    const img = new Image();
-
-    img.onload = () => {
-      try {
-        const srcW = img.naturalWidth || img.width;
-        const srcH = img.naturalHeight || img.height;
-        if (!srcW || !srcH) {
-          URL.revokeObjectURL(objectUrl);
-          resolve(null);
-          return;
-        }
-
-        const MAX_DIM = 1200;
-        let targetW = srcW;
-        let targetH = srcH;
-
-        if (srcW > MAX_DIM || srcH > MAX_DIM) {
-          if (srcW >= srcH) {
-            targetW = MAX_DIM;
-            targetH = Math.round((srcH * MAX_DIM) / srcW);
-          } else {
-            targetH = MAX_DIM;
-            targetW = Math.round((srcW * MAX_DIM) / srcH);
-          }
-        }
-
-        const offCanvas = document.createElement('canvas');
-        offCanvas.width = targetW;
-        offCanvas.height = targetH;
-        const offCtx = offCanvas.getContext('2d');
-        offCtx.drawImage(img, 0, 0, targetW, targetH);
-
-        URL.revokeObjectURL(objectUrl);
-        resolve(offCanvas);
-      } catch (err) {
-        URL.revokeObjectURL(objectUrl);
-        resolve(null);
-      }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = e.target.result;
     };
-
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      resolve(null);
-    };
-
-    img.src = objectUrl;
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
   });
 }
 
 // Baca foto dengan mode APPEND (nambah ke slot kosong tanpa menimpa foto lama)
 async function appendSelectedImages(inputElement, statusElement, currentArray, setArrayCallback) {
-  const files = Array.from(inputElement.files || []);
+  const files = Array.from(inputElement.files);
+  inputElement.value = ''; // Reset input agar pemilihan file berikutnya selalu terdeteksi
+
   if (files.length === 0) return;
 
   const maxRows = getSelectedRows();
-  const existingValid = currentArray.filter(Boolean);
-  const willReplaceFull = existingValid.length >= maxRows;
-  const remainingSlots = willReplaceFull ? maxRows : (maxRows - existingValid.length);
+  let workingArray = currentArray.filter(Boolean);
+
+  // Jika slot sudah penuh sebelumnya, ganti dengan pilihan baru
+  if (workingArray.length >= maxRows) {
+    freeImages(workingArray);
+    workingArray = [];
+  }
+
+  const remainingSlots = maxRows - workingArray.length;
   const filesToProcess = files.slice(0, remainingSlots);
 
   let limitWarning = "";
@@ -471,27 +376,11 @@ async function appendSelectedImages(inputElement, statusElement, currentArray, s
   const newlyLoaded = [];
   for (let i = 0; i < filesToProcess.length; i++) {
     statusElement.textContent = `Memproses foto (${i + 1}/${filesToProcess.length})...`;
-    const processedImg = await processAndResizeFile(filesToProcess[i]);
-    if (processedImg) newlyLoaded.push(processedImg);
+    const img = await processAndResizeFile(filesToProcess[i]);
+    if (img) newlyLoaded.push(img);
   }
 
-  // Reset input SETELAH proses baca file selesai agar izin file sementara di iOS Safari tidak terputus
-  inputElement.value = '';
-
-  if (newlyLoaded.length === 0) {
-    refreshPhotoStatusHints();
-    statusElement.textContent = "⚠️ Gagal memuat foto (format tidak didukung atau file rusak)";
-    return;
-  }
-
-  let combined;
-  if (willReplaceFull) {
-    freeImages(existingValid);
-    combined = newlyLoaded.slice(0, maxRows);
-  } else {
-    combined = [...existingValid, ...newlyLoaded].slice(0, maxRows);
-  }
-
+  const combined = [...workingArray, ...newlyLoaded].slice(0, maxRows);
   setArrayCallback(combined);
   refreshPhotoStatusHints();
 
@@ -517,26 +406,16 @@ afterInput.addEventListener('change', () => {
 function updateStateAndGenerate() {
   const hasPhotos = countValidImages(loadedBeforeImages) > 0 || countValidImages(loadedAfterImages) > 0;
   if (hasPhotos) {
-    if (previewPlaceholder) {
-      previewPlaceholder.style.display = 'none';
-      previewPlaceholder.textContent = '🖼️ Pratinjau kolase otomatis muncul di sini setelah foto dipilih';
-    }
+    if (previewPlaceholder) previewPlaceholder.style.display = 'none';
     canvas.style.display = 'block';
-    if (photoActionsGrid) photoActionsGrid.style.display = 'grid';
     downloadBtn.disabled = false;
     generateCollage();
   } else {
-    if (canvas.width > 0 && canvas.height > 0) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
-    canvas.width = 1;
-    canvas.height = 1;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.width = 0;
+    canvas.height = 0;
     canvas.style.display = 'none';
-    if (photoActionsGrid) photoActionsGrid.style.display = 'none';
-    if (previewPlaceholder) {
-      previewPlaceholder.textContent = '🖼️ Pratinjau kolase otomatis muncul di sini setelah foto dipilih';
-      previewPlaceholder.style.display = 'block';
-    }
+    if (previewPlaceholder) previewPlaceholder.style.display = 'block';
     downloadBtn.disabled = true;
   }
 }
@@ -642,10 +521,6 @@ function generateCollage() {
     });
   } catch (err) {
     console.error("Gagal generate kolase:", err);
-    if (previewPlaceholder) {
-      previewPlaceholder.textContent = "⚠️ Terjadi kendala saat membuat pratinjau gambar. Silakan coba pilih ulang foto.";
-      previewPlaceholder.style.display = 'block';
-    }
   }
 }
 
@@ -664,7 +539,6 @@ function drawRoundedRect(ctx, x, y, width, height, radius) {
 }
 
 function drawImageCover(ctx, img, x, y, w, h) {
-  if (!img || !img.width || !img.height) return;
   const imgRatio = img.width / img.height;
   const targetRatio = w / h;
   let sx, sy, sw, sh;
@@ -722,7 +596,6 @@ downloadBtn.addEventListener('click', () => {
 // Inisialisasi Awal
 if (paramArea) {
   tpmAreaInput.value = paramArea;
-  checkOffDayIndicator(tpmDateInput.value);
   updateCaption();
 } else {
   updateAutoAreaName();
@@ -730,4 +603,3 @@ if (paramArea) {
 loadOverlayHistory();
 updateGridUI();
 initGuideModal();
-initAppVersionCheck();

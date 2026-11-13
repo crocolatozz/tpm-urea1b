@@ -12,15 +12,14 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#121212">
 
-  <link rel="manifest" href="manifest.json?v=1.0.1">
+  <link rel="manifest" href="manifest.json?v=6">
 
-  <!-- Favicon (Browser PC & HP) & Apple Touch Icon (iPhone) -->
-  <link rel="icon" type="image/png" sizes="192x192" href="favicon.png?v=1.0.1">
-  <link rel="shortcut icon" href="favicon.png?v=1.0.1">
-  <link rel="apple-touch-icon" sizes="512x512" href="icon.png">
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="apple-touch-icon" href="icon.png">
 
   <!-- CSS External -->
-  <link rel="stylesheet" href="style.css?v=1.0.1">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -72,47 +71,17 @@
       <div class="form-group" style="grid-column: 1 / -1;">
         <label for="tpmAreaInput">Nama Area / Alat TPM</label>
         <input type="text" id="tpmAreaInput" placeholder="Otomatis atau isi manual...">
-        <span class="file-hint" id="offDayWarning" style="display: none;">⚠️ Tanggal 31 jadwal rutin libur TPM</span>
       </div>
 
       <div class="section-title">📸 Grid & Upload Foto</div>
 
       <div class="form-group" style="grid-column: 1 / -1;">
-        <label>Pilih Ukuran Grid</label>
-        <div class="grid-selector" id="gridSelector">
-          <button type="button" class="grid-option" data-grid="2x1">
-            <div class="grid-wireframe" style="grid-template-rows: repeat(1, 1fr);">
-              <span></span><span></span>
-            </div>
-            <div class="grid-option-label">
-              <span class="grid-option-title">2x1</span>
-              <span class="grid-option-sub">2 Foto</span>
-            </div>
-          </button>
-
-          <button type="button" class="grid-option" data-grid="2x2">
-            <div class="grid-wireframe" style="grid-template-rows: repeat(2, 1fr);">
-              <span></span><span></span>
-              <span></span><span></span>
-            </div>
-            <div class="grid-option-label">
-              <span class="grid-option-title">2x2</span>
-              <span class="grid-option-sub">4 Foto</span>
-            </div>
-          </button>
-
-          <button type="button" class="grid-option active" data-grid="2x3">
-            <div class="grid-wireframe" style="grid-template-rows: repeat(3, 1fr);">
-              <span></span><span></span>
-              <span></span><span></span>
-              <span></span><span></span>
-            </div>
-            <div class="grid-option-label">
-              <span class="grid-option-title">2x3</span>
-              <span class="grid-option-sub">6 Foto</span>
-            </div>
-          </button>
-        </div>
+        <label for="gridType">Pilih Ukuran Grid</label>
+        <select id="gridType">
+          <option value="2x1">2x1 (1 Baris - Total 2 Foto)</option>
+          <option value="2x2">2x2 (2 Baris - Total 4 Foto)</option>
+          <option value="2x3" selected>2x3 (3 Baris - Total 6 Foto)</option>
+        </select>
       </div>
 
       <div class="form-group">
@@ -127,6 +96,14 @@
         <input type="file" id="afterInput" accept="image/*" multiple>
         <span class="file-hint" id="afterCount">Belum ada foto dipilih</span>
         <span class="file-tip" id="afterTip">💡 Bisa langsung pilih/centang 3 foto sekaligus</span>
+      </div>
+
+      <!-- Tombol Cepat Tukar & Reset Foto -->
+      <div class="photo-actions-grid">
+        <button type="button" class="btn-secondary" id="swapBeforeAfterBtn">⇄ Tukar Before/After</button>
+        <button type="button" class="btn-danger-outline" id="resetPhotosBtn">🗑️ Reset Foto</button>
+        <button type="button" class="btn-secondary" id="swapRow12Btn">⇅ Tukar Baris 1 & 2</button>
+        <button type="button" class="btn-secondary" id="swapRow23Btn">⇅ Tukar Baris 2 & 3</button>
       </div>
 
       <div class="section-title">✍️ Keterangan Kegiatan (Foto & Caption)</div>
@@ -209,24 +186,11 @@
   <div class="card preview-container">
     <div id="previewPlaceholder" class="preview-placeholder">🖼️ Pratinjau kolase otomatis muncul di sini setelah foto dipilih</div>
     <canvas id="collageCanvas" style="display: none;"></canvas>
-
-    <!-- Tombol Cepat Tukar & Reset Foto (Muncul otomatis saat foto dimuat) -->
-    <div class="photo-actions-grid" id="photoActionsGrid" style="display: none;">
-      <button type="button" class="btn-secondary" id="swapBeforeAfterBtn">⇄ Tukar Before/After</button>
-      <button type="button" class="btn-danger-outline" id="resetPhotosBtn">🗑️ Reset Foto</button>
-      <button type="button" class="btn-secondary" id="swapRow12Btn">⇅ Tukar Baris 1 & 2</button>
-      <button type="button" class="btn-secondary" id="swapRow23Btn">⇅ Tukar Baris 2 & 3</button>
-    </div>
-
     <button id="downloadBtn" class="btn" disabled>🚀 Kirim ke WhatsApp</button>
   </div>
 
   <footer class="app-footer">
-    <p class="footer-credit">
-      Dibuat untuk mempermudah laporan TPM Urea 1B
-      <span class="footer-copy">© 2026 — Developed by FIKRI</span>
-      <span class="footer-version">Versi 1.0.1</span>
-    </p>
+    <p class="footer-credit">Dibuat untuk mempermudah laporan TPM Urea 1B • by FIKRI</p>
   </footer>
 </div>
 
@@ -241,7 +205,7 @@
     <div class="guide-tabs">
       <button type="button" class="guide-tab active" data-step="1">1. Alur Cepat</button>
       <button type="button" class="guide-tab" data-step="2">2. Bikin Kolase</button>
-      <button type="button" class="guide-tab" data-step="3">3. Pasang & Update</button>
+      <button type="button" class="guide-tab" data-step="3">3. Pasang HP</button>
     </div>
 
     <div class="guide-step-panel active" data-step="1">
@@ -256,30 +220,30 @@
     <div class="guide-step-panel" data-step="2">
       <h4>📸 Susun Kolase & Kirim WhatsApp</h4>
       <ul>
-        <li>Pilih ukuran grid (<strong>2x1</strong>, <strong>2x2</strong>, atau <strong>2x3</strong>). Bisa langsung pilih beberapa foto sekaligus di galeri sesuai ukuran grid untuk <strong>BEFORE</strong> & <strong>AFTER</strong>.</li>
+        <li>Pilih ukuran grid (<strong>2x1</strong>, <strong>2x2</strong>, atau <strong>2x3</strong>). Bisa langsung pilih 3 foto sekaligus di galeri untuk <strong>BEFORE</strong> & <strong>AFTER</strong>.</li>
         <li>Isi <strong>Kegiatan Baris 1–3</strong> — teks muncul di foto sekaligus jadi poin di caption.</li>
         <li>Tekan <strong>🚀 Kirim ke WhatsApp</strong> ➔ pilih <strong>WhatsApp</strong>. Foto & teks caption langsung terkirim bersamaan di Android maupun iPhone.</li>
       </ul>
     </div>
 
     <div class="guide-step-panel" data-step="3">
-      <h4>📲 Pasang di HP & Pembaruan Otomatis</h4>
+      <h4>📲 Pasang di Layar Utama (Bisa Offline)</h4>
       <ul>
         <li><strong>Android (Chrome):</strong> Tap tombol biru <strong>📲 Install Aplikasi</strong> di bagian bawah halaman utama.</li>
         <li><strong>iPhone (Safari):</strong> Tap ikon <strong>Share 📤</strong> di bawah layar ➔ pilih <strong>Tambah ke Layar Utama ➕</strong>.</li>
-        <li><strong>Auto-Update:</strong> Aplikasi mengecek versi terbaru saat dibuka dengan koneksi internet. Jika muncul pop-up update, tap <strong>🔄 Update Sekarang</strong> tanpa perlu hapus aplikasi.</li>
+        <li>Setelah terpasang, aplikasi bisa dibuka kapan saja termasuk saat jaringan offline.</li>
       </ul>
     </div>
 
     <div class="guide-nav-buttons">
-      <button type="button" id="guidePrevBtn" class="btn-secondary"><span class="arrow-mirror">➔</span> Sebelumnya</button>
+      <button type="button" id="guidePrevBtn" class="btn-secondary">⬅ Sebelumnya</button>
       <button type="button" id="guideNextBtn" class="btn" style="padding: 10px 14px; font-size: 0.9rem;">Lanjut ➔</button>
     </div>
   </div>
 </div>
 
 <!-- JS Modular -->
-<script src="tpm-data.js?v=1.0.1"></script>
-<script src="kolase.js?v=1.0.1"></script>
+<script src="tpm-data.js"></script>
+<script src="kolase.js"></script>
 </body>
 </html>

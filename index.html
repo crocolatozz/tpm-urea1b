@@ -12,15 +12,14 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#121212">
 
-  <link rel="manifest" href="manifest.json?v=1.0.1">
+  <link rel="manifest" href="manifest.json?v=6">
   
-  <!-- Favicon (Browser PC & HP) & Apple Touch Icon (iPhone) -->
-  <link rel="icon" type="image/png" sizes="192x192" href="favicon.png?v=1.0.1">
-  <link rel="shortcut icon" href="favicon.png?v=1.0.1">
-  <link rel="apple-touch-icon" sizes="512x512" href="icon.png">
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="apple-touch-icon" href="icon.png">
 
   <!-- CSS External -->
-  <link rel="stylesheet" href="style.css?v=1.0.1">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -63,16 +62,12 @@
     <div class="tpm-list" id="tpmList"></div>
   </div>
 
-  <!-- Footer dengan Tombol Smart Install, Credit & Versi -->
+  <!-- Footer dengan Tombol Smart Install & Credit -->
   <footer class="app-footer">
     <button id="installAppBtn" class="btn-install" style="display: none;">
       📲 Install Aplikasi
     </button>
-    <p class="footer-credit">
-      Dibuat untuk mempermudah laporan TPM Urea 1B
-      <span class="footer-copy">© 2026 — Developed by FIKRI</span>
-      <span class="footer-version">Versi 1.0.1</span>
-    </p>
+    <p class="footer-credit">Dibuat untuk mempermudah laporan TPM Urea 1B • by FIKRI</p>
   </footer>
 </div>
 
@@ -87,7 +82,7 @@
     <div class="guide-tabs">
       <button type="button" class="guide-tab active" data-step="1">1. Alur Cepat</button>
       <button type="button" class="guide-tab" data-step="2">2. Bikin Kolase</button>
-      <button type="button" class="guide-tab" data-step="3">3. Pasang & Update</button>
+      <button type="button" class="guide-tab" data-step="3">3. Pasang HP</button>
     </div>
 
     <div class="guide-step-panel active" data-step="1">
@@ -102,23 +97,23 @@
     <div class="guide-step-panel" data-step="2">
       <h4>📸 Susun Kolase & Kirim WhatsApp</h4>
       <ul>
-        <li>Pilih ukuran grid (<strong>2x1</strong>, <strong>2x2</strong>, atau <strong>2x3</strong>). Bisa langsung pilih beberapa foto sekaligus di galeri sesuai ukuran grid untuk <strong>BEFORE</strong> & <strong>AFTER</strong>.</li>
+        <li>Pilih ukuran grid (<strong>2x1</strong>, <strong>2x2</strong>, atau <strong>2x3</strong>). Bisa langsung pilih 3 foto sekaligus di galeri untuk <strong>BEFORE</strong> & <strong>AFTER</strong>.</li>
         <li>Isi <strong>Kegiatan Baris 1–3</strong> — teks muncul di foto sekaligus jadi poin di caption.</li>
         <li>Tekan <strong>🚀 Kirim ke WhatsApp</strong> ➔ pilih <strong>WhatsApp</strong>. Foto & teks caption langsung terkirim bersamaan di Android maupun iPhone.</li>
       </ul>
     </div>
 
     <div class="guide-step-panel" data-step="3">
-      <h4>📲 Pasang di HP & Pembaruan Otomatis</h4>
+      <h4>📲 Pasang di Layar Utama (Bisa Offline)</h4>
       <ul>
         <li><strong>Android (Chrome):</strong> Tap tombol biru <strong>📲 Install Aplikasi</strong> di bagian bawah halaman utama.</li>
         <li><strong>iPhone (Safari):</strong> Tap ikon <strong>Share 📤</strong> di bawah layar ➔ pilih <strong>Tambah ke Layar Utama ➕</strong>.</li>
-        <li><strong>Auto-Update:</strong> Aplikasi mengecek versi terbaru saat dibuka dengan koneksi internet. Jika muncul pop-up update, tap <strong>🔄 Update Sekarang</strong> tanpa perlu hapus aplikasi.</li>
+        <li>Setelah terpasang, aplikasi bisa dibuka kapan saja termasuk saat jaringan offline.</li>
       </ul>
     </div>
 
     <div class="guide-nav-buttons">
-      <button type="button" id="guidePrevBtn" class="btn-secondary"><span class="arrow-mirror">➔</span> Sebelumnya</button>
+      <button type="button" id="guidePrevBtn" class="btn-secondary">⬅ Sebelumnya</button>
       <button type="button" id="guideNextBtn" class="btn" style="padding: 10px 14px; font-size: 0.9rem;">Lanjut ➔</button>
     </div>
   </div>
@@ -140,7 +135,7 @@
 </div>
 
 <!-- JS Modular -->
-<script src="tpm-data.js?v=1.0.1"></script>
-<script src="dashboard.js?v=1.0.1"></script>
+<script src="tpm-data.js"></script>
+<script src="dashboard.js"></script>
 </body>
 </html>

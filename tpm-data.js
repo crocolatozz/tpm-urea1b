@@ -42,3 +42,92 @@ function formatDateIndo(dateStr) {
   const [y, m, d] = dateStr.split('-');
   return `${d}/${m}/${y}`;
 }
+
+// Gunakan Waktu Lokal HP (Anti-Bug Mundur Tanggal Jam 00:00 - 06:59 WIB)
+function getLocalTodayStr() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+// Auto-Deteksi Shift Aktif Berdasarkan Jam HP
+function getCurrentActiveShift() {
+  const hour = new Date().getHours();
+  if (hour >= 7 && hour < 15) return "PAGI";
+  if (hour >= 15 && hour < 23) return "SORE";
+  return "MALAM";
+}
+
+// Logika Pop-Up Modal Panduan Interaktif 3 Langkah
+function initGuideModal() {
+  const openBtn = document.getElementById('openGuideBtn');
+  const modal = document.getElementById('guideModal');
+  const closeX = document.getElementById('closeGuideModalBtn');
+  const prevBtn = document.getElementById('guidePrevBtn');
+  const nextBtn = document.getElementById('guideNextBtn');
+  const tabs = document.querySelectorAll('.guide-tab');
+  const panels = document.querySelectorAll('.guide-step-panel');
+
+  if (!openBtn || !modal) return;
+
+  let currentStep = 1;
+  const totalSteps = panels.length;
+
+  function renderStep(step) {
+    currentStep = step;
+    tabs.forEach(t => {
+      t.classList.toggle('active', parseInt(t.dataset.step, 10) === step);
+    });
+    panels.forEach(p => {
+      p.classList.toggle('active', parseInt(p.dataset.step, 10) === step);
+    });
+
+    if (prevBtn) {
+      prevBtn.style.visibility = step === 1 ? 'hidden' : 'visible';
+    }
+    if (nextBtn) {
+      nextBtn.textContent = step === totalSteps ? 'Selesai ✓' : 'Lanjut ➔';
+    }
+  }
+
+  openBtn.addEventListener('click', () => {
+    renderStep(1);
+    modal.style.display = 'flex';
+  });
+
+  if (closeX) {
+    closeX.addEventListener('click', () => {
+      modal.style.display = 'none';
+    });
+  }
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.style.display = 'none';
+    }
+  });
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      renderStep(parseInt(tab.dataset.step, 10));
+    });
+  });
+
+  if (prevBtn) {
+    prevBtn.addEventListener('click', () => {
+      if (currentStep > 1) renderStep(currentStep - 1);
+    });
+  }
+
+  if (nextBtn) {
+    nextBtn.addEventListener('click', () => {
+      if (currentStep < totalSteps) {
+        renderStep(currentStep + 1);
+      } else {
+        modal.style.display = 'none';
+      }
+    });
+  }
+}

@@ -2,6 +2,8 @@
   --bg-color: #121212;
   --card-bg: #1e1e1e;
   --accent-color: #007aff;
+  --success-color: #34c759;
+  --danger-color: #ff453a;
   --text-color: #ffffff;
   --text-muted: #aaaaaa;
 }
@@ -17,7 +19,8 @@
 body {
   background-color: var(--bg-color);
   color: var(--text-color);
-  padding: calc(40px + env(safe-area-inset-top)) 15px calc(60px + env(safe-area-inset-bottom)) 15px;
+  /* Proteksi Notch / Dynamic Island iPhone */
+  padding: calc(36px + env(safe-area-inset-top)) 15px calc(50px + env(safe-area-inset-bottom)) 15px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -31,22 +34,48 @@ body {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
+  flex: 1;
 }
 
 header {
   text-align: center;
-  margin-bottom: 5px;
+  margin-bottom: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 header h1 {
-  font-size: 1.6rem;
+  font-size: 1.55rem;
   margin-bottom: 4px;
 }
 
 header p {
   font-size: 0.9rem;
   color: var(--text-muted);
+}
+
+/* Tombol Pill Panduan di Bawah Subtitle Header */
+.btn-guide-pill {
+  margin-top: 12px;
+  background-color: #1a2736;
+  color: #64b5f6;
+  border: 1px solid #2b4c70;
+  padding: 7px 16px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.2s, transform 0.15s;
+}
+
+.btn-guide-pill:active {
+  transform: scale(0.96);
+  background-color: #23364b;
 }
 
 .nav-grid {
@@ -98,7 +127,7 @@ header p {
 .control-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 15px;
+  gap: 14px;
   width: 100%;
 }
 
@@ -118,7 +147,7 @@ header p {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 
 .section-title {
@@ -126,7 +155,7 @@ header p {
   font-weight: 700;
   color: var(--accent-color);
   grid-column: 1 / -1;
-  margin-top: 5px;
+  margin-top: 6px;
   border-bottom: 1px solid #333;
   padding-bottom: 4px;
 }
@@ -137,6 +166,7 @@ label {
   color: var(--text-muted);
 }
 
+/* Proteksi Minimal 16px Cegah Safari iOS Auto-Zoom */
 input[type="text"], input[type="file"], input[type="date"], select, input[type="color"] {
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -197,19 +227,41 @@ input[type="color"]::-webkit-color-swatch {
 }
 
 .btn-secondary {
-  background-color: #333;
+  background-color: #2e2e2e;
   color: #fff;
   border: 1px solid #444;
-  padding: 10px 14px;
+  padding: 10px 12px;
   border-radius: 8px;
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.83rem;
   cursor: pointer;
-  margin-top: 6px;
+  transition: background-color 0.15s, transform 0.1s;
+}
+
+.btn-secondary:active {
+  transform: scale(0.97);
+  background-color: #3a3a3a;
+}
+
+.btn-danger-outline {
+  background-color: rgba(255, 69, 58, 0.12);
+  color: #ff6961;
+  border: 1px solid rgba(255, 69, 58, 0.4);
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.83rem;
+  cursor: pointer;
+  transition: background-color 0.15s, transform 0.1s;
+}
+
+.btn-danger-outline:active {
+  transform: scale(0.97);
+  background-color: rgba(255, 69, 58, 0.22);
 }
 
 .btn:hover, .btn-secondary:hover {
-  opacity: 0.9;
+  opacity: 0.92;
 }
 
 .btn:disabled {
@@ -218,12 +270,73 @@ input[type="color"]::-webkit-color-swatch {
   cursor: not-allowed;
 }
 
+/* Quick Photo Action Buttons */
+.photo-actions-grid {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+/* Collapsible Cosmetic Settings */
+.collapsible-settings {
+  grid-column: 1 / -1;
+  background-color: #252525;
+  border: 1px solid #353535;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-top: 4px;
+}
+
+.collapsible-settings summary {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #ddd;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+}
+
+.collapsible-settings summary::-webkit-details-marker {
+  display: none;
+}
+
+.collapsible-settings summary::after {
+  content: "▼";
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.collapsible-settings[open] summary::after {
+  transform: rotate(180deg);
+}
+
+.collapsible-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #353535;
+}
+
+@media (max-width: 600px) {
+  .collapsible-content {
+    grid-template-columns: 1fr;
+  }
+}
+
 .preview-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 15px;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 canvas {
@@ -235,9 +348,9 @@ canvas {
 }
 
 .file-hint {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: #ff9500;
-  margin-top: 4px;
+  margin-top: 2px;
   word-break: break-word;
   font-weight: 500;
 }
@@ -278,11 +391,30 @@ canvas {
 .tpm-item {
   background: #252525;
   padding: 14px;
-  border-radius: 8px;
+  border-radius: 10px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   border-left: 4px solid var(--accent-color);
+  border-top: 1px solid #303030;
+  border-right: 1px solid #303030;
+  border-bottom: 1px solid #303030;
+  transition: transform 0.15s, background-color 0.15s, border-color 0.15s;
+}
+
+.tpm-item.clickable {
+  cursor: pointer;
+}
+
+.tpm-item.clickable:active {
+  transform: scale(0.98);
+  background: #2c3540;
+}
+
+.tpm-item.active-shift {
+  border-left-color: var(--success-color);
+  background: #1b2a22;
+  border-color: rgba(52, 199, 89, 0.45);
 }
 
 .tpm-item.off-day {
@@ -290,28 +422,62 @@ canvas {
   background: #2a2419;
 }
 
+.tpm-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
 .shift-tag {
   font-size: 0.75rem;
   font-weight: 700;
   color: var(--accent-color);
   text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tpm-item.active-shift .shift-tag {
+  color: var(--success-color);
 }
 
 .tpm-item.off-day .shift-tag {
   color: #ff9500;
 }
 
-.tpm-title {
-  font-weight: 600;
-  font-size: 1rem;
+.active-badge {
+  background-color: rgba(52, 199, 89, 0.2);
+  color: #4cd964;
+  border: 1px solid rgba(52, 199, 89, 0.5);
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-size: 0.68rem;
+  font-weight: 700;
 }
 
-/* Footer & Smart Install Button */
+.tpm-action-hint {
+  font-size: 0.75rem;
+  color: #8ab4f8;
+  font-weight: 600;
+}
+
+.tpm-title {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+/* Footer, Smart Install Button & Credit */
 .app-footer {
-  margin-top: 10px;
+  margin-top: 8px;
+  padding-top: 10px;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
   width: 100%;
+  text-align: center;
 }
 
 .btn-install {
@@ -334,36 +500,135 @@ canvas {
   transform: scale(0.96);
 }
 
-/* Modal Petunjuk iOS */
+.footer-credit {
+  font-size: 0.78rem;
+  color: #777777;
+  letter-spacing: 0.2px;
+}
+
+/* Modal Umum (Panduan Interaktif & Petunjuk iOS) */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(0, 0, 0, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
-  padding: 20px;
+  padding: 18px;
+  backdrop-filter: blur(3px);
 }
 
 .modal-content {
   background: #1e1e1e;
-  border: 1px solid #333;
+  border: 1px solid #383838;
   border-radius: 16px;
-  padding: 24px;
-  max-width: 400px;
+  padding: 20px;
+  max-width: 440px;
   width: 100%;
   color: #fff;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  animation: modalPop 0.18s ease-out;
 }
 
-.modal-content h3 {
+@keyframes modalPop {
+  from { transform: scale(0.94); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 10px;
+}
+
+.modal-header h3 {
   color: var(--accent-color);
-  font-size: 1.1rem;
-  margin-bottom: 12px;
+  font-size: 1.05rem;
+}
+
+.modal-close-x {
+  background: #2c2c2c;
+  border: 1px solid #444;
+  color: #ccc;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Interactive 3-Step Tabs inside Guide Modal */
+.guide-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.guide-tab {
+  background: #282828;
+  border: 1px solid #3a3a3a;
+  color: #aaa;
+  padding: 8px 6px;
+  border-radius: 8px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+  transition: 0.15s;
+}
+
+.guide-tab.active {
+  background: #1a2736;
+  border-color: var(--accent-color);
+  color: #fff;
+}
+
+.guide-step-panel {
+  display: none;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: #e0e0e0;
+  min-height: 155px;
+}
+
+.guide-step-panel.active {
+  display: block;
+}
+
+.guide-step-panel h4 {
+  color: #fff;
+  font-size: 0.98rem;
+  margin-bottom: 8px;
+}
+
+.guide-step-panel ul {
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.guide-nav-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid #333;
+}
+
+.guide-nav-buttons button {
+  flex: 1;
 }
 
 .modal-content ol {

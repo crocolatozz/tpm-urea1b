@@ -2,18 +2,18 @@ const tpmDate = document.getElementById('tpmDate');
 const scheduleTitle = document.getElementById('scheduleTitle');
 const tpmList = document.getElementById('tpmList');
 
-const today = new Date().toISOString().split('T')[0];
+const today = getLocalTodayStr();
 tpmDate.value = today;
 
 function loadSchedule(dateStr) {
-  const isToday = dateStr === today;
+  const isToday = dateStr === getLocalTodayStr();
   scheduleTitle.textContent = isToday ? "Jadwal TPM Hari Ini" : `Jadwal TPM (${formatDateIndo(dateStr)})`;
   
   const tasks = getScheduleForDate(dateStr);
-  renderTasks(tasks);
+  renderTasks(tasks, dateStr, isToday);
 }
 
-function renderTasks(tasks) {
+function renderTasks(tasks, dateStr, isToday) {
   tpmList.innerHTML = '';
 
   if (tasks.length === 0) {
@@ -21,19 +21,45 @@ function renderTasks(tasks) {
     return;
   }
 
+  const activeShift = isToday ? getCurrentActiveShift() : null;
+
   tasks.forEach((task) => {
+    const isCurrentShift = isToday && !task.isOff && task.shift === activeShift;
     const item = document.createElement('div');
-    item.className = `tpm-item ${task.isOff ? 'off-day' : ''}`;
+    item.className = `tpm-item ${task.isOff ? 'off-day' : 'clickable'} ${isCurrentShift ? 'active-shift' : ''}`;
+
+    const activeBadgeHTML = isCurrentShift ? `<span class="active-badge">● SHIFT AKTIF</span>` : '';
+    const actionHintHTML = !task.isOff ? `<span class="tpm-action-hint">Buat Kolase ➔</span>` : '';
+
     item.innerHTML = `
-      <span class="shift-tag">${task.shift === 'INFO' ? 'STATUS' : 'SHIFT ' + task.shift}</span>
+      <div class="tpm-item-top">
+        <span class="shift-tag">
+          ${task.shift === 'INFO' ? 'STATUS' : 'SHIFT ' + task.shift}
+          ${activeBadgeHTML}
+        </span>
+        ${actionHintHTML}
+      </div>
       <div class="tpm-title">${task.text}</div>
     `;
+
+    if (!task.isOff) {
+      item.addEventListener('click', () => {
+        const params = new URLSearchParams({
+          date: dateStr,
+          shift: task.shift,
+          area: task.text
+        });
+        window.location.href = `kolase.html?${params.toString()}`;
+      });
+    }
+
     tpmList.appendChild(item);
   });
 }
 
 tpmDate.addEventListener('change', (e) => loadSchedule(e.target.value));
 loadSchedule(today);
+initGuideModal();
 
 // Register Service Worker
 if ('serviceWorker' in navigator) {
@@ -51,10 +77,8 @@ const closeIosModalBtn = document.getElementById('closeIosModalBtn');
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
 
-if (!isStandalone) {
-  if (isIOS) {
-    if (installAppBtn) installAppBtn.style.display = 'flex';
-  }
+if (!isStandalone && isIOS && installAppBtn) {
+  installAppBtn.style.display = 'flex';
 }
 
 window.addEventListener('beforeinstallprompt', (e) => {
@@ -74,10 +98,8 @@ if (installAppBtn) {
         installAppBtn.style.display = 'none';
       }
       deferredPrompt = null;
-    } else if (isIOS) {
-      if (iosInstallModal) iosInstallModal.style.display = 'flex';
-    } else {
-      alert('Aplikasi sudah terpasang atau browser Anda tidak mendukung instalasi otomatis.');
+    } else if (isIOS && iosInstallModal) {
+      iosInstallModal.style.display = 'flex';
     }
   });
 }
@@ -85,6 +107,11 @@ if (installAppBtn) {
 if (closeIosModalBtn && iosInstallModal) {
   closeIosModalBtn.addEventListener('click', () => {
     iosInstallModal.style.display = 'none';
+  });
+  iosInstallModal.addEventListener('click', (e) => {
+    if (e.target === iosInstallModal) {
+      iosInstallModal.style.display = 'none';
+    }
   });
 }
 

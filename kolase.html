@@ -8,11 +8,11 @@
   <!-- PWA Metadata -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Kolase TPM">
+  <meta name="apple-mobile-web-app-title" content="TPM Urea 1B">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#121212">
 
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="manifest.json?v=4">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="icon.png">
@@ -27,6 +27,7 @@
   <header>
     <h1 id="appTitle">Kolase Foto TPM</h1>
     <p id="appSubtitle">Template Grid untuk Foto TPM</p>
+    <button type="button" id="openGuideBtn" class="btn-guide-pill">❓ Panduan Penggunaan</button>
   </header>
 
   <!-- Navigasi -->
@@ -61,7 +62,7 @@
       <div class="form-group">
         <label for="tpmShiftInput">Shift Pekerjaan</label>
         <select id="tpmShiftInput">
-          <option value="PAGI" selected>PAGI</option>
+          <option value="PAGI">PAGI</option>
           <option value="SORE">SORE</option>
           <option value="MALAM">MALAM</option>
         </select>
@@ -72,7 +73,7 @@
         <input type="text" id="tpmAreaInput" placeholder="Otomatis atau isi manual...">
       </div>
 
-      <div class="section-title">Format Grid Layout</div>
+      <div class="section-title">Format Grid & Upload Foto</div>
 
       <div class="form-group" style="grid-column: 1 / -1;">
         <label for="gridType">Pilih Ukuran Grid</label>
@@ -82,8 +83,6 @@
           <option value="2x3" selected>2x3 (3 Baris - Total 6 Foto)</option>
         </select>
       </div>
-
-      <div class="section-title">Upload Foto</div>
 
       <div class="form-group">
         <label for="beforeInput" id="beforeLabel">Foto BEFORE (Kolom Kiri - Max 3)</label>
@@ -97,74 +96,86 @@
         <span class="file-hint" id="afterCount">Belum ada foto dipilih</span>
       </div>
 
-      <div class="section-title">Pengaturan Header Utama (Atas)</div>
-
-      <div class="form-group">
-        <label for="leftHeaderText">Header Kolom Kiri</label>
-        <input type="text" id="leftHeaderText" value="BEFORE">
-      </div>
-
-      <div class="form-group">
-        <label for="rightHeaderText">Header Kolom Kanan</label>
-        <input type="text" id="rightHeaderText" value="AFTER">
+      <!-- Tombol Cepat Tukar & Reset Foto -->
+      <div class="photo-actions-grid">
+        <button type="button" class="btn-secondary" id="swapBeforeAfterBtn">⇄ Tukar Before/After</button>
+        <button type="button" class="btn-danger-outline" id="resetPhotosBtn">🗑️ Reset Foto</button>
+        <button type="button" class="btn-secondary" id="swapRow12Btn">⇅ Tukar Baris 1 & 2</button>
+        <button type="button" class="btn-secondary" id="swapRow23Btn">⇅ Tukar Baris 2 & 3</button>
       </div>
 
       <div class="section-title">Teks Overlay (Muncul di Foto & Caption)</div>
 
+      <datalist id="overlayHistoryList"></datalist>
+
       <div class="form-group" style="grid-column: 1 / -1;" id="row1Group">
         <label for="row1Text">Overlay Baris 1</label>
-        <input type="text" id="row1Text" placeholder="Contoh: Cleaning baseplate pompa">
+        <input type="text" id="row1Text" list="overlayHistoryList" placeholder="Contoh: Cleaning baseplate pompa">
       </div>
 
       <div class="form-group" style="grid-column: 1 / -1;" id="row2Group">
         <label for="row2Text">Overlay Baris 2</label>
-        <input type="text" id="row2Text" placeholder="Contoh: Cleaning instrumentasi">
+        <input type="text" id="row2Text" list="overlayHistoryList" placeholder="Contoh: Cleaning instrumentasi">
       </div>
 
       <div class="form-group" style="grid-column: 1 / -1;" id="row3Group">
         <label for="row3Text">Overlay Baris 3</label>
-        <input type="text" id="row3Text" placeholder="Contoh: Cleaning area">
+        <input type="text" id="row3Text" list="overlayHistoryList" placeholder="Contoh: Cleaning area & grating">
       </div>
 
-      <div class="section-title">Gaya & Format Gambar</div>
+      <!-- Pengaturan Kosmetik Dilipat -->
+      <details class="collapsible-settings">
+        <summary>⚙️ Pengaturan Tampilan (Header, Warna & Rasio)</summary>
+        <div class="collapsible-content">
+          <div class="form-group">
+            <label for="leftHeaderText">Header Kolom Kiri</label>
+            <input type="text" id="leftHeaderText" value="BEFORE">
+          </div>
 
-      <div class="form-group">
-        <label for="bgColor">Warna Latar Header & Celah</label>
-        <div class="color-pickers">
-          <input type="color" id="bgColor" value="#000000">
+          <div class="form-group">
+            <label for="rightHeaderText">Header Kolom Kanan</label>
+            <input type="text" id="rightHeaderText" value="AFTER">
+          </div>
+
+          <div class="form-group">
+            <label for="bgColor">Warna Latar & Celah</label>
+            <div class="color-pickers">
+              <input type="color" id="bgColor" value="#000000">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="textColor">Warna Teks Header</label>
+            <div class="color-pickers">
+              <input type="color" id="textColor" value="#ffffff">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="gapSize">Celah Antarfoto (px)</label>
+            <select id="gapSize">
+              <option value="0">Tanpa Celah (0px)</option>
+              <option value="12" selected>Sedang (12px)</option>
+              <option value="24">Tebal (24px)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="aspectRatio">Rasio Potongan Foto</label>
+            <select id="aspectRatio">
+              <option value="1" selected>1:1 (Persegi)</option>
+              <option value="1.25">4:5 (Portrait)</option>
+              <option value="0.75">4:3 (Landscape)</option>
+            </select>
+          </div>
         </div>
-      </div>
-
-      <div class="form-group">
-        <label for="textColor">Warna Teks Header Utama</label>
-        <div class="color-pickers">
-          <input type="color" id="textColor" value="#ffffff">
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label for="gapSize">Ukuran Celah Antarfoto (px)</label>
-        <select id="gapSize">
-          <option value="0">Tanpa Celah (0px)</option>
-          <option value="12" selected>Sedang (12px)</option>
-          <option value="24">Tebal (24px)</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label for="aspectRatio">Rasio Potongan Foto</label>
-        <select id="aspectRatio">
-          <option value="1" selected>1:1 (Persegi)</option>
-          <option value="1.25">4:5 (Portrait)</option>
-          <option value="0.75">4:3 (Landscape)</option>
-        </select>
-      </div>
+      </details>
 
       <div class="section-title">Pratinjau Caption WhatsApp</div>
 
       <div class="form-group" style="grid-column: 1 / -1;">
         <div class="caption-preview-box" id="captionPreview"></div>
-        <button type="button" class="btn-secondary" id="copyCaptionBtn">📋 Salin Teks Caption</button>
+        <button type="button" class="btn-secondary" id="copyCaptionBtn" style="margin-top: 6px;">📋 Salin Teks Caption</button>
       </div>
 
     </div>
@@ -173,6 +184,58 @@
   <div class="card preview-container">
     <canvas id="collageCanvas"></canvas>
     <button id="downloadBtn" class="btn" disabled>Unduh / Kirim Kolase + Caption</button>
+  </div>
+
+  <footer class="app-footer">
+    <p class="footer-credit">Dibuat untuk mempermudah laporan TPM Urea 1B • by FIKRI</p>
+  </footer>
+</div>
+
+<!-- Modal Interaktif 3 Langkah Panduan -->
+<div id="guideModal" class="modal-overlay" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>📖 Panduan Cepat Aplikasi</h3>
+      <button type="button" id="closeGuideModalBtn" class="modal-close-x">✕</button>
+    </div>
+
+    <div class="guide-tabs">
+      <button type="button" class="guide-tab active" data-step="1">1. Alur Cepat</button>
+      <button type="button" class="guide-tab" data-step="2">2. Bikin Kolase</button>
+      <button type="button" class="guide-tab" data-step="3">3. Pasang HP</button>
+    </div>
+
+    <div class="guide-step-panel active" data-step="1">
+      <h4>📅 Cek Jadwal & Mulai Laporan</h4>
+      <ul>
+        <li>Kartu dengan badge <strong>● SHIFT AKTIF</strong> menandakan shift yang sedang berjalan sesuai jam HP.</li>
+        <li>Cukup <strong>tap kartu jadwal</strong> (Pagi / Sore / Malam), otomatis pindah ke halaman Kolase dengan tanggal, shift, dan nama alat sudah terisi.</li>
+        <li>Khusus <strong>tanggal 31</strong> jadwal otomatis libur (Tidak Ada Kegiatan).</li>
+      </ul>
+    </div>
+
+    <div class="guide-step-panel" data-step="2">
+      <h4>📸 Susun Kolase & Kirim WhatsApp</h4>
+      <ul>
+        <li>Pilih ukuran grid (<strong>2x1</strong>, <strong>2x2</strong>, atau <strong>2x3</strong>), lalu upload foto <strong>BEFORE</strong> (kiri) & <strong>AFTER</strong> (kanan).</li>
+        <li>Isi <strong>Teks Overlay</strong> di tiap baris — teks muncul di foto sekaligus jadi poin di caption.</li>
+        <li>Tekan <strong>Unduh / Kirim Kolase + Caption</strong> $ightarrow$ pilih <strong>WhatsApp</strong>. Foto & teks caption langsung terkirim bersamaan di Android maupun iPhone.</li>
+      </ul>
+    </div>
+
+    <div class="guide-step-panel" data-step="3">
+      <h4>📲 Pasang di Layar Utama (Bisa Offline)</h4>
+      <ul>
+        <li><strong>Android (Chrome):</strong> Tap tombol biru <strong>Install Aplikasi PWA</strong> di bagian bawah halaman utama.</li>
+        <li><strong>iPhone (Safari):</strong> Tap ikon <strong>Share 📤</strong> di bawah layar $ightarrow$ pilih <strong>Tambah ke Layar Utama ➕</strong>.</li>
+        <li>Setelah terpasang, aplikasi bisa dibuka kapan saja termasuk saat jaringan offline.</li>
+      </ul>
+    </div>
+
+    <div class="guide-nav-buttons">
+      <button type="button" id="guidePrevBtn" class="btn-secondary">⬅ Sebelumnya</button>
+      <button type="button" id="guideNextBtn" class="btn" style="padding: 10px 14px; font-size: 0.9rem;">Lanjut ➔</button>
+    </div>
   </div>
 </div>
 

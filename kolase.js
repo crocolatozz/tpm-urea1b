@@ -12,6 +12,11 @@ const afterCount = document.getElementById('afterCount');
 const beforeLabel = document.getElementById('beforeLabel');
 const afterLabel = document.getElementById('afterLabel');
 
+const swapBeforeAfterBtn = document.getElementById('swapBeforeAfterBtn');
+const swapRow12Btn = document.getElementById('swapRow12Btn');
+const swapRow23Btn = document.getElementById('swapRow23Btn');
+const resetPhotosBtn = document.getElementById('resetPhotosBtn');
+
 const appTitle = document.getElementById('appTitle');
 const row1Group = document.getElementById('row1Group');
 const row2Group = document.getElementById('row2Group');
@@ -22,6 +27,8 @@ const rightHeaderInput = document.getElementById('rightHeaderText');
 const row1Input = document.getElementById('row1Text');
 const row2Input = document.getElementById('row2Text');
 const row3Input = document.getElementById('row3Text');
+const overlayHistoryList = document.getElementById('overlayHistoryList');
+
 const bgColorInput = document.getElementById('bgColor');
 const textColorInput = document.getElementById('textColor');
 const gapSizeInput = document.getElementById('gapSize');
@@ -33,8 +40,69 @@ const downloadBtn = document.getElementById('downloadBtn');
 let loadedBeforeImages = [];
 let loadedAfterImages = [];
 
-const todayStr = new Date().toISOString().split('T')[0];
-tpmDateInput.value = todayStr;
+// Riwayat Saran Teks Overlay (localStorage)
+const HISTORY_STORAGE_KEY = 'tpm_overlay_history_v1';
+const DEFAULT_OVERLAY_SUGGESTIONS = [
+  "Cleaning baseplate pompa",
+  "Cleaning instrumentasi",
+  "Cleaning area & grating",
+  "Pengecekan level & kondisi oli",
+  "Cleaning body motor & coupling"
+];
+
+function loadOverlayHistory() {
+  let saved = [];
+  try {
+    const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
+    if (raw) saved = JSON.parse(raw);
+  } catch (e) {
+    saved = [];
+  }
+  const combined = [...new Set([...saved, ...DEFAULT_OVERLAY_SUGGESTIONS])].slice(0, 20);
+  if (overlayHistoryList) {
+    overlayHistoryList.innerHTML = '';
+    combined.forEach(item => {
+      const opt = document.createElement('option');
+      opt.value = item;
+      overlayHistoryList.appendChild(opt);
+    });
+  }
+}
+
+function saveOverlayHistory() {
+  const currentTexts = [row1Input.value, row2Input.value, row3Input.value]
+    .map(t => t.trim())
+    .filter(t => t.length >= 3);
+
+  if (currentTexts.length === 0) return;
+
+  let saved = [];
+  try {
+    const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
+    if (raw) saved = JSON.parse(raw);
+  } catch (e) {
+    saved = [];
+  }
+
+  const updated = [...new Set([...currentTexts, ...saved])].slice(0, 20);
+  try {
+    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(updated));
+  } catch (e) {}
+  loadOverlayHistory();
+}
+
+// Cek Parameter URL (Jika dibuka dari klik kartu Jadwal di Dashboard)
+const urlParams = new URLSearchParams(window.location.search);
+const paramDate = urlParams.get('date');
+const paramShift = urlParams.get('shift');
+const paramArea = urlParams.get('area');
+
+tpmDateInput.value = paramDate || getLocalTodayStr();
+if (paramShift && ['PAGI', 'SORE', 'MALAM'].includes(paramShift)) {
+  tpmShiftInput.value = paramShift;
+} else {
+  tpmShiftInput.value = getCurrentActiveShift();
+}
 
 function updateAutoAreaName() {
   const dateVal = tpmDateInput.value;
@@ -61,11 +129,13 @@ function generateCaptionText() {
   const shiftVal = tpmShiftInput.value;
   const areaName = tpmAreaInput.value.trim() || "-";
 
+  // Format bold 2 baris pertama WhatsApp (*teks*) + "SHIFT"
   let caption = `*TPM ${areaName}*\n*SHIFT ${shiftVal} ~ ${dateFormatted}*`;
 
   const rows = getSelectedRows();
   const overlayInputs = [row1Input, row2Input, row3Input];
 
+  // Bullet list resmi WhatsApp (- spasi)
   const bullets = [];
   for (let i = 0; i < rows; i++) {
     const text = overlayInputs[i] ? overlayInputs[i].value.trim() : "";
@@ -90,6 +160,7 @@ tpmShiftInput.addEventListener('change', updateAutoAreaName);
 tpmAreaInput.addEventListener('input', updateCaption);
 
 copyCaptionBtn.addEventListener('click', () => {
+  saveOverlayHistory();
   const captionText = generateCaptionText();
   navigator.clipboard.writeText(captionText).then(() => {
     copyCaptionBtn.textContent = "✓ Teks Caption Tersalin!";
@@ -117,6 +188,9 @@ function updateGridUI() {
 
   row2Group.style.display = rows >= 2 ? 'flex' : 'none';
   row3Group.style.display = rows >= 3 ? 'flex' : 'none';
+
+  if (swapRow12Btn) swapRow12Btn.style.display = rows >= 2 ? 'inline-block' : 'none';
+  if (swapRow23Btn) swapRow23Btn.style.display = rows >= 3 ? 'inline-block' : 'none';
 
   updateCaption();
 
@@ -149,6 +223,79 @@ gridTypeInput.addEventListener('change', updateGridUI);
     if (loadedBeforeImages.length > 0 || loadedAfterImages.length > 0) generateCollage();
   });
 });
+
+[row1Input, row2Input, row3Input].forEach(input => {
+  input.addEventListener('blur', saveOverlayHistory);
+});
+
+// Helper untuk hitung jumlah gambar terisi di array
+function countValidImages(arr) {
+  return arr.filter(Boolean).length;
+}
+
+function refreshPhotoStatusHints() {
+  const bCount = countValidImages(loadedBeforeImages);
+  const aCount = countValidImages(loadedAfterImages);
+  beforeCount.textContent = bCount > 0 ? `${bCount} foto dimuat` : "Belum ada foto dipilih";
+  afterCount.textContent = aCount > 0 ? `${aCount} foto dimuat` : "Belum ada foto dipilih";
+}
+
+// Tombol Tukar Before & After
+if (swapBeforeAfterBtn) {
+  swapBeforeAfterBtn.addEventListener('click', () => {
+    if (countValidImages(loadedBeforeImages) === 0 && countValidImages(loadedAfterImages) === 0) return;
+    const temp = loadedBeforeImages;
+    loadedBeforeImages = loadedAfterImages;
+    loadedAfterImages = temp;
+    refreshPhotoStatusHints();
+    updateStateAndGenerate();
+  });
+}
+
+// Helper Tukar Baris (Foto Before, Foto After, dan Teks Overlay ikut tertukar)
+function swapRowIndices(idxA, idxB, inputA, inputB) {
+  const tempBefore = loadedBeforeImages[idxA];
+  loadedBeforeImages[idxA] = loadedBeforeImages[idxB];
+  loadedBeforeImages[idxB] = tempBefore;
+
+  const tempAfter = loadedAfterImages[idxA];
+  loadedAfterImages[idxA] = loadedAfterImages[idxB];
+  loadedAfterImages[idxB] = tempAfter;
+
+  const tempText = inputA.value;
+  inputA.value = inputB.value;
+  inputB.value = tempText;
+
+  updateCaption();
+  if (countValidImages(loadedBeforeImages) > 0 || countValidImages(loadedAfterImages) > 0) {
+    generateCollage();
+  }
+}
+
+if (swapRow12Btn) {
+  swapRow12Btn.addEventListener('click', () => swapRowIndices(0, 1, row1Input, row2Input));
+}
+
+if (swapRow23Btn) {
+  swapRow23Btn.addEventListener('click', () => swapRowIndices(1, 2, row2Input, row3Input));
+}
+
+// Tombol Reset Foto
+if (resetPhotosBtn) {
+  resetPhotosBtn.addEventListener('click', () => {
+    freeImages(loadedBeforeImages);
+    freeImages(loadedAfterImages);
+    loadedBeforeImages = [];
+    loadedAfterImages = [];
+    beforeInput.value = '';
+    afterInput.value = '';
+    refreshPhotoStatusHints();
+    downloadBtn.disabled = true;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.width = 0;
+    canvas.height = 0;
+  });
+}
 
 async function processAndResizeFile(file) {
   if ('createImageBitmap' in window) {
@@ -227,7 +374,7 @@ afterInput.addEventListener('change', () => {
 });
 
 function updateStateAndGenerate() {
-  if (loadedBeforeImages.length > 0 || loadedAfterImages.length > 0) {
+  if (countValidImages(loadedBeforeImages) > 0 || countValidImages(loadedAfterImages) > 0) {
     downloadBtn.disabled = false;
     generateCollage();
   } else {
@@ -252,9 +399,11 @@ function generateCollage() {
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
 
+    // Background
     ctx.fillStyle = bgColorInput.value;
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
+    // Header Utama
     ctx.fillStyle = textColorInput.value;
     ctx.font = 'bold 80px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
     ctx.textAlign = 'center';
@@ -267,6 +416,7 @@ function generateCollage() {
     ctx.fillText(leftHeaderInput.value, leftColCenterX, headerCenterY);
     ctx.fillText(rightHeaderInput.value, rightColCenterX, headerCenterY);
 
+    // Render Foto
     const startY = padding + headerHeight;
 
     for (let r = 0; r < rows; r++) {
@@ -283,6 +433,7 @@ function generateCollage() {
       }
     }
 
+    // Render Teks Overlay dengan Auto-Scale Font
     const rawRowTexts = [
       row1Input ? row1Input.value : '',
       row2Input ? row2Input.value : '',
@@ -290,31 +441,44 @@ function generateCollage() {
     ];
     
     const rowTexts = rawRowTexts.slice(0, rows);
+    const maxPillWidth = canvasWidth - (padding * 2) - 48;
 
-    rowTexts.forEach((text, r) => {
-      if (!text || !text.trim()) return;
+    rowTexts.forEach((rawText, r) => {
+      const text = rawText ? rawText.trim() : '';
+      if (!text) return;
 
       const centerX = canvasWidth / 2;
       const rowBottomY = startY + (r + 1) * cellHeight + r * gap;
-      const textY = rowBottomY - 60;
 
       ctx.save();
-      ctx.font = 'bold 60px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      let fontSize = 60;
+      const minFontSize = 24;
+      const padX = 32;
+      const padY = 16;
+
+      ctx.font = `bold ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+      let metrics = ctx.measureText(text);
+
+      while ((metrics.width + padX * 2) > maxPillWidth && fontSize > minFontSize) {
+        fontSize -= 2;
+        ctx.font = `bold ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+        metrics = ctx.measureText(text);
+      }
+
+      const bgW = Math.min(metrics.width + (padX * 2), maxPillWidth);
+      const bgH = Math.round(fontSize * 1.15) + (padY * 2);
+      const textY = rowBottomY - (bgH / 2) - 24;
+      const cornerRadius = Math.min(20, Math.round(bgH / 3));
+
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
-      const metrics = ctx.measureText(text);
-      const padX = 32;
-      const padY = 16;
-      const bgW = metrics.width + (padX * 2);
-      const bgH = 68 + (padY * 2);
-
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
-      drawRoundedRect(ctx, centerX - (bgW / 2), textY - (bgH / 2), bgW, bgH, 20);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.78)';
+      drawRoundedRect(ctx, centerX - (bgW / 2), textY - (bgH / 2), bgW, bgH, cornerRadius);
       ctx.fill();
 
       ctx.fillStyle = '#ffffff';
-      ctx.fillText(text, centerX, textY);
+      ctx.fillText(text, centerX, textY, maxPillWidth - (padX * 2));
       ctx.restore();
     });
   } catch (err) {
@@ -357,6 +521,7 @@ function drawImageCover(ctx, img, x, y, w, h) {
 }
 
 downloadBtn.addEventListener('click', () => {
+  saveOverlayHistory();
   canvas.toBlob(async (blob) => {
     if (!blob) return;
 
@@ -390,11 +555,13 @@ downloadBtn.addEventListener('click', () => {
   }, 'image/jpeg', 0.95);
 });
 
-updateAutoAreaName();
-updateGridUI();
-
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW Registration error:', err));
-  });
+// Inisialisasi Awal
+if (paramArea) {
+  tpmAreaInput.value = paramArea;
+  updateCaption();
+} else {
+  updateAutoAreaName();
 }
+loadOverlayHistory();
+updateGridUI();
+initGuideModal();

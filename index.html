@@ -8,11 +8,11 @@
   <!-- PWA Metadata -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Dashboard TPM">
+  <meta name="apple-mobile-web-app-title" content="TPM Urea 1B">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#121212">
 
-  <link rel="manifest" href="manifest.json?v=2">
+  <link rel="manifest" href="manifest.json?v=4">
   
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="icon.png">
@@ -27,6 +27,7 @@
   <header>
     <h1>Dashboard TPM Urea 1B</h1>
     <p>Monitoring & Jadwal Inspeksi Mesin</p>
+    <button type="button" id="openGuideBtn" class="btn-guide-pill">❓ Panduan Penggunaan</button>
   </header>
 
   <!-- Navigasi -->
@@ -61,24 +62,75 @@
     <div class="tpm-list" id="tpmList"></div>
   </div>
 
-  <!-- Footer dengan Tombol Smart Install -->
+  <!-- Footer dengan Tombol Smart Install & Credit -->
   <footer class="app-footer">
     <button id="installAppBtn" class="btn-install" style="display: none;">
       📲 Install Aplikasi PWA
     </button>
+    <p class="footer-credit">Dibuat untuk mempermudah laporan TPM Urea 1B • by FIKRI</p>
   </footer>
+</div>
+
+<!-- Modal Interaktif 3 Langkah Panduan -->
+<div id="guideModal" class="modal-overlay" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>📖 Panduan Cepat Aplikasi</h3>
+      <button type="button" id="closeGuideModalBtn" class="modal-close-x">✕</button>
+    </div>
+
+    <div class="guide-tabs">
+      <button type="button" class="guide-tab active" data-step="1">1. Alur Cepat</button>
+      <button type="button" class="guide-tab" data-step="2">2. Bikin Kolase</button>
+      <button type="button" class="guide-tab" data-step="3">3. Pasang HP</button>
+    </div>
+
+    <div class="guide-step-panel active" data-step="1">
+      <h4>📅 Cek Jadwal & Mulai Laporan</h4>
+      <ul>
+        <li>Kartu dengan badge <strong>● SHIFT AKTIF</strong> menandakan shift yang sedang berjalan sesuai jam HP.</li>
+        <li>Cukup <strong>tap kartu jadwal</strong> (Pagi / Sore / Malam), otomatis pindah ke halaman Kolase dengan tanggal, shift, dan nama alat sudah terisi.</li>
+        <li>Khusus <strong>tanggal 31</strong> jadwal otomatis libur (Tidak Ada Kegiatan).</li>
+      </ul>
+    </div>
+
+    <div class="guide-step-panel" data-step="2">
+      <h4>📸 Susun Kolase & Kirim WhatsApp</h4>
+      <ul>
+        <li>Pilih ukuran grid (<strong>2x1</strong>, <strong>2x2</strong>, atau <strong>2x3</strong>), lalu upload foto <strong>BEFORE</strong> (kiri) & <strong>AFTER</strong> (kanan).</li>
+        <li>Isi <strong>Teks Overlay</strong> di tiap baris — teks muncul di foto sekaligus jadi poin di caption.</li>
+        <li>Tekan <strong>Unduh / Kirim Kolase + Caption</strong> $ightarrow$ pilih <strong>WhatsApp</strong>. Foto & teks caption langsung terkirim bersamaan di Android maupun iPhone.</li>
+      </ul>
+    </div>
+
+    <div class="guide-step-panel" data-step="3">
+      <h4>📲 Pasang di Layar Utama (Bisa Offline)</h4>
+      <ul>
+        <li><strong>Android (Chrome):</strong> Tap tombol biru <strong>Install Aplikasi PWA</strong> di bagian bawah halaman utama.</li>
+        <li><strong>iPhone (Safari):</strong> Tap ikon <strong>Share 📤</strong> di bawah layar $ightarrow$ pilih <strong>Tambah ke Layar Utama ➕</strong>.</li>
+        <li>Setelah terpasang, aplikasi bisa dibuka kapan saja termasuk saat jaringan offline.</li>
+      </ul>
+    </div>
+
+    <div class="guide-nav-buttons">
+      <button type="button" id="guidePrevBtn" class="btn-secondary">⬅ Sebelumnya</button>
+      <button type="button" id="guideNextBtn" class="btn" style="padding: 10px 14px; font-size: 0.9rem;">Lanjut ➔</button>
+    </div>
+  </div>
 </div>
 
 <!-- Modal Petunjuk iOS Safari -->
 <div id="iosInstallModal" class="modal-overlay" style="display: none;">
   <div class="modal-content">
-    <h3>Cara Install di iPhone / iPad</h3>
+    <div class="modal-header">
+      <h3>Cara Install di iPhone / iPad</h3>
+      <button type="button" id="closeIosModalBtn" class="modal-close-x">✕</button>
+    </div>
     <ol>
       <li>Tap tombol <strong>Share 📤</strong> di bagian bawah Safari.</li>
       <li>Scroll ke bawah lalu pilih <strong>"Tambah ke Layar Utama" ➕</strong>.</li>
       <li>Tap <strong>"Tambah"</strong> di pojok kanan atas.</li>
     </ol>
-    <button id="closeIosModalBtn" class="btn-secondary" style="width: 100%;">Mengerti</button>
   </div>
 </div>
 

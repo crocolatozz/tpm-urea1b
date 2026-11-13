@@ -1,4 +1,4 @@
 {
-  "version": "1.0",
-  "notes": "Rilis stabil v1.0: Grid visual ala Instagram, kontrol tukar/reset foto praktis, panduan interaktif, dan pembaruan otomatis."
+  "version": "1.0.1",
+  "notes": "Perbaikan v1.0.1: Tampilan input tanggal di iPhone & PC, pratinjau caption selalu tampil, pemrosesan foto stabil di iOS/Android, deteksi iPadOS, dan fallback salin caption."
 }

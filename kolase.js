@@ -103,11 +103,23 @@ const paramDate = urlParams.get('date');
 const paramShift = urlParams.get('shift');
 const paramArea = urlParams.get('area');
 
-tpmDateInput.value = paramDate || getLocalTodayStr();
+const initialDateStr = (paramDate && /^\d{4}-\d{2}-\d{2}$/.test(paramDate)) ? paramDate : getLocalTodayStr();
+tpmDateInput.value = initialDateStr;
+tpmDateInput.setAttribute('value', initialDateStr);
+
 if (paramShift && ['PAGI', 'SORE', 'MALAM'].includes(paramShift)) {
   tpmShiftInput.value = paramShift;
 } else {
   tpmShiftInput.value = getCurrentActiveShift();
+}
+
+function getEffectiveDateStr() {
+  if (!tpmDateInput.value) {
+    const fallback = getLocalTodayStr();
+    tpmDateInput.value = fallback;
+    tpmDateInput.setAttribute('value', fallback);
+  }
+  return tpmDateInput.value;
 }
 
 function checkOffDayIndicator(dateVal) {
@@ -121,8 +133,7 @@ function checkOffDayIndicator(dateVal) {
 }
 
 function updateAutoAreaName() {
-  const dateVal = tpmDateInput.value;
-  if (!dateVal) return;
+  const dateVal = getEffectiveDateStr();
   const dayOfMonth = parseInt(dateVal.split('-')[2], 10);
   checkOffDayIndicator(dateVal);
   
@@ -140,10 +151,9 @@ function updateAutoAreaName() {
 }
 
 function generateCaptionText() {
-  const dateVal = tpmDateInput.value;
-  if (!dateVal) return "";
+  const dateVal = getEffectiveDateStr();
   const dateFormatted = formatDateIndo(dateVal);
-  const shiftVal = tpmShiftInput.value;
+  const shiftVal = tpmShiftInput.value || getCurrentActiveShift();
   const areaName = tpmAreaInput.value.trim() || "-";
 
   // Format bold 2 baris pertama WhatsApp (*teks*) + "SHIFT" + simbol "~"
@@ -180,19 +190,57 @@ tpmDateInput.addEventListener('change', updateAutoAreaName);
 tpmShiftInput.addEventListener('change', updateAutoAreaName);
 tpmAreaInput.addEventListener('input', updateCaption);
 
-copyCaptionBtn.addEventListener('click', () => {
+function fallbackCopyText(text) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.top = '-9999px';
+  document.body.appendChild(textarea);
+  textarea.select();
+  textarea.setSelectionRange(0, textarea.value.length);
+  let ok = false;
+  try {
+    ok = document.execCommand('copy');
+  } catch (e) {
+    ok = false;
+  }
+  document.body.removeChild(textarea);
+  return ok;
+}
+
+copyCaptionBtn.addEventListener('click', async () => {
   saveOverlayHistory();
   const captionText = generateCaptionText();
-  navigator.clipboard.writeText(captionText).then(() => {
+  let copied = false;
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(captionText);
+      copied = true;
+    } catch (e) {
+      copied = fallbackCopyText(captionText);
+    }
+  } else {
+    copied = fallbackCopyText(captionText);
+  }
+  if (copied) {
     copyCaptionBtn.textContent = "✅ Caption Tersalin!";
     setTimeout(() => copyCaptionBtn.textContent = "📋 Salin Caption", 2000);
-  });
+  } else {
+    copyCaptionBtn.textContent = "⚠️ Tahan & Salin Manual";
+    setTimeout(() => copyCaptionBtn.textContent = "📋 Salin Caption", 2500);
+  }
 });
 
 function freeImages(imgArray) {
   imgArray.forEach(img => {
-    if (img && typeof img.close === 'function') {
-      img.close();
+    if (!img) return;
+    if (typeof img.close === 'function') {
+      try { img.close(); } catch (e) {}
+    }
+    if (img instanceof HTMLCanvasElement) {
+      img.width = 1;
+      img.height = 1;
     }
   });
 }
@@ -349,49 +397,68 @@ if (resetPhotosBtn) {
   });
 }
 
-async function processAndResizeFile(file) {
-  if ('createImageBitmap' in window) {
-    try {
-      const bitmap = await createImageBitmap(file, {
-        resizeWidth: 1200,
-        resizeQuality: 'low'
-      });
-      return bitmap;
-    } catch (err) {
-      console.warn("createImageBitmap gagal, beralih ke FileReader fallback", err);
-    }
-  }
-
+// Muat foto memakai jalur Image standar + resize aman ke offscreen canvas (100% stabil di Safari iOS, Android & PC)
+function processAndResizeFile(file) {
   return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = () => resolve(null);
-      img.src = e.target.result;
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+
+    img.onload = () => {
+      try {
+        const srcW = img.naturalWidth || img.width;
+        const srcH = img.naturalHeight || img.height;
+        if (!srcW || !srcH) {
+          URL.revokeObjectURL(objectUrl);
+          resolve(null);
+          return;
+        }
+
+        const MAX_DIM = 1200;
+        let targetW = srcW;
+        let targetH = srcH;
+
+        if (srcW > MAX_DIM || srcH > MAX_DIM) {
+          if (srcW >= srcH) {
+            targetW = MAX_DIM;
+            targetH = Math.round((srcH * MAX_DIM) / srcW);
+          } else {
+            targetH = MAX_DIM;
+            targetW = Math.round((srcW * MAX_DIM) / srcH);
+          }
+        }
+
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = targetW;
+        offCanvas.height = targetH;
+        const offCtx = offCanvas.getContext('2d');
+        offCtx.drawImage(img, 0, 0, targetW, targetH);
+
+        URL.revokeObjectURL(objectUrl);
+        resolve(offCanvas);
+      } catch (err) {
+        URL.revokeObjectURL(objectUrl);
+        resolve(null);
+      }
     };
-    reader.onerror = () => resolve(null);
-    reader.readAsDataURL(file);
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(null);
+    };
+
+    img.src = objectUrl;
   });
 }
 
 // Baca foto dengan mode APPEND (nambah ke slot kosong tanpa menimpa foto lama)
 async function appendSelectedImages(inputElement, statusElement, currentArray, setArrayCallback) {
-  const files = Array.from(inputElement.files);
-  inputElement.value = ''; // Reset input agar pemilihan file berikutnya selalu terdeteksi
-
+  const files = Array.from(inputElement.files || []);
   if (files.length === 0) return;
 
   const maxRows = getSelectedRows();
-  let workingArray = currentArray.filter(Boolean);
-
-  // Jika slot sudah penuh sebelumnya, ganti dengan pilihan baru
-  if (workingArray.length >= maxRows) {
-    freeImages(workingArray);
-    workingArray = [];
-  }
-
-  const remainingSlots = maxRows - workingArray.length;
+  const existingValid = currentArray.filter(Boolean);
+  const willReplaceFull = existingValid.length >= maxRows;
+  const remainingSlots = willReplaceFull ? maxRows : (maxRows - existingValid.length);
   const filesToProcess = files.slice(0, remainingSlots);
 
   let limitWarning = "";
@@ -404,11 +471,27 @@ async function appendSelectedImages(inputElement, statusElement, currentArray, s
   const newlyLoaded = [];
   for (let i = 0; i < filesToProcess.length; i++) {
     statusElement.textContent = `Memproses foto (${i + 1}/${filesToProcess.length})...`;
-    const img = await processAndResizeFile(filesToProcess[i]);
-    if (img) newlyLoaded.push(img);
+    const processedImg = await processAndResizeFile(filesToProcess[i]);
+    if (processedImg) newlyLoaded.push(processedImg);
   }
 
-  const combined = [...workingArray, ...newlyLoaded].slice(0, maxRows);
+  // Reset input SETELAH proses baca file selesai agar izin file sementara di iOS Safari tidak terputus
+  inputElement.value = '';
+
+  if (newlyLoaded.length === 0) {
+    refreshPhotoStatusHints();
+    statusElement.textContent = "⚠️ Gagal memuat foto (format tidak didukung atau file rusak)";
+    return;
+  }
+
+  let combined;
+  if (willReplaceFull) {
+    freeImages(existingValid);
+    combined = newlyLoaded.slice(0, maxRows);
+  } else {
+    combined = [...existingValid, ...newlyLoaded].slice(0, maxRows);
+  }
+
   setArrayCallback(combined);
   refreshPhotoStatusHints();
 
@@ -434,18 +517,26 @@ afterInput.addEventListener('change', () => {
 function updateStateAndGenerate() {
   const hasPhotos = countValidImages(loadedBeforeImages) > 0 || countValidImages(loadedAfterImages) > 0;
   if (hasPhotos) {
-    if (previewPlaceholder) previewPlaceholder.style.display = 'none';
+    if (previewPlaceholder) {
+      previewPlaceholder.style.display = 'none';
+      previewPlaceholder.textContent = '🖼️ Pratinjau kolase otomatis muncul di sini setelah foto dipilih';
+    }
     canvas.style.display = 'block';
     if (photoActionsGrid) photoActionsGrid.style.display = 'grid';
     downloadBtn.disabled = false;
     generateCollage();
   } else {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    canvas.width = 0;
-    canvas.height = 0;
+    if (canvas.width > 0 && canvas.height > 0) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    canvas.width = 1;
+    canvas.height = 1;
     canvas.style.display = 'none';
     if (photoActionsGrid) photoActionsGrid.style.display = 'none';
-    if (previewPlaceholder) previewPlaceholder.style.display = 'block';
+    if (previewPlaceholder) {
+      previewPlaceholder.textContent = '🖼️ Pratinjau kolase otomatis muncul di sini setelah foto dipilih';
+      previewPlaceholder.style.display = 'block';
+    }
     downloadBtn.disabled = true;
   }
 }
@@ -551,6 +642,10 @@ function generateCollage() {
     });
   } catch (err) {
     console.error("Gagal generate kolase:", err);
+    if (previewPlaceholder) {
+      previewPlaceholder.textContent = "⚠️ Terjadi kendala saat membuat pratinjau gambar. Silakan coba pilih ulang foto.";
+      previewPlaceholder.style.display = 'block';
+    }
   }
 }
 
@@ -569,6 +664,7 @@ function drawRoundedRect(ctx, x, y, width, height, radius) {
 }
 
 function drawImageCover(ctx, img, x, y, w, h) {
+  if (!img || !img.width || !img.height) return;
   const imgRatio = img.width / img.height;
   const targetRatio = w / h;
   let sx, sy, sw, sh;

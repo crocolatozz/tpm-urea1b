@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tpm-urea1b-v1.0';
+const CACHE_NAME = 'tpm-urea1b-v1.0.1';
 const urlsToCache = [
   './',
   './index.html',

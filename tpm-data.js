@@ -1,5 +1,5 @@
 // Versi Aplikasi Aktif
-const APP_VERSION = '1.0';
+const APP_VERSION = '1.0.1';
 
 // Master Database Rotasi 15 Hari TPM Urea 1B
 const masterTPMUrea1B = {

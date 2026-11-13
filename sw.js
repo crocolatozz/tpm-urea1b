@@ -8,7 +8,9 @@ const urlsToCache = [
   './dashboard.js',
   './kolase.js',
   './manifest.json',
-  './icon.png'
+  './icon.png',
+  './icon-maskable.png',
+  './favicon.png'
 ];
 
 self.addEventListener('install', (event) => {

@@ -1,4 +1,4 @@
 {
-  "version": "1.0.2",
-  "notes": "Perbaikan v1.0.2: Fix syntax error halaman Kolase (Panduan, Tanggal, Opsi Grid, Pratinjau Caption, Upload Foto), kunci anti-zoom & anti-select text di HP, fallback pemrosesan foto iOS/Android, serta peningkatan cache update."
+  "version": "1.1.0",
+  "notes": "Update v1.1.0: Kelola foto per slot (hapus/ganti 1 foto tanpa reset semua), chip saran kegiatan cepat, navigasi tanggal cepat (Kemarin/Hari Ini/Besok), pencarian jadwal alat TPM, penanda shift sudah dilaporkan, serta simpan preferensi otomatis."
 }

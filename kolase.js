@@ -8,6 +8,8 @@ const copyCaptionBtn = document.getElementById('copyCaptionBtn');
 const gridOptions = document.querySelectorAll('.grid-option');
 const beforeInput = document.getElementById('beforeInput');
 const afterInput = document.getElementById('afterInput');
+const singleSlotInput = document.getElementById('singleSlotInput');
+const slotManagerGrid = document.getElementById('slotManagerGrid');
 const beforeCount = document.getElementById('beforeCount');
 const afterCount = document.getElementById('afterCount');
 const beforeTip = document.getElementById('beforeTip');
@@ -21,6 +23,8 @@ const swapRow12Btn = document.getElementById('swapRow12Btn');
 const swapRow23Btn = document.getElementById('swapRow23Btn');
 const resetPhotosBtn = document.getElementById('resetPhotosBtn');
 
+const clearActivityTextsBtn = document.getElementById('clearActivityTextsBtn');
+const presetChips = document.querySelectorAll('.preset-chip');
 const row1Group = document.getElementById('row1Group');
 const row2Group = document.getElementById('row2Group');
 const row3Group = document.getElementById('row3Group');
@@ -36,6 +40,7 @@ const bgColorInput = document.getElementById('bgColor');
 const textColorInput = document.getElementById('textColor');
 const gapSizeInput = document.getElementById('gapSize');
 const aspectRatioInput = document.getElementById('aspectRatio');
+const stampMetaSelect = document.getElementById('stampMetaSelect');
 const previewPlaceholder = document.getElementById('previewPlaceholder');
 const canvas = document.getElementById('collageCanvas');
 const ctx = canvas.getContext('2d');
@@ -46,7 +51,56 @@ let loadedBeforeImages = [];
 let loadedAfterImages = [];
 let isProcessingBefore = false;
 let isProcessingAfter = false;
+let isProcessingSingleSlot = false;
+let pendingSingleSlotTarget = null; // { side: 'before' | 'after', index: number }
+let lastFocusedRowInput = null;
 let isExporting = false;
+
+// Simpan & Muat Preferensi Tampilan & Draft Teks (localStorage)
+const PREFS_STORAGE_KEY = 'tpm_kolase_prefs_v1';
+
+function loadSavedPreferences() {
+  try {
+    const raw = localStorage.getItem(PREFS_STORAGE_KEY);
+    if (!raw) return;
+    const prefs = JSON.parse(raw);
+    if (prefs.grid && ['2x1', '2x2', '2x3'].includes(prefs.grid)) {
+      selectedGridType = prefs.grid;
+      gridOptions.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.grid === selectedGridType);
+      });
+    }
+    if (typeof prefs.row1 === 'string') row1Input.value = prefs.row1;
+    if (typeof prefs.row2 === 'string') row2Input.value = prefs.row2;
+    if (typeof prefs.row3 === 'string') row3Input.value = prefs.row3;
+    if (typeof prefs.leftHeader === 'string' && prefs.leftHeader.trim()) leftHeaderInput.value = prefs.leftHeader;
+    if (typeof prefs.rightHeader === 'string' && prefs.rightHeader.trim()) rightHeaderInput.value = prefs.rightHeader;
+    if (typeof prefs.bgColor === 'string') bgColorInput.value = prefs.bgColor;
+    if (typeof prefs.textColor === 'string') textColorInput.value = prefs.textColor;
+    if (typeof prefs.gapSize === 'string') gapSizeInput.value = prefs.gapSize;
+    if (typeof prefs.aspectRatio === 'string') aspectRatioInput.value = prefs.aspectRatio;
+    if (stampMetaSelect && typeof prefs.stampMeta === 'string') stampMetaSelect.value = prefs.stampMeta;
+  } catch (e) {}
+}
+
+function savePreferences() {
+  try {
+    const prefs = {
+      grid: selectedGridType,
+      row1: row1Input.value,
+      row2: row2Input.value,
+      row3: row3Input.value,
+      leftHeader: leftHeaderInput.value,
+      rightHeader: rightHeaderInput.value,
+      bgColor: bgColorInput.value,
+      textColor: textColorInput.value,
+      gapSize: gapSizeInput.value,
+      aspectRatio: aspectRatioInput.value,
+      stampMeta: stampMetaSelect ? stampMetaSelect.value : 'off'
+    };
+    localStorage.setItem(PREFS_STORAGE_KEY, JSON.stringify(prefs));
+  } catch (e) {}
+}
 
 // Riwayat Saran Kegiatan (localStorage)
 const HISTORY_STORAGE_KEY = 'tpm_overlay_history_v1';
@@ -151,6 +205,9 @@ function updateAutoAreaName() {
     }
   }
   updateCaption();
+  if (countValidImages(loadedBeforeImages) > 0 || countValidImages(loadedAfterImages) > 0) {
+    generateCollage();
+  }
 }
 
 function generateCaptionText() {
@@ -192,7 +249,12 @@ function updateCaption() {
 
 tpmDateInput.addEventListener('change', updateAutoAreaName);
 tpmShiftInput.addEventListener('change', updateAutoAreaName);
-tpmAreaInput.addEventListener('input', updateCaption);
+tpmAreaInput.addEventListener('input', () => {
+  updateCaption();
+  if (countValidImages(loadedBeforeImages) > 0 || countValidImages(loadedAfterImages) > 0) {
+    generateCollage();
+  }
+});
 
 function fallbackCopyText(text) {
   const textarea = document.createElement('textarea');
@@ -227,6 +289,7 @@ async function copyTextToClipboard(text) {
 
 copyCaptionBtn.addEventListener('click', async () => {
   saveOverlayHistory();
+  savePreferences();
   const captionText = generateCaptionText();
   const copied = await copyTextToClipboard(captionText);
   if (copied) {
@@ -238,17 +301,19 @@ copyCaptionBtn.addEventListener('click', async () => {
   }
 });
 
+function freeSingleImage(img) {
+  if (!img) return;
+  if (typeof img.close === 'function') {
+    try { img.close(); } catch (e) {}
+  }
+  if (img instanceof HTMLCanvasElement) {
+    img.width = 1;
+    img.height = 1;
+  }
+}
+
 function freeImages(imgArray) {
-  imgArray.forEach(img => {
-    if (!img) return;
-    if (typeof img.close === 'function') {
-      try { img.close(); } catch (e) {}
-    }
-    if (img instanceof HTMLCanvasElement) {
-      img.width = 1;
-      img.height = 1;
-    }
-  });
+  imgArray.forEach(freeSingleImage);
 }
 
 function getSelectedRows() {
@@ -257,6 +322,148 @@ function getSelectedRows() {
 
 function countValidImages(arr) {
   return arr.filter(Boolean).length;
+}
+
+// Render Pratinjau & Tombol Kontrol Per Slot (Before 1..N & After 1..N)
+function renderSlotManager() {
+  if (!slotManagerGrid) return;
+  const rows = getSelectedRows();
+  slotManagerGrid.innerHTML = '';
+
+  for (let r = 0; r < rows; r++) {
+    const pairDiv = document.createElement('div');
+    pairDiv.className = 'slot-row-pair';
+
+    [
+      { side: 'before', label: `Before #${r + 1}`, img: loadedBeforeImages[r] },
+      { side: 'after', label: `After #${r + 1}`, img: loadedAfterImages[r] }
+    ].forEach((slotInfo) => {
+      if (slotInfo.img) {
+        const card = document.createElement('div');
+        card.className = 'slot-card';
+
+        const thumb = document.createElement('img');
+        thumb.className = 'slot-thumb';
+        thumb.alt = slotInfo.label;
+        try {
+          thumb.src = slotInfo.img.toDataURL('image/jpeg', 0.65);
+        } catch (e) {}
+
+        const meta = document.createElement('div');
+        meta.className = 'slot-meta';
+
+        const lbl = document.createElement('span');
+        lbl.className = 'slot-label';
+        lbl.textContent = slotInfo.label;
+
+        const sub = document.createElement('span');
+        sub.className = 'slot-sub';
+        sub.textContent = 'Terisi';
+
+        meta.appendChild(lbl);
+        meta.appendChild(sub);
+
+        const btns = document.createElement('div');
+        btns.className = 'slot-btns';
+
+        const replaceBtn = document.createElement('button');
+        replaceBtn.type = 'button';
+        replaceBtn.className = 'slot-mini-btn';
+        replaceBtn.title = `Ganti ${slotInfo.label}`;
+        replaceBtn.textContent = '↻';
+        replaceBtn.addEventListener('click', () => {
+          triggerSingleSlotPicker(slotInfo.side, r);
+        });
+
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'slot-mini-btn danger';
+        delBtn.title = `Hapus ${slotInfo.label}`;
+        delBtn.textContent = '✕';
+        delBtn.addEventListener('click', () => {
+          removeSingleSlot(slotInfo.side, r);
+        });
+
+        btns.appendChild(replaceBtn);
+        btns.appendChild(delBtn);
+
+        card.appendChild(thumb);
+        card.appendChild(meta);
+        card.appendChild(btns);
+        pairDiv.appendChild(card);
+      } else {
+        const emptyCard = document.createElement('button');
+        emptyCard.type = 'button';
+        emptyCard.className = 'slot-card empty';
+        emptyCard.textContent = `+ ${slotInfo.label}`;
+        emptyCard.addEventListener('click', () => {
+          triggerSingleSlotPicker(slotInfo.side, r);
+        });
+        pairDiv.appendChild(emptyCard);
+      }
+    });
+
+    slotManagerGrid.appendChild(pairDiv);
+  }
+}
+
+function triggerSingleSlotPicker(side, index) {
+  if (isProcessingSingleSlot || !singleSlotInput) return;
+  pendingSingleSlotTarget = { side, index };
+  singleSlotInput.click();
+}
+
+function removeSingleSlot(side, index) {
+  if (side === 'before') {
+    freeSingleImage(loadedBeforeImages[index]);
+    loadedBeforeImages[index] = null;
+  } else {
+    freeSingleImage(loadedAfterImages[index]);
+    loadedAfterImages[index] = null;
+  }
+  refreshPhotoStatusHints();
+  updateStateAndGenerate();
+}
+
+if (singleSlotInput) {
+  singleSlotInput.addEventListener('change', async () => {
+    if (isProcessingSingleSlot) return;
+    const files = Array.from(singleSlotInput.files || []);
+    const target = pendingSingleSlotTarget;
+    pendingSingleSlotTarget = null;
+
+    if (files.length === 0 || !target) {
+      singleSlotInput.value = '';
+      return;
+    }
+
+    isProcessingSingleSlot = true;
+    const statusEl = target.side === 'before' ? beforeCount : afterCount;
+    statusEl.textContent = `⏳ Memuat slot #${target.index + 1}...`;
+
+    try {
+      const processed = await processAndResizeFile(files[0]);
+      singleSlotInput.value = '';
+      if (!processed) {
+        refreshPhotoStatusHints();
+        statusEl.textContent = "⚠️ Gagal memuat foto slot";
+        return;
+      }
+
+      if (target.side === 'before') {
+        freeSingleImage(loadedBeforeImages[target.index]);
+        loadedBeforeImages[target.index] = processed;
+      } else {
+        freeSingleImage(loadedAfterImages[target.index]);
+        loadedAfterImages[target.index] = processed;
+      }
+
+      refreshPhotoStatusHints();
+      updateStateAndGenerate();
+    } finally {
+      isProcessingSingleSlot = false;
+    }
+  });
 }
 
 function refreshPhotoStatusHints() {
@@ -273,7 +480,7 @@ function refreshPhotoStatusHints() {
       beforeTip.style.display = 'block';
     } else if (bCount > 0 && bCount < maxRows) {
       const rem = maxRows - bCount;
-      beforeTip.textContent = `💡 Bisa tambah ${rem} foto lagi (tidak menimpa foto lama)`;
+      beforeTip.textContent = `💡 Bisa tambah ${rem} foto lagi (mengisi slot kosong)`;
       beforeTip.style.display = 'block';
     } else {
       beforeTip.style.display = 'none';
@@ -286,12 +493,14 @@ function refreshPhotoStatusHints() {
       afterTip.style.display = 'block';
     } else if (aCount > 0 && aCount < maxRows) {
       const rem = maxRows - aCount;
-      afterTip.textContent = `💡 Bisa tambah ${rem} foto lagi (tidak menimpa foto lama)`;
+      afterTip.textContent = `💡 Bisa tambah ${rem} foto lagi (mengisi slot kosong)`;
       afterTip.style.display = 'block';
     } else {
       afterTip.style.display = 'none';
     }
   }
+
+  renderSlotManager();
 }
 
 function updateGridUI() {
@@ -321,6 +530,7 @@ function updateGridUI() {
 
   refreshPhotoStatusHints();
   updateCaption();
+  savePreferences();
   updateStateAndGenerate();
 }
 
@@ -336,17 +546,71 @@ gridOptions.forEach(optionBtn => {
   });
 });
 
-[leftHeaderInput, rightHeaderInput, row1Input, row2Input, row3Input, bgColorInput, textColorInput, gapSizeInput, aspectRatioInput].forEach(element => {
-  element.addEventListener('input', () => {
+// Track fokus input baris agar chip saran bisa langsung mengisi input aktif atau baris kosong berikutnya
+[row1Input, row2Input, row3Input].forEach((inp) => {
+  inp.addEventListener('focus', () => {
+    lastFocusedRowInput = inp;
+  });
+  inp.addEventListener('blur', () => {
+    saveOverlayHistory();
+    savePreferences();
+  });
+});
+
+presetChips.forEach((chip) => {
+  chip.addEventListener('click', () => {
+    const presetText = chip.dataset.text || '';
+    if (!presetText) return;
+
+    const rows = getSelectedRows();
+    const activeInputs = [row1Input, row2Input, row3Input].slice(0, rows);
+
+    let targetInput = null;
+    if (lastFocusedRowInput && activeInputs.includes(lastFocusedRowInput) && !lastFocusedRowInput.value.trim()) {
+      targetInput = lastFocusedRowInput;
+    } else {
+      targetInput = activeInputs.find(inp => !inp.value.trim()) || activeInputs[activeInputs.length - 1];
+    }
+
+    if (targetInput) {
+      targetInput.value = presetText;
+      savePreferences();
+      updateCaption();
+      if (countValidImages(loadedBeforeImages) > 0 || countValidImages(loadedAfterImages) > 0) {
+        generateCollage();
+      }
+    }
+  });
+});
+
+if (clearActivityTextsBtn) {
+  clearActivityTextsBtn.addEventListener('click', () => {
+    row1Input.value = '';
+    row2Input.value = '';
+    row3Input.value = '';
+    savePreferences();
     updateCaption();
     if (countValidImages(loadedBeforeImages) > 0 || countValidImages(loadedAfterImages) > 0) {
       generateCollage();
     }
   });
-});
+}
 
-[row1Input, row2Input, row3Input].forEach(input => {
-  input.addEventListener('blur', saveOverlayHistory);
+const liveControls = [
+  leftHeaderInput, rightHeaderInput,
+  row1Input, row2Input, row3Input,
+  bgColorInput, textColorInput, gapSizeInput, aspectRatioInput
+];
+if (stampMetaSelect) liveControls.push(stampMetaSelect);
+
+liveControls.forEach(element => {
+  element.addEventListener('input', () => {
+    updateCaption();
+    savePreferences();
+    if (countValidImages(loadedBeforeImages) > 0 || countValidImages(loadedAfterImages) > 0) {
+      generateCollage();
+    }
+  });
 });
 
 // Tombol Tukar Before & After
@@ -363,18 +627,20 @@ if (swapBeforeAfterBtn) {
 
 // Helper Tukar Baris (Foto Before, Foto After, dan Teks Kegiatan ikut tertukar)
 function swapRowIndices(idxA, idxB, inputA, inputB) {
-  const tempBefore = loadedBeforeImages[idxA];
-  loadedBeforeImages[idxA] = loadedBeforeImages[idxB];
+  const tempBefore = loadedBeforeImages[idxA] || null;
+  loadedBeforeImages[idxA] = loadedBeforeImages[idxB] || null;
   loadedBeforeImages[idxB] = tempBefore;
 
-  const tempAfter = loadedAfterImages[idxA];
-  loadedAfterImages[idxA] = loadedAfterImages[idxB];
+  const tempAfter = loadedAfterImages[idxA] || null;
+  loadedAfterImages[idxA] = loadedAfterImages[idxB] || null;
   loadedAfterImages[idxB] = tempAfter;
 
   const tempText = inputA.value;
   inputA.value = inputB.value;
   inputB.value = tempText;
 
+  savePreferences();
+  refreshPhotoStatusHints();
   updateCaption();
   if (countValidImages(loadedBeforeImages) > 0 || countValidImages(loadedAfterImages) > 0) {
     generateCollage();
@@ -494,20 +760,25 @@ function processAndResizeFile(file) {
   });
 }
 
-// Baca foto dengan mode APPEND (nambah ke slot kosong tanpa menimpa foto lama)
+// Baca foto dengan mode SMART SLOT FILL (mengisi slot kosong berurutan tanpa menimpa foto lama)
 async function appendSelectedImages(inputElement, statusElement, currentArray, setArrayCallback) {
   const files = Array.from(inputElement.files || []);
   if (files.length === 0) return;
 
   const maxRows = getSelectedRows();
-  const existingValid = currentArray.filter(Boolean);
-  const willReplaceFull = existingValid.length >= maxRows;
-  const remainingSlots = willReplaceFull ? maxRows : (maxRows - existingValid.length);
-  const filesToProcess = files.slice(0, remainingSlots);
+  const normalized = Array.from({ length: maxRows }, (_, idx) => currentArray[idx] || null);
+  const emptyIndices = [];
+  for (let i = 0; i < maxRows; i++) {
+    if (!normalized[i]) emptyIndices.push(i);
+  }
+
+  const willReplaceAll = emptyIndices.length === 0;
+  const availableSlots = willReplaceAll ? maxRows : emptyIndices.length;
+  const filesToProcess = files.slice(0, availableSlots);
 
   let limitWarning = "";
-  if (files.length > remainingSlots) {
-    limitWarning = ` (Hanya ${remainingSlots} foto diambil sesuai sisa slot)`;
+  if (files.length > availableSlots) {
+    limitWarning = ` (Hanya ${availableSlots} foto diambil sesuai sisa slot)`;
   }
 
   statusElement.textContent = `⏳ Memproses foto (0/${filesToProcess.length})...`;
@@ -528,19 +799,26 @@ async function appendSelectedImages(inputElement, statusElement, currentArray, s
     return;
   }
 
-  let combined;
-  if (willReplaceFull) {
-    freeImages(existingValid);
-    combined = newlyLoaded.slice(0, maxRows);
+  let updatedSlots;
+  if (willReplaceAll) {
+    freeImages(normalized);
+    updatedSlots = Array.from({ length: maxRows }, (_, idx) => newlyLoaded[idx] || null);
   } else {
-    combined = [...existingValid, ...newlyLoaded].slice(0, maxRows);
+    updatedSlots = [...normalized];
+    newlyLoaded.forEach((imgObj, i) => {
+      const targetIdx = emptyIndices[i];
+      if (targetIdx !== undefined) {
+        updatedSlots[targetIdx] = imgObj;
+      }
+    });
   }
 
-  setArrayCallback(combined);
+  setArrayCallback(updatedSlots);
   refreshPhotoStatusHints();
 
   if (limitWarning) {
-    statusElement.textContent = `${combined.length}/${maxRows} foto dimuat${limitWarning}`;
+    const validTotal = countValidImages(updatedSlots);
+    statusElement.textContent = `${validTotal}/${maxRows} foto dimuat${limitWarning}`;
   }
 
   updateStateAndGenerate();
@@ -630,6 +908,22 @@ function generateCollage() {
 
     ctx.fillText(leftHeaderInput.value, leftColCenterX, headerCenterY);
     ctx.fillText(rightHeaderInput.value, rightColCenterX, headerCenterY);
+
+    // Opsional: Stamp Metadata Area, Shift & Tanggal di Sudut Kanan Atas Header
+    if (stampMetaSelect && stampMetaSelect.value === 'on') {
+      const areaLabel = (tpmAreaInput.value || '').trim();
+      const shiftLabel = tpmShiftInput.value || '';
+      const dateLabel = formatDateIndo(getEffectiveDateStr());
+      const stampText = `${areaLabel} • ${shiftLabel} • ${dateLabel}`;
+
+      ctx.save();
+      ctx.font = '600 28px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.72)';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'top';
+      ctx.fillText(stampText, canvasWidth - Math.max(padding, 20), Math.max(padding, 16));
+      ctx.restore();
+    }
 
     // Render Foto
     const startY = padding + headerHeight;
@@ -748,11 +1042,17 @@ downloadBtn.addEventListener('click', () => {
   downloadBtn.innerHTML = '<span class="spinner"></span> Menyiapkan gambar...';
 
   saveOverlayHistory();
+  savePreferences();
+
+  const currentDateStr = getEffectiveDateStr();
+  const currentShiftStr = tpmShiftInput.value || getCurrentActiveShift();
+  const currentAreaStr = tpmAreaInput.value.trim() || "TPM";
+
   canvas.toBlob(async (blob) => {
     try {
       if (!blob) return;
 
-      const areaNameClean = (tpmAreaInput.value || "TPM").replace(/[^a-zA-Z0-9]/g, "_");
+      const areaNameClean = currentAreaStr.replace(/[^a-zA-Z0-9]/g, "_");
       const filename = `Kolase_${areaNameClean}_${Date.now()}.jpg`;
       const file = new File([blob], filename, { type: 'image/jpeg' });
       const captionText = generateCaptionText();
@@ -761,9 +1061,10 @@ downloadBtn.addEventListener('click', () => {
         try {
           await navigator.share({
             files: [file],
-            title: `TPM ${tpmAreaInput.value}`,
+            title: `TPM ${currentAreaStr}`,
             text: captionText
           });
+          markShiftAsReported(currentDateStr, currentShiftStr, currentAreaStr);
           return;
         } catch (err) {
           if (err.name === 'AbortError') return;
@@ -781,6 +1082,8 @@ downloadBtn.addEventListener('click', () => {
       document.body.removeChild(link);
       setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
 
+      markShiftAsReported(currentDateStr, currentShiftStr, currentAreaStr);
+
       downloadBtn.innerHTML = "✅ Gambar Diunduh & Caption Tersalin!";
       setTimeout(() => {
         downloadBtn.innerHTML = defaultBtnHTML;
@@ -797,6 +1100,7 @@ downloadBtn.addEventListener('click', () => {
 });
 
 // Inisialisasi Awal
+loadSavedPreferences();
 if (paramArea) {
   tpmAreaInput.value = paramArea;
   checkOffDayIndicator(tpmDateInput.value);

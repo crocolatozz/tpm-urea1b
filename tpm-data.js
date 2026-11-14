@@ -1,5 +1,5 @@
 // Versi Aplikasi Aktif
-const APP_VERSION = '1.0.2';
+const APP_VERSION = '1.1.0';
 
 // Master Database Rotasi 15 Hari TPM Urea 1B
 const masterTPMUrea1B = {
@@ -19,6 +19,19 @@ const masterTPMUrea1B = {
   14: { PAGI: "GA 101A OIL", SORE: "GA 101B OIL", MALAM: "GA801 & GA803" },
   15: { PAGI: "GA 102A OIL", SORE: "GA 102B OIL", MALAM: "FLARE" }
 };
+
+const SHIFT_TIME_RANGES = {
+  PAGI: "07:00 – 15:00",
+  SORE: "15:00 – 23:00",
+  MALAM: "23:00 – 07:00"
+};
+
+function getCycleDayForDate(dateStr) {
+  if (!dateStr) return null;
+  const dayOfMonth = parseInt(dateStr.split('-')[2], 10);
+  if (!dayOfMonth || dayOfMonth === 31) return null;
+  return ((dayOfMonth - 1) % 15) + 1;
+}
 
 function getScheduleForDate(dateStr) {
   if (!dateStr) return [];
@@ -45,6 +58,28 @@ function getScheduleForDate(dateStr) {
   ];
 }
 
+// Cari tanggal terdekat (hari ini hingga +45 hari) untuk siklus hari ke-X
+function getNextDateForCycleDay(cycleDay) {
+  const now = new Date();
+  const baseYear = now.getFullYear();
+  const baseMonth = now.getMonth();
+  const baseDate = now.getDate();
+
+  for (let offset = 0; offset <= 45; offset++) {
+    const candidate = new Date(baseYear, baseMonth, baseDate + offset);
+    const dom = candidate.getDate();
+    if (dom === 31) continue;
+    const cDay = ((dom - 1) % 15) + 1;
+    if (cDay === cycleDay) {
+      const y = candidate.getFullYear();
+      const m = String(candidate.getMonth() + 1).padStart(2, '0');
+      const d = String(dom).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+  }
+  return getLocalTodayStr();
+}
+
 function formatDateIndo(dateStr) {
   if (!dateStr) return "";
   const [y, m, d] = dateStr.split('-');
@@ -60,12 +95,59 @@ function getLocalTodayStr() {
   return `${y}-${m}-${d}`;
 }
 
+function getOffsetDateStr(offsetDays) {
+  const now = new Date();
+  const target = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offsetDays);
+  const y = target.getFullYear();
+  const m = String(target.getMonth() + 1).padStart(2, '0');
+  const d = String(target.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 // Auto-Deteksi Shift Aktif Berdasarkan Jam HP
 function getCurrentActiveShift() {
   const hour = new Date().getHours();
   if (hour >= 7 && hour < 15) return "PAGI";
   if (hour >= 15 && hour < 23) return "SORE";
   return "MALAM";
+}
+
+// Log Status Laporan Terkirim (localStorage)
+const REPORTED_LOG_KEY = 'tpm_reported_log_v1';
+
+function getReportedLog() {
+  try {
+    const raw = localStorage.getItem(REPORTED_LOG_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function markShiftAsReported(dateStr, shift, area) {
+  if (!dateStr || !shift) return;
+  const log = getReportedLog();
+  log[`${dateStr}_${shift}`] = {
+    area: area || '-',
+    ts: Date.now()
+  };
+
+  // Bersihkan entri lebih dari 60 hari agar storage tetap ringan
+  const cutoff = Date.now() - (60 * 24 * 60 * 60 * 1000);
+  Object.keys(log).forEach((k) => {
+    if (log[k] && log[k].ts && log[k].ts < cutoff) {
+      delete log[k];
+    }
+  });
+
+  try {
+    localStorage.setItem(REPORTED_LOG_KEY, JSON.stringify(log));
+  } catch (e) {}
+}
+
+function isShiftReported(dateStr, shift) {
+  const log = getReportedLog();
+  return Boolean(log[`${dateStr}_${shift}`]);
 }
 
 // Logika Pop-Up Modal Panduan Interaktif 3 Langkah

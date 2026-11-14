@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tpm-urea1b-v1.0.2';
+const CACHE_NAME = 'tpm-urea1b-v1.1.0';
 const urlsToCache = [
   './',
   './index.html',
@@ -55,7 +55,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Abaikan parameter query (?v=1.0.2) saat mencocokkan aset di cache offline
+  // Abaikan parameter query (?v=1.1.0) saat mencocokkan aset di cache offline
   event.respondWith(
     caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
       if (cachedResponse) {

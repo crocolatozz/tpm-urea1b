@@ -12,15 +12,15 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#121212">
 
-  <link rel="manifest" href="manifest.json?v=1.0.2">
+  <link rel="manifest" href="manifest.json?v=1.1.0">
   
   <!-- Favicon (Browser PC & HP) & Apple Touch Icon (iPhone) -->
-  <link rel="icon" type="image/png" sizes="192x192" href="favicon.png?v=1.0.2">
-  <link rel="shortcut icon" href="favicon.png?v=1.0.2">
+  <link rel="icon" type="image/png" sizes="192x192" href="favicon.png?v=1.1.0">
+  <link rel="shortcut icon" href="favicon.png?v=1.1.0">
   <link rel="apple-touch-icon" sizes="512x512" href="icon.png">
 
   <!-- CSS External -->
-  <link rel="stylesheet" href="style.css?v=1.0.2">
+  <link rel="stylesheet" href="style.css?v=1.1.0">
 </head>
 <body>
 
@@ -54,10 +54,24 @@
     <div class="form-group">
       <label for="tpmDate">Pilih Tanggal Jadwal:</label>
       <input type="date" id="tpmDate">
+      <div class="quick-date-row" id="quickDateRow">
+        <button type="button" class="quick-date-chip" data-offset="-1">Kemarin</button>
+        <button type="button" class="quick-date-chip active" data-offset="0">Hari Ini</button>
+        <button type="button" class="quick-date-chip" data-offset="1">Besok</button>
+      </div>
     </div>
 
-    <div class="schedule-header">
+    <div class="form-group" style="margin-top: 10px;">
+      <label for="equipmentSearchInput">Cari Alat / Area TPM:</label>
+      <div class="search-input-wrap">
+        <input type="text" id="equipmentSearchInput" placeholder="Ketik kode alat (misal: GA101, FLARE, GB301)...">
+        <button type="button" id="clearSearchBtn" class="search-clear-btn" style="display: none;" aria-label="Hapus pencarian">✕</button>
+      </div>
+    </div>
+
+    <div class="schedule-header" style="margin-top: 14px;">
       <h2 id="scheduleTitle">Jadwal TPM Hari Ini</h2>
+      <span id="cycleDayBadge" class="cycle-badge">Siklus Hari 1</span>
     </div>
 
     <div class="tpm-list" id="tpmList"></div>
@@ -71,7 +85,7 @@
     <p class="footer-credit">
       Dibuat untuk mempermudah laporan TPM Urea 1B
       <span class="footer-copy">© 2026 — Developed by FIKRI</span>
-      <span class="footer-version">Versi 1.0.2</span>
+      <span class="footer-version">Versi 1.1.0</span>
     </p>
   </footer>
 </div>
@@ -91,20 +105,20 @@
     </div>
 
     <div class="guide-step-panel active" data-step="1">
-      <h4>📅 Cek Jadwal & Mulai Laporan</h4>
+      <h4>📅 Cek Jadwal & Cari Alat</h4>
       <ul>
-        <li>Kartu dengan badge <strong>● SHIFT AKTIF</strong> menandakan shift yang sedang berjalan sesuai jam HP.</li>
-        <li>Cukup <strong>tap kartu jadwal</strong> (Pagi / Sore / Malam), otomatis pindah ke halaman Kolase dengan tanggal, shift, dan nama alat sudah terisi.</li>
-        <li>Khusus <strong>tanggal 31</strong> jadwal otomatis libur (Tidak Ada Kegiatan).</li>
+        <li>Gunakan tombol cepat <strong>Kemarin / Hari Ini / Besok</strong> atau kolom <strong>Cari Alat</strong> untuk melacak jadwal terdekat suatu mesin.</li>
+        <li>Kartu dengan badge <strong>● SHIFT AKTIF</strong> menandakan shift berjalan; badge <strong>✓ DILAPORKAN</strong> menandakan laporan shift tersebut sudah dikirim.</li>
+        <li><strong>Tap kartu jadwal</strong> untuk langsung membuka halaman Kolase dengan tanggal, shift, dan nama alat terisi otomatis.</li>
       </ul>
     </div>
 
     <div class="guide-step-panel" data-step="2">
-      <h4>📸 Susun Kolase & Kirim WhatsApp</h4>
+      <h4>📸 Susun Kolase & Edit Per Slot</h4>
       <ul>
-        <li>Pilih ukuran grid (<strong>2x1</strong>, <strong>2x2</strong>, atau <strong>2x3</strong>). Bisa langsung pilih beberapa foto sekaligus di galeri sesuai ukuran grid untuk <strong>BEFORE</strong> & <strong>AFTER</strong>.</li>
-        <li>Isi <strong>Kegiatan Baris 1–3</strong> — teks muncul di foto sekaligus jadi poin di caption.</li>
-        <li>Tekan <strong>🚀 Kirim ke WhatsApp</strong> ➔ pilih <strong>WhatsApp</strong>. Foto & teks caption langsung terkirim bersamaan di Android maupun iPhone.</li>
+        <li>Pilih ukuran grid (<strong>2x1</strong>, <strong>2x2</strong>, atau <strong>2x3</strong>). Bisa pilih beberapa foto sekaligus dari galeri untuk <strong>BEFORE</strong> & <strong>AFTER</strong>.</li>
+        <li>Salah satu foto kurang pas? Gunakan pratinjau slot untuk <strong>ganti (↻)</strong> atau <strong>hapus (✕)</strong> 1 foto saja tanpa reset semua.</li>
+        <li>Gunakan chip saran kegiatan atau ketik di <strong>Baris 1–3</strong>, lalu tekan <strong>🚀 Kirim ke WhatsApp</strong>.</li>
       </ul>
     </div>
 
@@ -113,7 +127,7 @@
       <ul>
         <li><strong>Android (Chrome):</strong> Tap tombol biru <strong>📲 Install Aplikasi</strong> di bagian bawah halaman utama.</li>
         <li><strong>iPhone (Safari):</strong> Tap ikon <strong>Share 📤</strong> di bawah layar ➔ pilih <strong>Tambah ke Layar Utama ➕</strong>.</li>
-        <li><strong>Auto-Update:</strong> Aplikasi mengecek versi terbaru saat dibuka dengan koneksi internet. Jika muncul pop-up update, tap <strong>🔄 Update Sekarang</strong> tanpa perlu hapus aplikasi.</li>
+        <li><strong>Auto-Update:</strong> Aplikasi mengecek versi terbaru saat dibuka online. Jika muncul pop-up update, tap <strong>🔄 Update Sekarang</strong> tanpa perlu hapus aplikasi.</li>
       </ul>
     </div>
 
@@ -140,7 +154,7 @@
 </div>
 
 <!-- JS Modular -->
-<script src="tpm-data.js?v=1.0.2"></script>
-<script src="dashboard.js?v=1.0.2"></script>
+<script src="tpm-data.js?v=1.1.0"></script>
+<script src="dashboard.js?v=1.1.0"></script>
 </body>
 </html>

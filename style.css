@@ -175,6 +175,36 @@ header p {
   padding-bottom: 5px;
 }
 
+.section-title-row {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent-color);
+  grid-column: 1 / -1;
+  margin-top: 6px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 5px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-inline-clear {
+  background: #2a2a2a;
+  color: #ccc;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 4px 9px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-inline-clear:active {
+  transform: scale(0.96);
+  background: #383838;
+}
+
 label {
   font-size: 0.85rem;
   font-weight: 600;
@@ -244,6 +274,63 @@ input[type="color"]::-webkit-color-swatch-wrapper {
 input[type="color"]::-webkit-color-swatch {
   border: none;
   border-radius: 6px;
+}
+
+/* Quick Date Jump Chips & Search Input di Dashboard */
+.quick-date-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.quick-date-chip {
+  background-color: #262626;
+  border: 1px solid #3c3c3c;
+  color: #cccccc;
+  padding: 8px 6px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.quick-date-chip:active {
+  transform: scale(0.97);
+}
+
+.quick-date-chip.active {
+  background-color: #1a2736;
+  border-color: var(--accent-color);
+  color: #ffffff;
+}
+
+.search-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-input-wrap input[type="text"] {
+  padding-right: 40px;
+}
+
+.search-clear-btn {
+  position: absolute;
+  right: 10px;
+  background: #3d3d3d;
+  border: none;
+  color: #fff;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Visual Grid Selector ala Instagram */
@@ -330,6 +417,137 @@ input[type="color"]::-webkit-color-swatch {
 
 .grid-option.active .grid-option-sub {
   color: #8ab4f8;
+}
+
+/* Slot Manager Grid (Kelola Foto Per Baris & Kolom) */
+.slot-manager-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.slot-row-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.slot-card {
+  background: #252525;
+  border: 1px solid #3a3a3a;
+  border-radius: 9px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 56px;
+}
+
+.slot-card.empty {
+  border-style: dashed;
+  border-color: #464646;
+  background: #1c1c1c;
+  cursor: pointer;
+  justify-content: center;
+  color: #8f8f8f;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.slot-card.empty:active {
+  background: #252525;
+  border-color: var(--accent-color);
+  color: #fff;
+}
+
+.slot-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #111;
+  border: 1px solid #444;
+  flex-shrink: 0;
+}
+
+.slot-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.slot-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #e2e2e2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slot-sub {
+  font-size: 0.68rem;
+  color: #8ab4f8;
+}
+
+.slot-btns {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.slot-mini-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid #454545;
+  background: #303030;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.slot-mini-btn.danger {
+  background: rgba(255, 69, 58, 0.15);
+  border-color: rgba(255, 69, 58, 0.45);
+  color: #ff6961;
+}
+
+.slot-mini-btn:active {
+  transform: scale(0.93);
+}
+
+/* Preset Chips Kegiatan Cepat */
+.preset-chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.preset-chip {
+  background: #262b33;
+  border: 1px solid #39485c;
+  color: #9ecbff;
+  border-radius: 16px;
+  padding: 5px 11px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s, transform 0.1s;
+}
+
+.preset-chip:active {
+  transform: scale(0.96);
+  background: #1a2736;
+  color: #fff;
 }
 
 .btn {
@@ -556,11 +774,23 @@ canvas {
   margin-bottom: 15px;
   border-bottom: 1px solid #333;
   padding-bottom: 8px;
+  gap: 8px;
 }
 
 .schedule-header h2 {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   color: var(--accent-color);
+}
+
+.cycle-badge {
+  background: #1a2736;
+  border: 1px solid #2b4c70;
+  color: #8ab4f8;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 12px;
+  white-space: nowrap;
 }
 
 .tpm-list {
@@ -608,6 +838,7 @@ canvas {
   justify-content: space-between;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .shift-tag {
@@ -618,6 +849,14 @@ canvas {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  flex-wrap: wrap;
+}
+
+.shift-hours {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: #9a9a9a;
+  text-transform: none;
 }
 
 .tpm-item.active-shift .shift-tag {
@@ -632,6 +871,16 @@ canvas {
   background-color: rgba(52, 199, 89, 0.2);
   color: #4cd964;
   border: 1px solid rgba(52, 199, 89, 0.5);
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.reported-badge {
+  background-color: rgba(100, 181, 246, 0.16);
+  color: #7cc0ff;
+  border: 1px solid rgba(100, 181, 246, 0.45);
   padding: 2px 7px;
   border-radius: 10px;
   font-size: 0.68rem;

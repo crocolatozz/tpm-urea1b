@@ -1,0 +1,43 @@
+{
+  "entities": {
+    "ShiftReport": {
+      "title": "ShiftReport",
+      "description": "Synchronized status marker indicating that a TPM Urea 1B shift report has been submitted by an operator.",
+      "type": "object",
+      "properties": {
+        "date": {
+          "type": "string",
+          "description": "Report date in YYYY-MM-DD format.",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "minLength": 10,
+          "maxLength": 10
+        },
+        "shift": {
+          "type": "string",
+          "description": "Work shift identifier.",
+          "enum": ["PAGI", "SORE", "MALAM"]
+        },
+        "area": {
+          "type": "string",
+          "description": "Equipment or area name reported.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "reportedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the report was submitted."
+        }
+      },
+      "required": ["date", "shift", "area", "reportedAt"]
+    }
+  },
+  "firestore": {
+    "/shift_reports/{reportId}": {
+      "schema": {
+        "$ref": "#/entities/ShiftReport"
+      },
+      "description": "Shared operational log of reported TPM shifts (document ID format: YYYY-MM-DD_SHIFT) for cross-device badge synchronization."
+    }
+  }
+}

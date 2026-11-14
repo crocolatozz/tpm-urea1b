@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidReportId(id) {
+      return id is string
+        && id.size() >= 15
+        && id.size() <= 17
+        && id.matches('^\\d{4}-\\d{2}-\\d{2}_(PAGI|SORE|MALAM)$');
+    }
+
+    function isValidShiftReport(data) {
+      return data.keys().hasAll(['date', 'shift', 'area', 'reportedAt'])
+        && data.keys().hasOnly(['date', 'shift', 'area', 'reportedAt'])
+        && data.date is string
+        && data.date.size() == 10
+        && data.date.matches('^\\d{4}-\\d{2}-\\d{2}$')
+        && data.shift is string
+        && data.shift in ['PAGI', 'SORE', 'MALAM']
+        && data.area is string
+        && data.area.size() >= 1
+        && data.area.size() <= 120
+        && data.reportedAt is timestamp;
+    }
+
+    // Shared plant shift report status board (no PII stored)
+    match /shift_reports/{reportId} {
+      allow get, list: if true;
+
+      allow create: if isValidReportId(reportId)
+        && isValidShiftReport(request.resource.data)
+        && (request.resource.data.date + '_' + request.resource.data.shift) == reportId
+        && request.resource.data.reportedAt == request.time;
+
+      allow update: if isValidReportId(reportId)
+        && isValidShiftReport(request.resource.data)
+        && (request.resource.data.date + '_' + request.resource.data.shift) == reportId
+        && request.resource.data.date == resource.data.date
+        && request.resource.data.shift == resource.data.shift
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['area', 'reportedAt'])
+        && request.resource.data.reportedAt == request.time;
+
+      allow delete: if false;
+    }
+  }
+}

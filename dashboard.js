@@ -4,6 +4,7 @@ const tpmList = document.getElementById('tpmList');
 
 const today = getLocalTodayStr();
 tpmDate.value = today;
+tpmDate.setAttribute('value', today);
 
 function loadSchedule(dateStr) {
   const isToday = dateStr === getLocalTodayStr();
@@ -59,9 +60,15 @@ function renderTasks(tasks, dateStr, isToday) {
   });
 }
 
-tpmDate.addEventListener('change', (e) => loadSchedule(e.target.value));
+tpmDate.addEventListener('change', (e) => {
+  if (!e.target.value) {
+    e.target.value = getLocalTodayStr();
+  }
+  loadSchedule(e.target.value);
+});
 loadSchedule(today);
 initGuideModal();
+initAppVersionCheck();
 
 // Register Service Worker
 if ('serviceWorker' in navigator) {
@@ -76,7 +83,7 @@ const installAppBtn = document.getElementById('installAppBtn');
 const iosInstallModal = document.getElementById('iosInstallModal');
 const closeIosModalBtn = document.getElementById('closeIosModalBtn');
 
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+const isIOS = (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) && !window.MSStream;
 const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
 
 if (!isStandalone && isIOS && installAppBtn) {

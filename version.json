@@ -1,4 +1,4 @@
 {
-  "version": "1.0.1",
-  "notes": "Perbaikan v1.0.1: Tampilan input tanggal di iPhone & PC, pratinjau caption selalu tampil, pemrosesan foto stabil di iOS/Android, deteksi iPadOS, dan fallback salin caption."
+  "version": "1.0.2",
+  "notes": "Perbaikan v1.0.2: Fix syntax error halaman Kolase (Panduan, Tanggal, Opsi Grid, Pratinjau Caption, Upload Foto), kunci anti-zoom & anti-select text di HP, fallback pemrosesan foto iOS/Android, serta peningkatan cache update."
 }

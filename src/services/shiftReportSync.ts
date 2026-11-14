@@ -1,5 +1,6 @@
 import {
   collection,
+  deleteDoc,
   doc,
   onSnapshot,
   query,
@@ -9,10 +10,12 @@ import {
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import {
+  clearPendingDeleteLocal,
   getOffsetDateStr,
   getReportedLog,
-  mergeRemoteReportedLog,
   markShiftAsReportedLocal,
+  mergeRemoteReportedLog,
+  unmarkShiftAsReportedLocal,
   type ReportedLogEntry,
   type ShiftName,
 } from '../data/tpmData';
@@ -50,7 +53,8 @@ export function subscribeToShiftReports(
           };
         }
       });
-      const merged = mergeRemoteReportedLog(remoteEntries);
+      const isAuthoritativeFromServer = !snapshot.metadata.fromCache;
+      const merged = mergeRemoteReportedLog(remoteEntries, isAuthoritativeFromServer);
       onUpdate(merged);
     },
     (error) => {
@@ -77,8 +81,8 @@ export async function publishShiftReport(
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return;
   const cleanArea = (area || '-').trim().slice(0, 120) || '-';
 
-  // Update local cache immediately for instant UI responsiveness
-  markShiftAsReportedLocal(dateStr, shift, cleanArea);
+  // Optimistic local write marked pending until Firestore confirms
+  markShiftAsReportedLocal(dateStr, shift, cleanArea, true);
 
   const docId = `${dateStr}_${shift}`;
   const docRef = doc(db, COLLECTION_NAME, docId);
@@ -90,6 +94,7 @@ export async function publishShiftReport(
       area: cleanArea,
       reportedAt: serverTimestamp(),
     });
+    markShiftAsReportedLocal(dateStr, shift, cleanArea, false);
   } catch (error) {
     const code = (error as { code?: string })?.code;
     if (code === 'permission-denied') {
@@ -100,6 +105,32 @@ export async function publishShiftReport(
       }
     } else {
       console.warn('Gagal sinkron ke server (tersimpan di lokal):', error);
+    }
+  }
+}
+
+export async function unpublishShiftReport(dateStr: string, shift: ShiftName): Promise<void> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return;
+
+  // Immediately update local cache & tombstone for instant responsive UI
+  unmarkShiftAsReportedLocal(dateStr, shift);
+
+  const docId = `${dateStr}_${shift}`;
+  const docRef = doc(db, COLLECTION_NAME, docId);
+
+  try {
+    await deleteDoc(docRef);
+    clearPendingDeleteLocal(dateStr, shift);
+  } catch (error) {
+    const code = (error as { code?: string })?.code;
+    if (code === 'permission-denied') {
+      try {
+        handleFirestoreError(error, OperationType.DELETE, `${COLLECTION_NAME}/${docId}`);
+      } catch (err) {
+        console.error(err);
+      }
+    } else {
+      console.warn('Gagal menghapus status di server (dihapus di lokal):', error);
     }
   }
 }

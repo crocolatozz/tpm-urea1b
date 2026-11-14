@@ -44,7 +44,7 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['area', 'reportedAt'])
         && request.resource.data.reportedAt == request.time;
 
-      allow delete: if false;
+      allow delete: if isValidReportId(reportId);
     }
   }
 }

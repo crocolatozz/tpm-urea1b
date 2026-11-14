@@ -1,4 +1,4 @@
 {
-  "version": "2.0.0",
-  "notes": "Update v2.0.0 (Major): Grid interaktif ala Instagram (tap langsung slot pratinjau), navigasi tanggal minimalis (< / >), posisi tombol Buat Kolase lebih rapi, timestamp foto lebih besar & jelas, sinkronisasi status Dilaporkan real-time lintas perangkat, serta perbaikan pop-up info update Android & iOS."
+  "version": "2.2.0",
+  "notes": "Update v2.2.0 (Minor): Perbaikan pop-up update Android & iOS agar selalu muncul kembali saat aplikasi dibuka ulang hingga di-update, penyatuan card halaman Kolase dari atas ke bawah, input Area full-width, serta pemindahan tombol grid 2x1/2x2/2x3 sejajar header Preview."
 }

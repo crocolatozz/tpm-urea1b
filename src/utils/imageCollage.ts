@@ -18,9 +18,10 @@ export interface CollageExportOptions {
 export function freeSingleSlot(slot: LoadedPhotoSlot | null | undefined): void {
   if (!slot) return;
   if (slot.canvas) {
-    slot.canvas.width = 1;
-    slot.canvas.height = 1;
+    slot.canvas.width = 0;
+    slot.canvas.height = 0;
   }
+  slot.previewUrl = '';
 }
 
 export function freeSlotArray(slots: Array<LoadedPhotoSlot | null | undefined>): void {
@@ -76,8 +77,8 @@ function resizeImageToOffscreenCanvas(img: HTMLImageElement): LoadedPhotoSlot | 
     if (thumbCtx) {
       thumbCtx.drawImage(offCanvas, 0, 0, thumbW, thumbH);
       previewUrl = thumbCanvas.toDataURL('image/jpeg', 0.72);
-      thumbCanvas.width = 1;
-      thumbCanvas.height = 1;
+      thumbCanvas.width = 0;
+      thumbCanvas.height = 0;
     } else {
       previewUrl = offCanvas.toDataURL('image/jpeg', 0.65);
     }
@@ -98,6 +99,11 @@ function loadViaFileReader(file: File): Promise<LoadedPhotoSlot | null> {
         return;
       }
       const img = new Image();
+      const cleanupImg = () => {
+        img.onload = null;
+        img.onerror = null;
+        img.src = '';
+      };
       img.onload = async () => {
         try {
           if (typeof img.decode === 'function') {
@@ -106,9 +112,14 @@ function loadViaFileReader(file: File): Promise<LoadedPhotoSlot | null> {
           resolve(resizeImageToOffscreenCanvas(img));
         } catch {
           resolve(null);
+        } finally {
+          cleanupImg();
         }
       };
-      img.onerror = () => resolve(null);
+      img.onerror = () => {
+        cleanupImg();
+        resolve(null);
+      };
       img.src = result;
     };
     reader.onerror = () => resolve(null);
@@ -127,26 +138,36 @@ export function processAndResizeFile(file: File): Promise<LoadedPhotoSlot | null
     }
 
     const img = new Image();
+    const cleanup = () => {
+      img.onload = null;
+      img.onerror = null;
+      img.src = '';
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+        objectUrl = null;
+      }
+    };
+
     img.onload = async () => {
       try {
         if (typeof img.decode === 'function') {
           await img.decode().catch(() => {});
         }
         const processed = resizeImageToOffscreenCanvas(img);
-        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        cleanup();
         if (processed) {
           resolve(processed);
         } else {
           loadViaFileReader(file).then(resolve);
         }
       } catch {
-        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        cleanup();
         loadViaFileReader(file).then(resolve);
       }
     };
 
     img.onerror = () => {
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      cleanup();
       loadViaFileReader(file).then(resolve);
     };
 

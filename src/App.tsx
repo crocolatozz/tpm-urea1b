@@ -3,7 +3,11 @@ import { APP_VERSION, type ReportedLogEntry, type ShiftName } from './data/tpmDa
 import { useNativeTouchGuard } from './hooks/useNativeTouchGuard';
 import { usePWAInstall } from './hooks/usePWAInstall';
 import { useAppUpdater } from './hooks/useAppUpdater';
-import { publishShiftReport, subscribeToShiftReports } from './services/shiftReportSync';
+import {
+  publishShiftReport,
+  subscribeToShiftReports,
+  unpublishShiftReport,
+} from './services/shiftReportSync';
 import { DashboardView } from './components/DashboardView';
 import { KolaseView, type KolaseInitialParams } from './components/KolaseView';
 import { GuideModal } from './components/GuideModal';
@@ -140,6 +144,17 @@ export const App: React.FC = () => {
     []
   );
 
+  const handleReportUndo = useCallback(async (dateStr: string, shift: ShiftName) => {
+    const key = `${dateStr}_${shift}`;
+    setReportedLog((prev) => {
+      if (!(key in prev)) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+    await unpublishShiftReport(dateStr, shift);
+  }, []);
+
   const handleInstallClick = async () => {
     if (isInstallable) {
       await install();
@@ -221,6 +236,7 @@ export const App: React.FC = () => {
           <DashboardView
             reportedLog={reportedLog}
             onSelectShift={(params) => navigateToKolase(params)}
+            onUndoReport={handleReportUndo}
           />
         ) : (
           <KolaseView

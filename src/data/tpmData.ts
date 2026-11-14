@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.0.0';
+export const APP_VERSION = '2.2.0';
 
 export type ShiftName = 'PAGI' | 'SORE' | 'MALAM';
 export type GridType = '2x1' | '2x2' | '2x3';
@@ -19,6 +19,7 @@ export interface ScheduleTask {
 export interface ReportedLogEntry {
   area: string;
   ts: number;
+  pendingOffline?: boolean;
 }
 
 export interface KolaseDraftPrefs {
@@ -63,6 +64,7 @@ export const DEFAULT_OVERLAY_SUGGESTIONS: string[] = [
 ];
 
 export const REPORTED_LOG_KEY = 'tpm_reported_log_v1';
+export const REPORTED_PENDING_DELETE_KEY = 'tpm_reported_pending_delete_v1';
 export const PREFS_STORAGE_KEY = 'tpm_kolase_prefs_v1';
 export const HISTORY_STORAGE_KEY = 'tpm_overlay_history_v1';
 
@@ -179,21 +181,55 @@ export function getReportedLog(): Record<string, ReportedLogEntry> {
   }
 }
 
-export function markShiftAsReportedLocal(dateStr: string, shift: string, area: string): void {
-  if (!dateStr || !shift) return;
-  const log = getReportedLog();
-  log[`${dateStr}_${shift}`] = {
-    area: area || '-',
-    ts: Date.now(),
-  };
+function getPendingDeletes(): Record<string, number> {
+  try {
+    const raw = localStorage.getItem(REPORTED_PENDING_DELETE_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, number>) : {};
+  } catch {
+    return {};
+  }
+}
 
+function savePendingDeletes(map: Record<string, number>): void {
+  const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+  const cleaned: Record<string, number> = {};
+  Object.entries(map).forEach(([k, ts]) => {
+    if (typeof ts === 'number' && ts >= cutoff) {
+      cleaned[k] = ts;
+    }
+  });
+  try {
+    if (Object.keys(cleaned).length === 0) {
+      localStorage.removeItem(REPORTED_PENDING_DELETE_KEY);
+    } else {
+      localStorage.setItem(REPORTED_PENDING_DELETE_KEY, JSON.stringify(cleaned));
+    }
+  } catch {
+    // Ignore storage quota errors
+  }
+}
+
+export function clearPendingDeleteLocal(dateStr: string, shift: string): void {
+  if (!dateStr || !shift) return;
+  const pending = getPendingDeletes();
+  const key = `${dateStr}_${shift}`;
+  if (key in pending) {
+    delete pending[key];
+    savePendingDeletes(pending);
+  }
+}
+
+function pruneReportedLog(log: Record<string, ReportedLogEntry>): void {
   const cutoff = Date.now() - 60 * 24 * 60 * 60 * 1000;
   Object.keys(log).forEach((k) => {
     if (log[k] && log[k].ts && log[k].ts < cutoff) {
       delete log[k];
     }
   });
+}
 
+function saveReportedLog(log: Record<string, ReportedLogEntry>): void {
+  pruneReportedLog(log);
   try {
     localStorage.setItem(REPORTED_LOG_KEY, JSON.stringify(log));
   } catch {
@@ -201,32 +237,89 @@ export function markShiftAsReportedLocal(dateStr: string, shift: string, area: s
   }
 }
 
+export function markShiftAsReportedLocal(
+  dateStr: string,
+  shift: string,
+  area: string,
+  pendingOffline = false
+): Record<string, ReportedLogEntry> {
+  const log = getReportedLog();
+  if (!dateStr || !shift) return log;
+
+  const key = `${dateStr}_${shift}`;
+  clearPendingDeleteLocal(dateStr, shift);
+
+  log[key] = {
+    area: area || '-',
+    ts: Date.now(),
+    ...(pendingOffline ? { pendingOffline: true } : {}),
+  };
+
+  saveReportedLog(log);
+  return log;
+}
+
+export function unmarkShiftAsReportedLocal(
+  dateStr: string,
+  shift: string
+): Record<string, ReportedLogEntry> {
+  const log = getReportedLog();
+  if (!dateStr || !shift) return log;
+
+  const key = `${dateStr}_${shift}`;
+  delete log[key];
+  saveReportedLog(log);
+
+  const pendingDeletes = getPendingDeletes();
+  pendingDeletes[key] = Date.now();
+  savePendingDeletes(pendingDeletes);
+
+  return log;
+}
+
 export function mergeRemoteReportedLog(
-  remoteEntries: Record<string, ReportedLogEntry>
+  remoteEntries: Record<string, ReportedLogEntry>,
+  isAuthoritativeFromServer = false
 ): Record<string, ReportedLogEntry> {
   const local = getReportedLog();
-  const merged: Record<string, ReportedLogEntry> = { ...local };
+  const pendingDeletes = getPendingDeletes();
+  let merged: Record<string, ReportedLogEntry>;
 
-  Object.entries(remoteEntries).forEach(([key, entry]) => {
-    const existing = merged[key];
-    if (!existing || entry.ts >= existing.ts) {
-      merged[key] = entry;
-    }
-  });
+  if (isAuthoritativeFromServer) {
+    merged = {};
+    // Clean up any pending delete keys once the server snapshot confirms absence
+    Object.keys(pendingDeletes).forEach((k) => {
+      if (!(k in remoteEntries)) {
+        delete pendingDeletes[k];
+      }
+    });
+    savePendingDeletes(pendingDeletes);
 
-  const cutoff = Date.now() - 60 * 24 * 60 * 60 * 1000;
-  Object.keys(merged).forEach((k) => {
-    if (merged[k] && merged[k].ts && merged[k].ts < cutoff) {
-      delete merged[k];
-    }
-  });
+    // Apply authoritative server records (skipping keys still pending local delete)
+    Object.entries(remoteEntries).forEach(([key, entry]) => {
+      if (!(key in pendingDeletes)) {
+        merged[key] = { area: entry.area, ts: entry.ts };
+      }
+    });
 
-  try {
-    localStorage.setItem(REPORTED_LOG_KEY, JSON.stringify(merged));
-  } catch {
-    // Ignore storage quota errors
+    // Preserve local-only offline reports that haven't reached server yet
+    Object.entries(local).forEach(([key, entry]) => {
+      if (entry.pendingOffline && !(key in merged) && !(key in pendingDeletes)) {
+        merged[key] = entry;
+      }
+    });
+  } else {
+    merged = { ...local };
+    Object.entries(remoteEntries).forEach(([key, entry]) => {
+      if (key in pendingDeletes) return;
+      const existing = merged[key];
+      if (!existing || entry.ts >= existing.ts) {
+        merged[key] = { area: entry.area, ts: entry.ts };
+      }
+    });
   }
 
+  saveReportedLog(merged);
   return merged;
 }
 

@@ -27,7 +27,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
     >
       <div className="modal-pop max-h-[90dvh] w-full max-w-[440px] overflow-y-auto rounded-[16px] border border-[#383838] bg-[#1e1e1e] p-5 text-white shadow-[0_10px_30px_rgba(0,0,0,0.65)]">
         <div className="mb-3.5 flex items-center justify-between border-b border-[#333] pb-2.5">
-          <h3 className="text-[1.05rem] font-bold text-[#007aff]">📖 Panduan Aplikasi (v2.0)</h3>
+          <h3 className="text-[1.05rem] font-bold text-[#007aff]">📖 Panduan Aplikasi (v2.2)</h3>
           <button
             type="button"
             onClick={onClose}
@@ -62,18 +62,19 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
           })}
         </div>
 
-        <div className="h-[250px] overflow-y-auto pr-0.5 text-[0.88rem] leading-[1.55] text-[#e0e0e0]">
+        <div className="h-[260px] overflow-y-auto pr-0.5 text-[0.88rem] leading-[1.55] text-[#e0e0e0]">
           {currentStep === 1 && (
             <div>
               <h4 className="mb-2 text-[0.96rem] font-bold text-white">📅 Jadwal &amp; Cari Alat</h4>
               <ul className="flex list-disc flex-col gap-2 pl-[18px]">
                 <li>
-                  Gunakan panah <strong>&lt;</strong> dan <strong>&gt;</strong> di samping tanggal
-                  atau kolom <strong>Cari Alat</strong> untuk cek jadwal rotasi 15 hari.
+                  Gunakan tombol panah <strong>Chevron kiri/kanan</strong> di samping tanggal atau
+                  kolom <strong>Cari Alat</strong> untuk cek jadwal rotasi 15 hari.
                 </li>
                 <li>
-                  Badge <strong>● SHIFT AKTIF</strong> menandakan shift berjalan; badge{' '}
-                  <strong>✓ DILAPORKAN</strong> tersinkron otomatis antar HP operator lain.
+                  Badge <strong>● SHIFT AKTIF</strong> otomatis berganti mengikuti jam shift (07:00,
+                  15:00, 23:00). Status <strong>✓ DILAPORKAN</strong> tersinkron antar perangkat;
+                  tap badge tersebut jika ingin membatalkan/reset status.
                 </li>
                 <li>
                   Tap kartu jadwal (<strong>Buat Kolase ➔</strong>) untuk langsung mengisi
@@ -86,21 +87,23 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
           {currentStep === 2 && (
             <div>
               <h4 className="mb-2 text-[0.96rem] font-bold text-white">
-                📸 Kolase Grid Ala Instagram
+                📸 Kolase Live Grid di Atas
               </h4>
               <ul className="flex list-disc flex-col gap-2 pl-[18px]">
                 <li>
                   Pilih ukuran grid (<strong>2x1</strong>, <strong>2x2</strong>, atau{' '}
-                  <strong>2x3</strong>), lalu <strong>tap langsung slot kotak</strong> di pratinjau
-                  untuk memilih 1 atau beberapa foto sekaligus.
+                  <strong>2x3</strong>) di sebelah kanan header <strong>🖼️ Preview</strong>, lalu{' '}
+                  <strong>tap langsung 1 slot kotak</strong> pada grid untuk memilih{' '}
+                  <strong>1 foto</strong> secara cepat.
                 </li>
                 <li>
-                  Untuk mengganti atau menghapus satu foto, tap ikon <strong>↻</strong> atau{' '}
-                  <strong>✕</strong> di sudut kanan atas foto tersebut.
+                  Untuk mengganti atau menghapus foto di slot tertentu, tap ikon <strong>↻</strong>{' '}
+                  atau <strong>✕</strong> di sudut kanan atas foto.
                 </li>
                 <li>
-                  Ketik kegiatan di <strong>Baris 1–3</strong> (saran muncul otomatis), timestamp
-                  tercetak rapi di frame bawah, lalu tekan <strong>🚀 Kirim ke WhatsApp</strong>.
+                  Isi keterangan di <strong>Baris 1–3</strong> di bawah grid (saran teks muncul
+                  otomatis), cek timestamp frame bawah, lalu tekan tombol hijau{' '}
+                  <strong>🚀 Kirim ke WhatsApp</strong>.
                 </li>
               </ul>
             </div>
@@ -109,7 +112,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
           {currentStep === 3 && (
             <div>
               <h4 className="mb-2 text-[0.96rem] font-bold text-white">
-                📲 Pasang App &amp; Update Versi
+                📲 Pasang App &amp; Update Aman
               </h4>
               <ul className="flex list-disc flex-col gap-2 pl-[18px]">
                 <li>
@@ -121,8 +124,8 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
                   <strong>Tambah ke Layar Utama ➕</strong>.
                 </li>
                 <li>
-                  <strong>Notifikasi Update:</strong> Saat versi baru tersedia, pop-up kartu update
-                  akan muncul di Android maupun iOS—tap <strong>🔄 Update Sekarang</strong>.
+                  <strong>Mode Offline Aman:</strong> Aplikasi tetap bisa dipakai tanpa sinyal;
+                  update versi hanya berjalan saat koneksi internet terverifikasi stabil.
                 </li>
               </ul>
             </div>

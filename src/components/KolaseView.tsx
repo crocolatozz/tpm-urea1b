@@ -81,6 +81,7 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
 
   const slotPickerRef = useRef<HTMLInputElement | null>(null);
   const pendingTargetRef = useRef<{ side: 'before' | 'after'; index: number } | null>(null);
+  const isMountedRef = useRef(true);
 
   // Keep refs to slots for safe unmount memory cleanup
   const slotsCleanupRef = useRef<{
@@ -90,7 +91,9 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
   slotsCleanupRef.current = { before: beforeSlots, after: afterSlots };
 
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
       freeSlotArray(slotsCleanupRef.current.before);
       freeSlotArray(slotsCleanupRef.current.after);
     };
@@ -185,61 +188,46 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
     const inputEl = e.currentTarget;
     if (isPickingFile) return;
 
-    const files = Array.from(inputEl.files || []);
+    const file = inputEl.files?.[0];
     const target = pendingTargetRef.current;
     pendingTargetRef.current = null;
 
-    if (files.length === 0 || !target) {
+    if (!file || !target) {
       inputEl.value = '';
       return;
     }
 
     setIsPickingFile(true);
-    setLoadingMsg(`⏳ Memproses ${files.length} foto...`);
+    setLoadingMsg('⏳ Memproses foto...');
 
     try {
-      const setSlots = target.side === 'before' ? setBeforeSlots : setAfterSlots;
-      const currentArray = target.side === 'before' ? beforeSlots : afterSlots;
-      const normalized = Array.from({ length: rows }, (_, idx) => currentArray[idx] || null);
-
-      // Fill clicked slot first, then remaining empty slots in order if user picked multiple photos
-      const targetIndices: number[] = [target.index];
-      for (let i = 0; i < rows; i++) {
-        if (i !== target.index && !normalized[i]) {
-          targetIndices.push(i);
-        }
-      }
-
-      const filesToProcess = files.slice(0, targetIndices.length);
-      const processedResults: Array<{ idx: number; slot: LoadedPhotoSlot }> = [];
-
-      for (let i = 0; i < filesToProcess.length; i++) {
-        setLoadingMsg(`⏳ Memproses foto (${i + 1}/${filesToProcess.length})...`);
-        const processed = await processAndResizeFile(filesToProcess[i]);
-        if (processed) {
-          processedResults.push({ idx: targetIndices[i], slot: processed });
-        }
-      }
-
+      const processed = await processAndResizeFile(file);
       // Reset input AFTER processing so iOS Safari temp file handle stays valid
       inputEl.value = '';
 
-      if (processedResults.length === 0) {
+      if (!isMountedRef.current) {
+        freeSingleSlot(processed);
+        return;
+      }
+
+      if (!processed) {
         setLoadingMsg('⚠️ Gagal memuat foto. Pastikan format gambar didukung.');
         return;
       }
 
+      const setSlots = target.side === 'before' ? setBeforeSlots : setAfterSlots;
       setSlots((prev) => {
-        const next = Array.from({ length: rows }, (_, idx) => prev[idx] || null);
-        processedResults.forEach(({ idx, slot }) => {
-          freeSingleSlot(next[idx]);
-          next[idx] = slot;
-        });
-        return next;
+        const len = Math.max(rows, target.index + 1);
+        const next = Array.from({ length: len }, (_, idx) => prev[idx] || null);
+        freeSingleSlot(next[target.index]);
+        next[target.index] = processed;
+        return next.slice(0, rows);
       });
       setLoadingMsg(null);
     } finally {
-      setIsPickingFile(false);
+      if (isMountedRef.current) {
+        setIsPickingFile(false);
+      }
     }
   };
 
@@ -270,12 +258,17 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
   const handleCopyCaption = async () => {
     handleCommitHistory();
     const copied = await copyTextToClipboard(captionText);
+    if (!isMountedRef.current) return;
     if (copied) {
-      setCopyBtnLabel('✅ Caption Tersalin!');
-      window.setTimeout(() => setCopyBtnLabel('📋 Salin Caption'), 2000);
+      setCopyBtnLabel('✅ Tersalin!');
+      window.setTimeout(() => {
+        if (isMountedRef.current) setCopyBtnLabel('📋 Salin Caption');
+      }, 2000);
     } else {
       setCopyBtnLabel('⚠️ Gagal Salin');
-      window.setTimeout(() => setCopyBtnLabel('📋 Salin Caption'), 2500);
+      window.setTimeout(() => {
+        if (isMountedRef.current) setCopyBtnLabel('📋 Salin Caption');
+      }, 2500);
     }
   };
 
@@ -297,8 +290,8 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
     });
 
     if (!rendered) {
-      exportCanvas.width = 1;
-      exportCanvas.height = 1;
+      exportCanvas.width = 0;
+      exportCanvas.height = 0;
       setExportStatus('idle');
       return;
     }
@@ -307,12 +300,12 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
 
     exportCanvas.toBlob(
       async (blob) => {
-        exportCanvas.width = 1;
-        exportCanvas.height = 1;
+        exportCanvas.width = 0;
+        exportCanvas.height = 0;
 
         try {
           if (!blob) {
-            setExportStatus('idle');
+            if (isMountedRef.current) setExportStatus('idle');
             return;
           }
 
@@ -328,11 +321,11 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
                 text: captionText,
               });
               await onReportSubmitted(effectiveDate, tpmShift, currentAreaStr);
-              setExportStatus('idle');
+              if (isMountedRef.current) setExportStatus('idle');
               return;
             } catch (err) {
               if (err instanceof Error && err.name === 'AbortError') {
-                setExportStatus('idle');
+                if (isMountedRef.current) setExportStatus('idle');
                 return;
               }
             }
@@ -350,10 +343,14 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
           window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
 
           await onReportSubmitted(effectiveDate, tpmShift, currentAreaStr);
-          setExportStatus('done');
-          window.setTimeout(() => setExportStatus('idle'), 2500);
+          if (isMountedRef.current) {
+            setExportStatus('done');
+            window.setTimeout(() => {
+              if (isMountedRef.current) setExportStatus('idle');
+            }, 2500);
+          }
         } catch {
-          setExportStatus('idle');
+          if (isMountedRef.current) setExportStatus('idle');
         }
       },
       'image/jpeg',
@@ -365,241 +362,99 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
   const displayAreaStamp = tpmArea.trim() || 'TPM UREA 1B';
 
   return (
-    <>
-      {/* Panel Kontrol Ringkas */}
-      <div className="w-full overflow-hidden rounded-xl bg-[#1e1e1e] p-4 shadow-[0_4px_12px_rgba(0,0,0,0.3)] sm:p-5">
-        <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="flex w-full min-w-0 flex-col gap-1.5">
-            <label
-              htmlFor="tpmDateInput"
-              className="text-[0.82rem] font-semibold text-[#aaaaaa]"
-            >
-              Tanggal
-            </label>
-            <input
-              type="date"
-              id="tpmDateInput"
-              value={tpmDate}
-              onChange={(e) => handleDateChange(e.target.value)}
-              className="tpm-input"
-            />
-          </div>
-
-          <div className="flex w-full min-w-0 flex-col gap-1.5">
-            <label
-              htmlFor="tpmShiftInput"
-              className="text-[0.82rem] font-semibold text-[#aaaaaa]"
-            >
-              Shift
-            </label>
-            <select
-              id="tpmShiftInput"
-              value={tpmShift}
-              onChange={(e) => handleShiftChange(e.target.value as ShiftName)}
-              className="tpm-select"
-            >
-              <option value="PAGI">☀️ PAGI</option>
-              <option value="SORE">🌤️ SORE</option>
-              <option value="MALAM">🌙 MALAM</option>
-            </select>
-          </div>
-
-          <div className="col-span-full flex w-full min-w-0 flex-col gap-1.5">
-            <label
-              htmlFor="tpmAreaInput"
-              className="text-[0.82rem] font-semibold text-[#aaaaaa]"
-            >
-              Area / Alat TPM
-            </label>
-            <input
-              type="text"
-              id="tpmAreaInput"
-              value={tpmArea}
-              onChange={(e) => setTpmArea(e.target.value)}
-              placeholder="Otomatis atau isi manual..."
-              className="tpm-input"
-            />
-            {isOffDay && (
-              <span className="text-[0.8rem] font-medium text-[#ff9500]">
-                ⚠️ Tanggal 31 jadwal rutin libur TPM
-              </span>
-            )}
-          </div>
-
-          {/* Pilihan Ukuran Grid */}
-          <div className="col-span-full flex w-full min-w-0 flex-col gap-1.5">
-            <label className="text-[0.82rem] font-semibold text-[#aaaaaa]">Ukuran Grid</label>
-            <div className="grid w-full grid-cols-3 gap-2">
-              {(
-                [
-                  { grid: '2x1', rowsCount: 1, sub: '2 Foto' },
-                  { grid: '2x2', rowsCount: 2, sub: '4 Foto' },
-                  { grid: '2x3', rowsCount: 3, sub: '6 Foto' },
-                ] as const
-              ).map((item) => {
-                const active = gridType === item.grid;
-                return (
-                  <button
-                    key={item.grid}
-                    type="button"
-                    onClick={() => handleGridSelect(item.grid)}
-                    className={`flex cursor-pointer flex-col items-center justify-between gap-1.5 rounded-[10px] border-[1.5px] px-2 py-2.5 transition active:scale-[0.97] ${
-                      active
-                        ? 'border-[#007aff] bg-[#1a2736] text-white'
-                        : 'border-[#3a3a3a] bg-[#252525] text-[#ccc]'
-                    }`}
-                  >
-                    <div
-                      className={`grid h-9 w-8 grid-cols-2 gap-[2.5px] rounded-[4px] border p-[2.5px] ${
-                        active
-                          ? 'border-[#64b5f6] bg-[#101b27]'
-                          : 'border-[#444] bg-[#181818]'
-                      }`}
-                      style={{ gridTemplateRows: `repeat(${item.rowsCount}, 1fr)` }}
-                    >
-                      {Array.from({ length: item.rowsCount * 2 }).map((_, idx) => (
-                        <span
-                          key={idx}
-                          className={`block rounded-[1.5px] ${
-                            active ? 'bg-[#007aff]' : 'bg-[#555]'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-[0.86rem] font-bold">{item.grid}</span>
-                      <span
-                        className={`text-[0.68rem] ${
-                          active ? 'text-[#8ab4f8]' : 'text-[#aaaaaa]'
-                        }`}
-                      >
-                        ({item.sub})
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Input Keterangan Kegiatan Model Lama (Datalist Autocomplete) */}
-          <div className="col-span-full mt-1 flex items-center justify-between gap-2 border-b border-[#333] pb-1.5">
-            <span className="text-[0.9rem] font-bold text-[#007aff]">✍️ Keterangan Kegiatan</span>
-            <button
-              type="button"
-              onClick={() => {
-                setRow1('');
-                setRow2('');
-                setRow3('');
-              }}
-              className="cursor-pointer rounded-md border border-[#444] bg-[#2a2a2a] px-2.5 py-1 text-[0.72rem] font-semibold text-[#ccc] active:scale-[0.96] active:bg-[#383838]"
-            >
-              Bersihkan
-            </button>
-          </div>
-
-          <datalist id="overlayHistoryList">
-            {overlayHistory.map((item) => (
-              <option key={item} value={item} />
-            ))}
-          </datalist>
-
-          <div className="col-span-full flex w-full min-w-0 flex-col gap-1">
-            <input
-              type="text"
-              id="row1Text"
-              aria-label="Kegiatan Baris 1"
-              list="overlayHistoryList"
-              value={row1}
-              onChange={(e) => setRow1(e.target.value)}
-              onBlur={handleCommitHistory}
-              placeholder="Baris 1 (misal: Regreasing BV)"
-              className="tpm-input"
-            />
-          </div>
-
-          {rows >= 2 && (
-            <div className="col-span-full flex w-full min-w-0 flex-col gap-1">
-              <input
-                type="text"
-                id="row2Text"
-                aria-label="Kegiatan Baris 2"
-                list="overlayHistoryList"
-                value={row2}
-                onChange={(e) => setRow2(e.target.value)}
-                onBlur={handleCommitHistory}
-                placeholder="Baris 2 (misal: Cleaning baseplate pompa)"
-                className="tpm-input"
-              />
-            </div>
-          )}
-
-          {rows >= 3 && (
-            <div className="col-span-full flex w-full min-w-0 flex-col gap-1">
-              <input
-                type="text"
-                id="row3Text"
-                aria-label="Kegiatan Baris 3"
-                list="overlayHistoryList"
-                value={row3}
-                onChange={(e) => setRow3(e.target.value)}
-                onBlur={handleCommitHistory}
-                placeholder="Baris 3 (misal: Cleaning area & grating)"
-                className="tpm-input"
-              />
-            </div>
-          )}
-
-          {/* Pratinjau Caption WhatsApp */}
-          <div className="col-span-full flex w-full min-w-0 flex-col gap-1.5 pt-1">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[0.82rem] font-semibold text-[#aaaaaa]">
-                💬 Caption WhatsApp
-              </span>
-              <button
-                type="button"
-                onClick={handleCopyCaption}
-                className="cursor-pointer rounded-md border border-[#444] bg-[#2e2e2e] px-2.5 py-1 text-[0.75rem] font-semibold text-white transition active:scale-[0.97]"
-              >
-                {copyBtnLabel}
-              </button>
-            </div>
-            <div className="w-full whitespace-pre-wrap break-words rounded-lg border border-[#3a3a3a] bg-[#252525] p-2.5 font-mono text-[0.8rem] text-[#72d572]">
-              {captionText}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Hidden File Picker untuk Tap Langsung Grid */}
+    <div className="mb-2 flex w-full flex-col gap-4 overflow-hidden rounded-xl bg-[#1e1e1e] p-3.5 shadow-[0_4px_12px_rgba(0,0,0,0.3)] sm:p-5">
+      {/* Hidden Single-Photo Picker untuk Tap Langsung Grid (strictly 1 foto per tap) */}
       <input
         ref={slotPickerRef}
         type="file"
         accept="image/*"
-        multiple
         onChange={handleSlotFileChange}
         className="hidden"
       />
 
-      {/* Instagram-Style Interactive Live Preview Grid */}
-      <div className="mb-2 flex w-full flex-col items-center gap-3 overflow-hidden rounded-xl bg-[#1e1e1e] p-4 shadow-[0_4px_12px_rgba(0,0,0,0.3)] sm:p-5">
-        <div className="flex w-full items-center justify-between text-[0.85rem]">
-          <span className="font-bold text-[#007aff]">📸 Tap Grid untuk Isi Foto</span>
-          <span className="text-[0.75rem] text-[#aaaaaa]">
-            Before {beforeCountNum}/{rows} • After {afterCountNum}/{rows}
+      {/* Bagian 1: Kontrol Atas (Tanggal, Shift, & Full-Width Area / Equipment) */}
+      <div className="flex w-full flex-col gap-2">
+        <div className="grid w-full grid-cols-2 gap-2">
+          <input
+            type="date"
+            id="tpmDateInput"
+            aria-label="Tanggal"
+            value={tpmDate}
+            onChange={(e) => handleDateChange(e.target.value)}
+            className="tpm-input min-h-[42px]! py-2!"
+          />
+          <select
+            id="tpmShiftInput"
+            aria-label="Shift"
+            value={tpmShift}
+            onChange={(e) => handleShiftChange(e.target.value as ShiftName)}
+            className="tpm-select min-h-[42px]! py-2!"
+          >
+            <option value="PAGI">☀️ PAGI</option>
+            <option value="SORE">🌤️ SORE</option>
+            <option value="MALAM">🌙 MALAM</option>
+          </select>
+        </div>
+
+        <input
+          type="text"
+          id="tpmAreaInput"
+          aria-label="Area / Equipment TPM"
+          value={tpmArea}
+          onChange={(e) => setTpmArea(e.target.value)}
+          placeholder="Area / Equipment TPM..."
+          className="tpm-input min-h-[42px]! w-full py-2!"
+        />
+
+        {isOffDay && (
+          <span className="text-[0.78rem] font-medium text-[#ff9500]">
+            ⚠️ Tanggal 31 jadwal rutin libur TPM
           </span>
+        )}
+      </div>
+
+      {/* Bagian 2: Live Preview Grid + Header Sejajar dengan Selector 2x1 | 2x2 | 2x3 */}
+      <div className="flex w-full flex-col gap-2.5 border-t border-[#2c2c2c] pt-3.5">
+        <div className="flex w-full items-center justify-between gap-2">
+          <span className="shrink-0 whitespace-nowrap text-[0.88rem] font-bold text-[#007aff]">
+            🖼️ Preview
+          </span>
+
+          <div
+            role="group"
+            aria-label="Ukuran Grid Kolase"
+            className="flex h-[34px] shrink-0 items-center gap-1 rounded-lg border border-[#3a3a3a] bg-[#252525] p-0.5"
+          >
+            {(['2x1', '2x2', '2x3'] as const).map((grid) => {
+              const active = gridType === grid;
+              return (
+                <button
+                  key={grid}
+                  type="button"
+                  onClick={() => handleGridSelect(grid)}
+                  className={`h-full cursor-pointer rounded-md px-2.5 text-[0.76rem] font-bold transition active:scale-95 ${
+                    active
+                      ? 'bg-[#007aff] text-white shadow-xs'
+                      : 'bg-transparent text-[#aaa] hover:text-white'
+                  }`}
+                >
+                  {grid}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {loadingMsg && (
-          <div className="w-full rounded-lg border border-[#2b4c70] bg-[#1a2736] px-3 py-2 text-center text-xs font-semibold text-[#8ab4f8]">
+          <div className="w-full rounded-lg border border-[#2b4c70] bg-[#1a2736] px-3 py-1.5 text-center text-xs font-semibold text-[#8ab4f8]">
             {loadingMsg}
           </div>
         )}
 
         {/* Frame Kolase Live Preview (Anti-Overflow) */}
-        <div className="w-full max-w-full overflow-hidden rounded-lg border border-[#2f2f2f] bg-black p-2 sm:p-3">
+        <div className="w-full max-w-full overflow-hidden rounded-lg border border-[#2f2f2f] bg-black p-2 sm:p-2.5">
           {/* Header Frame: BEFORE | AFTER */}
-          <div className="grid w-full grid-cols-2 gap-1.5 pb-2 text-center sm:gap-2">
+          <div className="grid w-full grid-cols-2 gap-1.5 pb-1.5 text-center sm:gap-2">
             <span className="truncate text-sm font-extrabold tracking-wider text-white sm:text-base">
               BEFORE
             </span>
@@ -711,36 +566,120 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
           </div>
         </div>
 
-        {/* Tombol Reset & Ekspor */}
-        <div className="flex w-full flex-col gap-2">
-          {hasPhotos && (
-            <button
-              type="button"
-              onClick={handleResetAllPhotos}
-              className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-[#ff453a]/40 bg-[#ff453a]/12 px-3 py-2 text-[0.85rem] font-semibold text-[#ff6961] transition active:scale-[0.98] active:bg-[#ff453a]/22"
-            >
-              🗑️ Reset Semua Foto
-            </button>
-          )}
-
+        {hasPhotos && (
           <button
             type="button"
-            disabled={!hasPhotos || exportStatus === 'exporting'}
-            onClick={handleExportCollage}
-            className="inline-flex min-h-[48px] w-full cursor-pointer items-center justify-center gap-2 rounded-lg border-0 bg-[#007aff] px-5 py-3.5 text-base font-bold text-white transition hover:opacity-92 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-[#444] disabled:text-[#888]"
+            onClick={handleResetAllPhotos}
+            className="inline-flex min-h-[42px] w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-[#ff453a]/40 bg-[#ff453a]/12 px-3 py-2 text-[0.84rem] font-semibold text-[#ff6961] transition active:scale-[0.98] active:bg-[#ff453a]/22"
           >
-            {exportStatus === 'exporting' ? (
-              <>
-                <span className="spinner" /> Menyiapkan gambar...
-              </>
-            ) : exportStatus === 'done' ? (
-              '✅ Gambar Diunduh & Caption Tersalin!'
-            ) : (
-              '🚀 Kirim ke WhatsApp'
-            )}
+            🗑️ Reset Semua Foto
+          </button>
+        )}
+      </div>
+
+      {/* Bagian 3: Keterangan Kegiatan, Pratinjau Caption & Tombol Kirim ke WhatsApp */}
+      <div className="flex w-full flex-col gap-3 border-t border-[#2c2c2c] pt-3.5">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[0.9rem] font-bold text-[#007aff]">✍️ Keterangan Kegiatan</span>
+          <button
+            type="button"
+            onClick={() => {
+              setRow1('');
+              setRow2('');
+              setRow3('');
+            }}
+            className="cursor-pointer rounded-md border border-[#444] bg-[#2a2a2a] px-2.5 py-1 text-[0.72rem] font-semibold text-[#ccc] active:scale-[0.96] active:bg-[#383838]"
+          >
+            Bersihkan
           </button>
         </div>
+
+        <datalist id="overlayHistoryList">
+          {overlayHistory.map((item) => (
+            <option key={item} value={item} />
+          ))}
+        </datalist>
+
+        <div className="flex w-full flex-col gap-2">
+          <input
+            type="text"
+            id="row1Text"
+            aria-label="Kegiatan Baris 1"
+            list="overlayHistoryList"
+            value={row1}
+            onChange={(e) => setRow1(e.target.value)}
+            onBlur={handleCommitHistory}
+            placeholder="Baris 1 (misal: Regreasing BV)"
+            className="tpm-input"
+          />
+
+          {rows >= 2 && (
+            <input
+              type="text"
+              id="row2Text"
+              aria-label="Kegiatan Baris 2"
+              list="overlayHistoryList"
+              value={row2}
+              onChange={(e) => setRow2(e.target.value)}
+              onBlur={handleCommitHistory}
+              placeholder="Baris 2 (misal: Cleaning baseplate pompa)"
+              className="tpm-input"
+            />
+          )}
+
+          {rows >= 3 && (
+            <input
+              type="text"
+              id="row3Text"
+              aria-label="Kegiatan Baris 3"
+              list="overlayHistoryList"
+              value={row3}
+              onChange={(e) => setRow3(e.target.value)}
+              onBlur={handleCommitHistory}
+              placeholder="Baris 3 (misal: Cleaning area & grating)"
+              className="tpm-input"
+            />
+          )}
+        </div>
+
+        {/* Pratinjau Caption WhatsApp */}
+        <div className="flex w-full min-w-0 flex-col gap-1.5 pt-1">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[0.82rem] font-semibold text-[#aaaaaa]">
+              💬 Caption WhatsApp
+            </span>
+            <button
+              type="button"
+              onClick={handleCopyCaption}
+              className="cursor-pointer rounded-md border border-[#444] bg-[#2e2e2e] px-2.5 py-1 text-[0.75rem] font-semibold text-white transition active:scale-[0.97]"
+            >
+              {copyBtnLabel}
+            </button>
+          </div>
+          <div className="w-full whitespace-pre-wrap break-words rounded-lg border border-[#3a3a3a] bg-[#252525] p-2.5 font-mono text-[0.8rem] text-[#72d572]">
+            {captionText}
+          </div>
+        </div>
+
+        {/* Tombol Utama "Kirim ke WhatsApp" (Aksen Hijau selaras indikator SHIFT AKTIF) */}
+        <button
+          type="button"
+          disabled={!hasPhotos || exportStatus === 'exporting'}
+          onClick={handleExportCollage}
+          className="mt-0.5 inline-flex min-h-[50px] w-full cursor-pointer items-center justify-center gap-2 rounded-lg border-0 bg-[#34c759] px-5 py-3.5 text-base font-extrabold text-[#052310] shadow-[0_4px_14px_rgba(52,199,89,0.28)] transition hover:bg-[#3fd164] active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-[#2a332d] disabled:text-[#6b7c70] disabled:shadow-none"
+        >
+          {exportStatus === 'exporting' ? (
+            <>
+              <span className="spinner border-[#052310]/30! border-t-[#052310]!" /> Menyiapkan
+              gambar...
+            </>
+          ) : exportStatus === 'done' ? (
+            '✅ Gambar Diunduh & Caption Tersalin!'
+          ) : (
+            '🚀 Kirim ke WhatsApp'
+          )}
+        </button>
       </div>
-    </>
+    </div>
   );
 };

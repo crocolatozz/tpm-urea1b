@@ -8,39 +8,13 @@ export type UpdateModalState =
       mode: 'prompt';
       remoteVersion: string;
       releaseNotes: string;
-      isRetryLoop: boolean;
       swDriven: boolean;
-    }
-  | { mode: 'success'; newVersion: string };
+    };
 
 interface VersionJsonPayload {
   version?: string;
   notes?: string;
   offline?: boolean;
-}
-
-function safeSessionGet(key: string): string | null {
-  try {
-    return window.sessionStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
-
-function safeSessionSet(key: string, value: string): void {
-  try {
-    window.sessionStorage.setItem(key, value);
-  } catch {
-    // Ignore storage errors in restricted iframe/private contexts
-  }
-}
-
-function safeSessionRemove(key: string): void {
-  try {
-    window.sessionStorage.removeItem(key);
-  } catch {
-    // Ignore storage errors
-  }
 }
 
 async function fetchRemoteVersionJson(): Promise<VersionJsonPayload | null> {
@@ -66,10 +40,12 @@ export function useAppUpdater() {
   const [modalState, setModalState] = useState<UpdateModalState>({ mode: 'closed' });
   const [isUpdating, setIsUpdating] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const lastCheckTsRef = useRef<number>(0);
+  // Pure in-memory postpone state for the current active screen session only (never persisted)
+  const [isDismissed, setIsDismissed] = useState(false);
+  const isDismissedRef = useRef(false);
 
   const {
-    needRefresh: [needRefresh, setNeedRefresh],
+    needRefresh: [needRefresh],
     updateServiceWorker,
   } = useRegisterSW({
     onRegisteredSW(_swUrl, registration) {
@@ -84,40 +60,58 @@ export function useAppUpdater() {
     },
   });
 
-  const checkVersionManifest = useCallback(async (force = false) => {
-    const now = Date.now();
-    if (!force && now - lastCheckTsRef.current < 60_000) return;
-    lastCheckTsRef.current = now;
+  const checkForUpdates = useCallback(async () => {
+    let hasWaitingSw = false;
 
-    // Also ask browser to check for waiting Service Worker updates
     if (!import.meta.env.DEV && 'serviceWorker' in navigator) {
-      navigator.serviceWorker
-        .getRegistrations()
-        .then((regs) => regs.forEach((r) => void r.update().catch(() => {})))
-        .catch(() => {});
+      try {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map((r) => r.update().catch(() => {})));
+        hasWaitingSw = regs.some((r) => Boolean(r.waiting));
+      } catch {
+        // Ignore SW inspection errors
+      }
     }
 
     const data = await fetchRemoteVersionJson();
-    if (!data || !data.version) return;
 
-    if (compareSemver(APP_VERSION, data.version) > 0) {
+    // Respect active-session dismiss only until next cold start or visibility resume
+    if (isDismissedRef.current) return;
+
+    const hasNewerVersion = Boolean(
+      data?.version && compareSemver(APP_VERSION, data.version) > 0
+    );
+
+    if (hasNewerVersion && data?.version) {
       setModalState({
         mode: 'prompt',
         remoteVersion: data.version,
         releaseNotes: data.notes || '',
-        isRetryLoop: false,
-        swDriven: false,
+        swDriven: needRefresh || hasWaitingSw,
+      });
+      return;
+    }
+
+    if ((needRefresh || hasWaitingSw) && !import.meta.env.DEV) {
+      setModalState({
+        mode: 'prompt',
+        remoteVersion: data?.version || APP_VERSION,
+        releaseNotes:
+          data?.notes ||
+          'Pembaruan aplikasi siap dipasang. Ketuk Update Sekarang untuk memuat tampilan dan fitur terbaru.',
+        swDriven: true,
       });
     }
-  }, []);
+  }, [needRefresh]);
 
-  // When Workbox detects a waiting SW on Android Chrome or iOS Safari, enrich the prompt with version.json notes
+  // Enrich and open prompt when Workbox detects a waiting SW (Android Chrome & iOS Safari)
   useEffect(() => {
-    if (!needRefresh) return;
+    if (!needRefresh || isDismissed) return;
     let cancelled = false;
 
     fetchRemoteVersionJson().then((data) => {
-      if (cancelled) return;
+      if (cancelled || isDismissedRef.current) return;
+
       const hasNewerRemote = Boolean(
         data?.version && compareSemver(APP_VERSION, data.version) > 0
       );
@@ -130,51 +124,31 @@ export function useAppUpdater() {
         data?.notes ||
         'Pembaruan aplikasi siap dipasang. Ketuk Update Sekarang untuk memuat tampilan dan fitur terbaru.';
 
-      setModalState((prev) => {
-        if (prev.mode === 'prompt' && !prev.swDriven) {
-          return { ...prev, swDriven: true };
-        }
-        return {
-          mode: 'prompt',
-          remoteVersion: remoteVer,
-          releaseNotes,
-          isRetryLoop: false,
-          swDriven: true,
-        };
+      setModalState({
+        mode: 'prompt',
+        remoteVersion: remoteVer,
+        releaseNotes,
+        swDriven: true,
       });
     });
 
     return () => {
       cancelled = true;
     };
-  }, [needRefresh]);
+  }, [needRefresh, isDismissed]);
 
-  // Startup check + visibility resume check (handles PWA kept open in background on Android/iOS)
+  // Cold start + visibilitychange resume check: reset postpone state and re-check version.json & SW
   useEffect(() => {
-    const pendingTargetVer = safeSessionGet('tpm_updating_to');
-    const attempts = parseInt(safeSessionGet('tpm_update_attempts') || '0', 10);
-
-    if (pendingTargetVer) {
-      if (compareSemver(APP_VERSION, pendingTargetVer) <= 0) {
-        safeSessionRemove('tpm_updating_to');
-        safeSessionRemove('tpm_update_attempts');
-        setModalState({ mode: 'success', newVersion: APP_VERSION });
-      } else if (attempts >= 1) {
-        setModalState({
-          mode: 'prompt',
-          remoteVersion: pendingTargetVer,
-          releaseNotes: '',
-          isRetryLoop: true,
-          swDriven: false,
-        });
-      }
-    } else {
-      void checkVersionManifest(true);
-    }
+    isDismissedRef.current = false;
+    setIsDismissed(false);
+    void checkForUpdates();
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        void checkVersionManifest(false);
+        isDismissedRef.current = false;
+        setIsDismissed(false);
+        setErrorMsg(null);
+        void checkForUpdates();
       }
     };
 
@@ -182,40 +156,45 @@ export function useAppUpdater() {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [checkVersionManifest]);
+  }, [checkForUpdates]);
 
   const dismissUpdate = useCallback(() => {
-    safeSessionRemove('tpm_updating_to');
-    safeSessionRemove('tpm_update_attempts');
-    setNeedRefresh(false);
+    isDismissedRef.current = true;
+    setIsDismissed(true);
     setErrorMsg(null);
     setIsUpdating(false);
     setModalState({ mode: 'closed' });
-  }, [setNeedRefresh]);
+  }, []);
 
   const confirmUpdate = useCallback(async () => {
     if (modalState.mode !== 'prompt') return;
     setIsUpdating(true);
     setErrorMsg(null);
 
-    const prevAttempts = parseInt(safeSessionGet('tpm_update_attempts') || '0', 10);
-    if (!modalState.swDriven || compareSemver(APP_VERSION, modalState.remoteVersion) > 0) {
-      safeSessionSet('tpm_updating_to', modalState.remoteVersion);
-      safeSessionSet('tpm_update_attempts', String(prevAttempts + 1));
-    }
-
-    let timedOut = false;
+    let aborted = false;
     const timeoutId = window.setTimeout(() => {
-      timedOut = true;
+      aborted = true;
       setIsUpdating(false);
       setErrorMsg(
-        '📶 Sinyal lemah atau koneksi terputus. Kamu tetap bisa menutup jendela ini dan pakai versi offline yang ada.'
+        '📶 Sinyal lemah atau koneksi terputus. Cache offline tetap aman—kamu bisa menutup jendela ini dan tetap bekerja offline.'
       );
     }, 8000);
 
     try {
+      // Pastikan koneksi stabil & server benar-benar merespons sebelum proses reload / aktivasi SW
+      const probe = await fetchRemoteVersionJson();
+      if (aborted) return;
+
+      if (!probe || (typeof navigator !== 'undefined' && navigator.onLine === false)) {
+        window.clearTimeout(timeoutId);
+        setIsUpdating(false);
+        setErrorMsg(
+          '📶 Koneksi terputus atau sinyal tidak stabil. Cache offline tetap dipertahankan agar aplikasi tetap bisa dipakai.'
+        );
+        return;
+      }
+
       if (needRefresh) {
-        // Activate waiting Workbox SW cleanly (prompts controllerchange reload)
         await updateServiceWorker(true);
       }
 
@@ -229,20 +208,17 @@ export function useAppUpdater() {
         }
       }
 
-      if ('caches' in window) {
-        const keys = await caches.keys();
-        await Promise.all(keys.map((k) => caches.delete(k)));
-      }
-
       window.setTimeout(() => {
-        if (timedOut) return;
+        if (aborted) return;
         window.clearTimeout(timeoutId);
         window.location.reload();
       }, 900);
     } catch {
       window.clearTimeout(timeoutId);
       setIsUpdating(false);
-      setErrorMsg('📶 Gagal memuat pembaruan. Silakan tutup dan coba lagi nanti.');
+      setErrorMsg(
+        '📶 Gagal memuat pembaruan. Cache offline tetap aman—silakan tutup dan coba lagi saat sinyal stabil.'
+      );
     }
   }, [modalState, needRefresh, updateServiceWorker]);
 

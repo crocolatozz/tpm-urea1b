@@ -1,4 +1,9 @@
 {
-  "version": "2.2.0",
-  "notes": "Update v2.2.0 (Minor): Perbaikan pop-up update Android & iOS agar selalu muncul kembali saat aplikasi dibuka ulang hingga di-update, penyatuan card halaman Kolase dari atas ke bawah, input Area full-width, serta pemindahan tombol grid 2x1/2x2/2x3 sejajar header Preview."
+  "version": "2.2.1",
+  "notes": [
+    "Pop-up update tidak lagi muncul berulang saat operator kembali dari galeri atau kamera HP",
+    "Proteksi foto belum terkirim: notifikasi update ditahan otomatis selama ada foto di grid kolase",
+    "Jeda cek versi otomatis (cooldown 60 detik) agar tidak berebut koneksi dengan sinkronisasi Firestore",
+    "Catatan rilis pembaruan kini tampil rapi dalam format daftar poin (bullet list)"
+  ]
 }

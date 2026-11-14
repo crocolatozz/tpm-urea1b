@@ -1,6 +1,6 @@
 import React from 'react';
 import { APP_VERSION } from '../data/tpmData';
-import type { UpdateModalState } from '../hooks/useAppUpdater';
+import { normalizeReleaseNotes, type UpdateModalState } from '../hooks/useAppUpdater';
 
 interface ForceUpdateModalProps {
   modalState: UpdateModalState;
@@ -18,6 +18,10 @@ export const ForceUpdateModal: React.FC<ForceUpdateModalProps> = ({
   onDismiss,
 }) => {
   if (modalState.mode === 'closed') return null;
+
+  const notesList = Array.isArray(modalState.releaseNotes)
+    ? modalState.releaseNotes
+    : normalizeReleaseNotes(modalState.releaseNotes);
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/82 p-4 backdrop-blur-[4px]">
@@ -49,10 +53,13 @@ export const ForceUpdateModal: React.FC<ForceUpdateModalProps> = ({
             </div>
           </div>
 
-          <p className="mb-3.5 text-center text-[0.88rem] leading-normal text-[#d8d8d8]">
-            {modalState.releaseNotes ||
-              'Versi baru aplikasi TPM Urea 1B sudah siap. Perbarui sekarang agar fitur dan jadwal selalu akurat.'}
-          </p>
+          <div className="mb-3.5 max-h-40 overflow-y-auto rounded-xl border border-[#323232] bg-[#242424] px-3.5 py-2.5 text-left">
+            <ul className="flex list-disc flex-col gap-1.5 pl-4 text-[0.84rem] leading-[1.45] text-[#d8d8d8]">
+              {notesList.map((note, idx) => (
+                <li key={idx}>{note}</li>
+              ))}
+            </ul>
+          </div>
 
           {errorMsg && (
             <div className="mb-3.5 rounded-lg border border-[#ff9500]/35 bg-[#ff9500]/12 px-3 py-2.5 text-left text-[0.8rem] leading-[1.45] text-[#ffb340]">

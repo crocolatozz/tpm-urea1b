@@ -7,14 +7,40 @@ export type UpdateModalState =
   | {
       mode: 'prompt';
       remoteVersion: string;
-      releaseNotes: string;
+      releaseNotes: string[];
       swDriven: boolean;
     };
 
 interface VersionJsonPayload {
   version?: string;
-  notes?: string;
+  notes?: string[] | string;
   offline?: boolean;
+}
+
+const DEFAULT_RELEASE_NOTES: string[] = [
+  'Versi baru aplikasi TPM Urea 1B sudah siap. Perbarui sekarang agar fitur dan jadwal selalu akurat.',
+];
+
+const VISIBILITY_CHECK_COOLDOWN_MS = 60_000;
+
+export function normalizeReleaseNotes(rawNotes: unknown): string[] {
+  if (Array.isArray(rawNotes)) {
+    const cleaned = rawNotes
+      .filter((item): item is string => typeof item === 'string')
+      .map((item) => item.trim())
+      .filter(Boolean);
+    return cleaned.length > 0 ? cleaned : DEFAULT_RELEASE_NOTES;
+  }
+
+  if (typeof rawNotes === 'string') {
+    const cleaned = rawNotes
+      .split(/\r?\n|,\s+/)
+      .map((item) => item.trim().replace(/^[-•*]\s*/, ''))
+      .filter(Boolean);
+    return cleaned.length > 0 ? cleaned : DEFAULT_RELEASE_NOTES;
+  }
+
+  return DEFAULT_RELEASE_NOTES;
 }
 
 async function fetchRemoteVersionJson(): Promise<VersionJsonPayload | null> {
@@ -36,13 +62,14 @@ async function fetchRemoteVersionJson(): Promise<VersionJsonPayload | null> {
   }
 }
 
-export function useAppUpdater() {
+export function useAppUpdater(suppressPrompt = false) {
   const [modalState, setModalState] = useState<UpdateModalState>({ mode: 'closed' });
   const [isUpdating, setIsUpdating] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  // Pure in-memory postpone state for the current active screen session only (never persisted)
+  // Pure in-memory postpone state for the current app session only (resets naturally on cold start)
   const [isDismissed, setIsDismissed] = useState(false);
   const isDismissedRef = useRef(false);
+  const lastCheckTsRef = useRef<number>(0);
 
   const {
     needRefresh: [needRefresh],
@@ -60,51 +87,60 @@ export function useAppUpdater() {
     },
   });
 
-  const checkForUpdates = useCallback(async () => {
-    let hasWaitingSw = false;
+  const checkForUpdates = useCallback(
+    async (force = false) => {
+      if (isDismissedRef.current) return;
 
-    if (!import.meta.env.DEV && 'serviceWorker' in navigator) {
-      try {
-        const regs = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(regs.map((r) => r.update().catch(() => {})));
-        hasWaitingSw = regs.some((r) => Boolean(r.waiting));
-      } catch {
-        // Ignore SW inspection errors
+      const now = Date.now();
+      if (!force && now - lastCheckTsRef.current < VISIBILITY_CHECK_COOLDOWN_MS) {
+        return;
       }
-    }
+      lastCheckTsRef.current = now;
 
-    const data = await fetchRemoteVersionJson();
+      let hasWaitingSw = false;
 
-    // Respect active-session dismiss only until next cold start or visibility resume
-    if (isDismissedRef.current) return;
+      if (!import.meta.env.DEV && 'serviceWorker' in navigator) {
+        try {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map((r) => r.update().catch(() => {})));
+          hasWaitingSw = regs.some((r) => Boolean(r.waiting));
+        } catch {
+          // Ignore SW inspection errors
+        }
+      }
 
-    const hasNewerVersion = Boolean(
-      data?.version && compareSemver(APP_VERSION, data.version) > 0
-    );
+      const data = await fetchRemoteVersionJson();
 
-    if (hasNewerVersion && data?.version) {
-      setModalState({
-        mode: 'prompt',
-        remoteVersion: data.version,
-        releaseNotes: data.notes || '',
-        swDriven: needRefresh || hasWaitingSw,
-      });
-      return;
-    }
+      // Re-check postpone state after async fetch completes
+      if (isDismissedRef.current) return;
 
-    if ((needRefresh || hasWaitingSw) && !import.meta.env.DEV) {
-      setModalState({
-        mode: 'prompt',
-        remoteVersion: data?.version || APP_VERSION,
-        releaseNotes:
-          data?.notes ||
-          'Pembaruan aplikasi siap dipasang. Ketuk Update Sekarang untuk memuat tampilan dan fitur terbaru.',
-        swDriven: true,
-      });
-    }
-  }, [needRefresh]);
+      const hasNewerVersion = Boolean(
+        data?.version && compareSemver(APP_VERSION, data.version) > 0
+      );
 
-  // Enrich and open prompt when Workbox detects a waiting SW (Android Chrome & iOS Safari)
+      if (hasNewerVersion && data?.version) {
+        setModalState({
+          mode: 'prompt',
+          remoteVersion: data.version,
+          releaseNotes: normalizeReleaseNotes(data.notes),
+          swDriven: needRefresh || hasWaitingSw,
+        });
+        return;
+      }
+
+      if ((needRefresh || hasWaitingSw) && !import.meta.env.DEV) {
+        setModalState({
+          mode: 'prompt',
+          remoteVersion: data?.version || APP_VERSION,
+          releaseNotes: normalizeReleaseNotes(data?.notes),
+          swDriven: true,
+        });
+      }
+    },
+    [needRefresh]
+  );
+
+  // Enrich and open prompt when Workbox detects a waiting SW (only if not postponed in this session)
   useEffect(() => {
     if (!needRefresh || isDismissed) return;
     let cancelled = false;
@@ -120,14 +156,11 @@ export function useAppUpdater() {
       }
 
       const remoteVer = hasNewerRemote && data?.version ? data.version : APP_VERSION;
-      const releaseNotes =
-        data?.notes ||
-        'Pembaruan aplikasi siap dipasang. Ketuk Update Sekarang untuk memuat tampilan dan fitur terbaru.';
 
       setModalState({
         mode: 'prompt',
         remoteVersion: remoteVer,
-        releaseNotes,
+        releaseNotes: normalizeReleaseNotes(data?.notes),
         swDriven: true,
       });
     });
@@ -137,18 +170,13 @@ export function useAppUpdater() {
     };
   }, [needRefresh, isDismissed]);
 
-  // Cold start + visibilitychange resume check: reset postpone state and re-check version.json & SW
+  // Cold start check + throttled (60s) visibilitychange check WITHOUT resetting isDismissed
   useEffect(() => {
-    isDismissedRef.current = false;
-    setIsDismissed(false);
-    void checkForUpdates();
+    void checkForUpdates(true);
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        isDismissedRef.current = false;
-        setIsDismissed(false);
-        setErrorMsg(null);
-        void checkForUpdates();
+        void checkForUpdates(false);
       }
     };
 
@@ -222,8 +250,10 @@ export function useAppUpdater() {
     }
   }, [modalState, needRefresh, updateServiceWorker]);
 
+  const visibleModalState: UpdateModalState = suppressPrompt ? { mode: 'closed' } : modalState;
+
   return {
-    modalState,
+    modalState: visibleModalState,
     isUpdating,
     errorMsg,
     confirmUpdate,

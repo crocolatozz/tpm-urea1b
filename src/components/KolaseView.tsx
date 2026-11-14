@@ -30,6 +30,7 @@ export interface KolaseInitialParams {
 interface KolaseViewProps {
   initialParams?: KolaseInitialParams;
   onReportSubmitted: (dateStr: string, shift: ShiftName, area: string) => Promise<void>;
+  onHasFilledPhotosChange?: (hasPhotos: boolean) => void;
 }
 
 function getRowsForGrid(grid: GridType): number {
@@ -43,6 +44,7 @@ function countValidSlots(slots: Array<LoadedPhotoSlot | null>): number {
 export const KolaseView: React.FC<KolaseViewProps> = ({
   initialParams,
   onReportSubmitted,
+  onHasFilledPhotosChange,
 }) => {
   const savedPrefs = useMemo(() => loadSavedPreferences(), []);
 
@@ -126,6 +128,16 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
   const beforeCountNum = countValidSlots(beforeSlots.slice(0, rows));
   const afterCountNum = countValidSlots(afterSlots.slice(0, rows));
   const hasPhotos = beforeCountNum > 0 || afterCountNum > 0;
+
+  useEffect(() => {
+    onHasFilledPhotosChange?.(hasPhotos);
+  }, [hasPhotos, onHasFilledPhotosChange]);
+
+  useEffect(() => {
+    return () => {
+      onHasFilledPhotosChange?.(false);
+    };
+  }, [onHasFilledPhotosChange]);
 
   const captionText = useMemo(() => {
     const dateFormatted = formatDateIndo(effectiveDate);

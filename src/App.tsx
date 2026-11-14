@@ -63,9 +63,13 @@ export const App: React.FC = () => {
   const [reportedLog, setReportedLog] = useState<Record<string, ReportedLogEntry>>({});
   const [guideOpen, setGuideOpen] = useState(false);
   const [iosModalOpen, setIosModalOpen] = useState(false);
+  const [hasFilledPhotos, setHasFilledPhotos] = useState(false);
+
+  const effectiveHasFilledPhotos = routeState.route === 'kolase' && hasFilledPhotos;
 
   const { isInstallable, isIOS, showInstallButton, install } = usePWAInstall();
-  const { modalState, isUpdating, errorMsg, confirmUpdate, dismissUpdate } = useAppUpdater();
+  const { modalState, isUpdating, errorMsg, confirmUpdate, dismissUpdate } =
+    useAppUpdater(effectiveHasFilledPhotos);
 
   // Real-time Firestore + localStorage sync for reported shift badges
   useEffect(() => {
@@ -242,6 +246,7 @@ export const App: React.FC = () => {
           <KolaseView
             initialParams={routeState.kolaseParams}
             onReportSubmitted={handleReportSubmitted}
+            onHasFilledPhotosChange={setHasFilledPhotos}
           />
         )}
       </main>

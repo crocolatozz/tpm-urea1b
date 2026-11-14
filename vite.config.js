@@ -17,6 +17,7 @@ export default defineConfig(({ command }) => {
       react(),
       tailwindcss(),
       VitePWA({
+        selfDestroying: !isBuild,
         registerType: 'prompt',
         includeAssets: [],
         manifest: {

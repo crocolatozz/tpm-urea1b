@@ -19,6 +19,30 @@ interface VersionJsonPayload {
   offline?: boolean;
 }
 
+function safeSessionGet(key: string): string | null {
+  try {
+    return window.sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeSessionSet(key: string, value: string): void {
+  try {
+    window.sessionStorage.setItem(key, value);
+  } catch {
+    // Ignore storage errors in restricted iframe/private contexts
+  }
+}
+
+function safeSessionRemove(key: string): void {
+  try {
+    window.sessionStorage.removeItem(key);
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 async function fetchRemoteVersionJson(): Promise<VersionJsonPayload | null> {
   const controller = new AbortController();
   const timer = window.setTimeout(() => controller.abort(), 5000);
@@ -92,10 +116,14 @@ export function useAppUpdater() {
 
     fetchRemoteVersionJson().then((data) => {
       if (cancelled) return;
-      const remoteVer =
+      const hasNewerRemote = Boolean(
         data?.version && compareSemver(APP_VERSION, data.version) > 0
-          ? data.version
-          : APP_VERSION;
+      );
+      if (import.meta.env.DEV && !hasNewerRemote) {
+        return;
+      }
+
+      const remoteVer = hasNewerRemote && data?.version ? data.version : APP_VERSION;
       const releaseNotes =
         data?.notes ||
         'Pembaruan aplikasi siap dipasang. Ketuk Update Sekarang untuk memuat tampilan dan fitur terbaru.';
@@ -121,13 +149,13 @@ export function useAppUpdater() {
 
   // Startup check + visibility resume check (handles PWA kept open in background on Android/iOS)
   useEffect(() => {
-    const pendingTargetVer = sessionStorage.getItem('tpm_updating_to');
-    const attempts = parseInt(sessionStorage.getItem('tpm_update_attempts') || '0', 10);
+    const pendingTargetVer = safeSessionGet('tpm_updating_to');
+    const attempts = parseInt(safeSessionGet('tpm_update_attempts') || '0', 10);
 
     if (pendingTargetVer) {
       if (compareSemver(APP_VERSION, pendingTargetVer) <= 0) {
-        sessionStorage.removeItem('tpm_updating_to');
-        sessionStorage.removeItem('tpm_update_attempts');
+        safeSessionRemove('tpm_updating_to');
+        safeSessionRemove('tpm_update_attempts');
         setModalState({ mode: 'success', newVersion: APP_VERSION });
       } else if (attempts >= 1) {
         setModalState({
@@ -155,8 +183,8 @@ export function useAppUpdater() {
   }, [checkVersionManifest]);
 
   const dismissUpdate = useCallback(() => {
-    sessionStorage.removeItem('tpm_updating_to');
-    sessionStorage.removeItem('tpm_update_attempts');
+    safeSessionRemove('tpm_updating_to');
+    safeSessionRemove('tpm_update_attempts');
     setNeedRefresh(false);
     setErrorMsg(null);
     setIsUpdating(false);
@@ -168,10 +196,10 @@ export function useAppUpdater() {
     setIsUpdating(true);
     setErrorMsg(null);
 
-    const prevAttempts = parseInt(sessionStorage.getItem('tpm_update_attempts') || '0', 10);
+    const prevAttempts = parseInt(safeSessionGet('tpm_update_attempts') || '0', 10);
     if (!modalState.swDriven || compareSemver(APP_VERSION, modalState.remoteVersion) > 0) {
-      sessionStorage.setItem('tpm_updating_to', modalState.remoteVersion);
-      sessionStorage.setItem('tpm_update_attempts', String(prevAttempts + 1));
+      safeSessionSet('tpm_updating_to', modalState.remoteVersion);
+      safeSessionSet('tpm_update_attempts', String(prevAttempts + 1));
     }
 
     let timedOut = false;

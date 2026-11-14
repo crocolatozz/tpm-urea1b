@@ -3,6 +3,75 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
+const DEV_SELF_DESTROY_SW = `
+self.addEventListener('install', () => {
+  self.skipWaiting();
+});
+self.addEventListener('activate', (event) => {
+  event.waitUntil((async () => {
+    try {
+      const keys = await self.caches.keys();
+      await Promise.all(keys.map((k) => self.caches.delete(k)));
+    } catch {}
+    try {
+      await self.registration.unregister();
+    } catch {}
+    try {
+      const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      for (const client of clients) {
+        if ('navigate' in client) {
+          client.navigate(client.url).catch(() => {});
+        }
+      }
+    } catch {}
+  })());
+});
+`;
+
+const DEV_LEGACY_SCRIPT_RECOVERY = `
+(async function () {
+  try {
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.unregister()));
+    }
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    }
+  } catch {}
+  window.location.reload();
+})();
+`;
+
+function devSwCleanupPlugin() {
+  return {
+    name: 'dev-sw-cleanup',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const pathname = (req.url || '').split('?')[0];
+        if (pathname === '/sw.js' || pathname === '/dev-sw.js') {
+          res.statusCode = 200;
+          res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+          res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+          res.setHeader('Service-Worker-Allowed', '/');
+          res.end(DEV_SELF_DESTROY_SW);
+          return;
+        }
+        if (pathname === '/dashboard.js' || pathname === '/kolase.js') {
+          res.statusCode = 200;
+          res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+          res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+          res.end(DEV_LEGACY_SCRIPT_RECOVERY);
+          return;
+        }
+        next();
+      });
+    },
+  };
+}
+
 export default defineConfig(({ command }) => {
   const isBuild = command === 'build';
   const basePath = isBuild ? './' : '/';
@@ -12,12 +81,13 @@ export default defineConfig(({ command }) => {
     server: {
       port: 3000,
       host: '0.0.0.0',
+      hmr: false,
     },
     plugins: [
+      devSwCleanupPlugin(),
       react(),
       tailwindcss(),
       VitePWA({
-        selfDestroying: !isBuild,
         registerType: 'prompt',
         includeAssets: [],
         manifest: {
@@ -67,9 +137,7 @@ export default defineConfig(({ command }) => {
           ],
         },
         devOptions: {
-          enabled: true,
-          type: 'module',
-          suppressWarnings: true,
+          enabled: false,
         },
       }),
     ],

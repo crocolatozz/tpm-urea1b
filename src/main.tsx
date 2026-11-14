@@ -5,16 +5,28 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
 
 if (import.meta.env.DEV && 'serviceWorker' in navigator) {
+  const hadController = Boolean(navigator.serviceWorker.controller);
   navigator.serviceWorker
     .getRegistrations()
-    .then((regs) => Promise.all(regs.map((r) => r.unregister())))
+    .then(async (regs) => {
+      if (regs.length === 0) return;
+      await Promise.all(regs.map((r) => r.unregister().catch(() => false)));
+      if ('caches' in window) {
+        const keys = await caches.keys().catch(() => [] as string[]);
+        await Promise.all(keys.map((k) => caches.delete(k).catch(() => false)));
+      }
+      if (hadController) {
+        try {
+          if (!window.sessionStorage.getItem('tpm_dev_sw_cleaned')) {
+            window.sessionStorage.setItem('tpm_dev_sw_cleaned', '1');
+            window.location.reload();
+          }
+        } catch {
+          // Ignore storage restrictions
+        }
+      }
+    })
     .catch(() => {});
-  if ('caches' in window) {
-    caches
-      .keys()
-      .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
-      .catch(() => {});
-  }
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

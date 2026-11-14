@@ -73,12 +73,14 @@ export function useAppUpdater() {
     updateServiceWorker,
   } = useRegisterSW({
     onRegisteredSW(_swUrl, registration) {
-      if (registration) {
+      if (!import.meta.env.DEV && registration) {
         registration.update().catch(() => {});
       }
     },
     onRegisterError(err) {
-      console.warn('SW registration error:', err);
+      if (!import.meta.env.DEV) {
+        console.warn('SW registration error:', err);
+      }
     },
   });
 
@@ -88,7 +90,7 @@ export function useAppUpdater() {
     lastCheckTsRef.current = now;
 
     // Also ask browser to check for waiting Service Worker updates
-    if ('serviceWorker' in navigator) {
+    if (!import.meta.env.DEV && 'serviceWorker' in navigator) {
       navigator.serviceWorker
         .getRegistrations()
         .then((regs) => regs.forEach((r) => void r.update().catch(() => {})))

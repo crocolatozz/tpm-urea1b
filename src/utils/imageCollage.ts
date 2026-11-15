@@ -28,9 +28,11 @@ export function freeSlotArray(slots: Array<LoadedPhotoSlot | null | undefined>):
   slots.forEach(freeSingleSlot);
 }
 
-function resizeImageToOffscreenCanvas(img: HTMLImageElement): LoadedPhotoSlot | null {
-  const srcW = img.naturalWidth || img.width;
-  const srcH = img.naturalHeight || img.height;
+function resizeSourceToOffscreenCanvas(
+  source: CanvasImageSource,
+  srcW: number,
+  srcH: number
+): LoadedPhotoSlot | null {
   if (!srcW || !srcH) return null;
 
   const MAX_DIM = 1200;
@@ -53,7 +55,7 @@ function resizeImageToOffscreenCanvas(img: HTMLImageElement): LoadedPhotoSlot | 
   const offCtx = offCanvas.getContext('2d');
   if (!offCtx) return null;
 
-  offCtx.drawImage(img, 0, 0, targetW, targetH);
+  offCtx.drawImage(source, 0, 0, targetW, targetH);
 
   // Create lightweight thumbnail DataURL for smooth mobile grid preview
   let previewUrl = '';
@@ -87,6 +89,12 @@ function resizeImageToOffscreenCanvas(img: HTMLImageElement): LoadedPhotoSlot | 
   }
 
   return { canvas: offCanvas, previewUrl };
+}
+
+function resizeImageToOffscreenCanvas(img: HTMLImageElement): LoadedPhotoSlot | null {
+  const srcW = img.naturalWidth || img.width;
+  const srcH = img.naturalHeight || img.height;
+  return resizeSourceToOffscreenCanvas(img, srcW, srcH);
 }
 
 function loadViaFileReader(file: File): Promise<LoadedPhotoSlot | null> {
@@ -127,7 +135,7 @@ function loadViaFileReader(file: File): Promise<LoadedPhotoSlot | null> {
   });
 }
 
-export function processAndResizeFile(file: File): Promise<LoadedPhotoSlot | null> {
+function loadViaObjectUrl(file: File): Promise<LoadedPhotoSlot | null> {
   return new Promise((resolve) => {
     let objectUrl: string | null = null;
     try {
@@ -173,6 +181,28 @@ export function processAndResizeFile(file: File): Promise<LoadedPhotoSlot | null
 
     img.src = objectUrl;
   });
+}
+
+export async function processAndResizeFile(file: File): Promise<LoadedPhotoSlot | null> {
+  if (typeof createImageBitmap === 'function') {
+    let bitmap: ImageBitmap | null = null;
+    try {
+      bitmap = await createImageBitmap(file, {
+        resizeWidth: 1200,
+        resizeQuality: 'high',
+      });
+      const processed = resizeSourceToOffscreenCanvas(bitmap, bitmap.width, bitmap.height);
+      if (processed) {
+        return processed;
+      }
+    } catch {
+      // Fallback to new Image() pipeline on browsers without resizeWidth support
+    } finally {
+      bitmap?.close();
+    }
+  }
+
+  return loadViaObjectUrl(file);
 }
 
 function drawRoundedRect(

@@ -1,9 +1,9 @@
 {
-  "version": "2.2.1",
+  "version": "2.3.0",
   "notes": [
-    "Pop-up update tidak lagi muncul berulang saat operator kembali dari galeri atau kamera HP",
-    "Proteksi foto belum terkirim: notifikasi update ditahan otomatis selama ada foto di grid kolase",
-    "Jeda cek versi otomatis (cooldown 60 detik) agar tidak berebut koneksi dengan sinkronisasi Firestore",
-    "Catatan rilis pembaruan kini tampil rapi dalam format daftar poin (bullet list)"
+    "Modal Riwayat Pembaruan (CHANGELOG.md) dapat dibuka langsung dari badge versi di footer",
+    "Perbaikan logika Shift Malam lintas hari (00:00–06:59 otomatis mengacu tanggal H-1)",
+    "Format tanggal Indonesia rata tengah & kontrol Kolase lebih seragam di iOS/Android",
+    "Validasi wajib minimal 1 baris keterangan sebelum kirim ke WhatsApp & optimasi RAM decode foto"
   ]
 }

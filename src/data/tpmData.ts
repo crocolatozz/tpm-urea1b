@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.2.1';
+export const APP_VERSION = '2.3.0';
 
 export type ShiftName = 'PAGI' | 'SORE' | 'MALAM';
 export type GridType = '2x1' | '2x2' | '2x3';
@@ -157,6 +157,21 @@ export function getNextDateForCycleDay(cycleDay: number): string {
   return getLocalTodayStr();
 }
 
+const INDONESIAN_MONTHS = [
+  'Januari',
+  'Februari',
+  'Maret',
+  'April',
+  'Mei',
+  'Juni',
+  'Juli',
+  'Agustus',
+  'September',
+  'Oktober',
+  'November',
+  'Desember',
+] as const;
+
 export function formatDateIndo(dateStr: string): string {
   if (!dateStr) return '';
   const parts = dateStr.split('-');
@@ -165,11 +180,45 @@ export function formatDateIndo(dateStr: string): string {
   return `${d}/${m}/${y}`;
 }
 
+export function formatDateIndoFull(dateStr: string): string {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  const [y, m, d] = parts;
+  const monthIdx = parseInt(m, 10) - 1;
+  const dayNum = parseInt(d, 10);
+  const monthName = INDONESIAN_MONTHS[monthIdx];
+  if (!monthName || Number.isNaN(dayNum)) return dateStr;
+  return `${dayNum} ${monthName} ${y}`;
+}
+
+export interface OperationalShiftInfo {
+  dateStr: string;
+  shift: ShiftName;
+}
+
+export function getOperationalShiftInfo(now: Date = new Date()): OperationalShiftInfo {
+  const hour = now.getHours();
+  if (hour < 7) {
+    const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    const y = yesterday.getFullYear();
+    const m = String(yesterday.getMonth() + 1).padStart(2, '0');
+    const d = String(yesterday.getDate()).padStart(2, '0');
+    return { dateStr: `${y}-${m}-${d}`, shift: 'MALAM' };
+  }
+
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  const todayStr = `${y}-${m}-${d}`;
+
+  if (hour < 15) return { dateStr: todayStr, shift: 'PAGI' };
+  if (hour < 23) return { dateStr: todayStr, shift: 'SORE' };
+  return { dateStr: todayStr, shift: 'MALAM' };
+}
+
 export function getCurrentActiveShift(): ShiftName {
-  const hour = new Date().getHours();
-  if (hour >= 7 && hour < 15) return 'PAGI';
-  if (hour >= 15 && hour < 23) return 'SORE';
-  return 'MALAM';
+  return getOperationalShiftInfo().shift;
 }
 
 export function getReportedLog(): Record<string, ReportedLogEntry> {

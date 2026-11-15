@@ -2,11 +2,12 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   SHIFT_TIME_RANGES,
   formatDateIndo,
-  getCurrentActiveShift,
+  formatDateIndoFull,
   getCycleDayForDate,
   getLocalTodayStr,
   getNextDateForCycleDay,
   getOffsetDateStr,
+  getOperationalShiftInfo,
   getScheduleForDate,
   masterTPMUrea1B,
   normalizeEquipmentSearch,
@@ -69,18 +70,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onUndoReport,
 }) => {
   const [nowTick, setNowTick] = useState<number>(() => Date.now());
+  const operationalInfo = useMemo(() => {
+    void nowTick;
+    return getOperationalShiftInfo();
+  }, [nowTick]);
   const todayStr = useMemo(() => {
     void nowTick;
     return getLocalTodayStr();
   }, [nowTick]);
-  const prevTodayRef = useRef<string>(todayStr);
+  const prevOpDateRef = useRef<string>(operationalInfo.dateStr);
 
-  const [selectedDate, setSelectedDate] = useState<string>(todayStr);
+  const [selectedDate, setSelectedDate] = useState<string>(operationalInfo.dateStr);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [undoTarget, setUndoTarget] = useState<UndoTarget | null>(null);
   const [isUndoing, setIsUndoing] = useState(false);
 
-  // Auto-refresh active shift (07:00, 15:00, 23:00) & midnight rollover (00:00)
+  // Auto-refresh active shift (07:00, 15:00, 23:00) & operational day rollover
   useEffect(() => {
     const syncClock = () => setNowTick(Date.now());
     const intervalId = window.setInterval(syncClock, 30_000);
@@ -96,22 +101,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     };
   }, []);
 
-  // Automatically follow midnight rollover if operator was viewing today's schedule
+  // Automatically follow operational date rollover (e.g., 07:00 AM H-1 MALAM -> Today PAGI)
   useEffect(() => {
-    if (prevTodayRef.current !== todayStr) {
-      const previousToday = prevTodayRef.current;
-      prevTodayRef.current = todayStr;
-      setSelectedDate((prev) => (prev === previousToday ? todayStr : prev));
+    if (prevOpDateRef.current !== operationalInfo.dateStr) {
+      const previousOpDate = prevOpDateRef.current;
+      prevOpDateRef.current = operationalInfo.dateStr;
+      setSelectedDate((prev) => (prev === previousOpDate ? operationalInfo.dateStr : prev));
     }
-  }, [todayStr]);
+  }, [operationalInfo.dateStr]);
 
   const trimmedQuery = searchQuery.trim();
   const isSearching = trimmedQuery.length > 0;
   const isToday = selectedDate === todayStr;
-  const activeShift = useMemo(() => {
-    void nowTick;
-    return isToday ? getCurrentActiveShift() : null;
-  }, [isToday, nowTick]);
+  const isOperationalDay = selectedDate === operationalInfo.dateStr;
+  const activeShift = isOperationalDay ? operationalInfo.shift : null;
   const cycleDay = getCycleDayForDate(selectedDate);
   const dailyTasks = useMemo(() => getScheduleForDate(selectedDate), [selectedDate]);
 
@@ -182,13 +185,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             >
               <ChevronLeftIcon />
             </button>
-            <input
-              type="date"
-              id="tpmDate"
-              value={selectedDate}
-              onChange={handleDateChange}
-              className="tpm-input min-w-0 flex-1"
-            />
+            <div className="relative flex h-[46px] min-w-0 flex-1 items-center justify-center rounded-lg border border-[#3a3a3a] bg-[#2a2a2a] px-3">
+              <span className="pointer-events-none whitespace-nowrap text-[16px] font-semibold text-white">
+                {formatDateIndoFull(selectedDate)}
+              </span>
+              <input
+                type="date"
+                id="tpmDate"
+                value={selectedDate}
+                onChange={handleDateChange}
+                onClick={(e) => {
+                  try {
+                    e.currentTarget.showPicker?.();
+                  } catch {
+                    // Ignore on browsers without showPicker
+                  }
+                }}
+                className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+              />
+            </div>
             <button
               type="button"
               onClick={() => handleStepDate(1)}
@@ -237,7 +252,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               ? `Pencarian: "${trimmedQuery}"`
               : isToday
                 ? 'Jadwal Hari Ini'
-                : `Jadwal ${formatDateIndo(selectedDate)}`}
+                : isOperationalDay
+                  ? `Jadwal Shift Aktif (${formatDateIndo(selectedDate)})`
+                  : `Jadwal ${formatDateIndo(selectedDate)}`}
           </h2>
           {!isSearching && cycleDay !== null && (
             <span className="shrink-0 whitespace-nowrap rounded-xl border border-[#2b4c70] bg-[#1a2736] px-2.5 py-0.5 text-[0.72rem] font-bold text-[#8ab4f8]">
@@ -326,7 +343,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <p className="py-5 text-center text-sm text-[#888]">Belum ada jadwal di tanggal ini.</p>
           ) : (
             dailyTasks.map((task) => {
-              const isCurrentShift = isToday && !task.isOff && task.shift === activeShift;
+              const isCurrentShift = isOperationalDay && !task.isOff && task.shift === activeShift;
               const reported =
                 !task.isOff &&
                 task.shift !== 'INFO' &&

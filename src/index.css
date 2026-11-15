@@ -102,6 +102,13 @@ select.tpm-select {
   padding-right: 34px;
 }
 
+select.tpm-select.tpm-select-centered {
+  text-align: center;
+  text-align-last: center;
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
 /* Pure CSS Spinner & Modal Animation */
 .spinner {
   width: 16px;

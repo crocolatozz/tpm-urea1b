@@ -11,6 +11,7 @@ import {
 import { DashboardView } from './components/DashboardView';
 import { KolaseView, type KolaseInitialParams } from './components/KolaseView';
 import { GuideModal } from './components/GuideModal';
+import { ChangelogModal } from './components/ChangelogModal';
 import { IosInstallModal } from './components/IosInstallModal';
 import { ForceUpdateModal } from './components/ForceUpdateModal';
 import { OfflineBanner } from './components/OfflineBanner';
@@ -62,6 +63,7 @@ export const App: React.FC = () => {
   const [routeState, setRouteState] = useState<RouteState>(() => parseLocationToRouteState());
   const [reportedLog, setReportedLog] = useState<Record<string, ReportedLogEntry>>({});
   const [guideOpen, setGuideOpen] = useState(false);
+  const [changelogOpen, setChangelogOpen] = useState(false);
   const [iosModalOpen, setIosModalOpen] = useState(false);
   const [hasFilledPhotos, setHasFilledPhotos] = useState(false);
 
@@ -268,13 +270,19 @@ export const App: React.FC = () => {
           <span className="mt-0.5 block font-medium text-[#777777]">
             © 2026 — Developed by FIKRI
           </span>
-          <span className="mt-1.5 inline-block rounded-xl border border-[#303030] bg-[#1c1c1c] px-2.5 py-0.5 text-[0.7rem] font-semibold tracking-[0.3px] text-[#7a7a7a]">
+          <button
+            type="button"
+            onClick={() => setChangelogOpen(true)}
+            aria-label={`Lihat riwayat pembaruan Versi ${APP_VERSION}`}
+            className="mt-1.5 inline-flex cursor-pointer items-center gap-1 rounded-xl border border-[#303030] bg-[#1c1c1c] px-2.5 py-0.5 text-[0.7rem] font-semibold tracking-[0.3px] text-[#8ab4f8] transition hover:border-[#007aff]/60 active:scale-95"
+          >
             Versi {APP_VERSION}
-          </span>
+          </button>
         </p>
       </footer>
 
       <GuideModal isOpen={guideOpen} onClose={() => setGuideOpen(false)} />
+      <ChangelogModal isOpen={changelogOpen} onClose={() => setChangelogOpen(false)} />
       <IosInstallModal isOpen={iosModalOpen} onClose={() => setIosModalOpen(false)} />
       <ForceUpdateModal
         modalState={modalState}

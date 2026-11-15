@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.3.0';
+export const APP_VERSION = '2.4.0';
 
 export type ShiftName = 'PAGI' | 'SORE' | 'MALAM';
 export type GridType = '2x1' | '2x2' | '2x3';
@@ -62,6 +62,42 @@ export const DEFAULT_OVERLAY_SUGGESTIONS: string[] = [
   'Pengecekan level & kondisi oli',
   'Cleaning body motor & coupling',
 ];
+
+const PUMP_OVERLAY_SUGGESTIONS: string[] = [
+  'Cek level & kejernihan oli bearing',
+  'Cleaning body pompa & baseplate',
+  'Cek kebocoran mechanical seal & vibrasi',
+];
+
+const EXCHANGER_OVERLAY_SUGGESTIONS: string[] = [
+  'Cleaning body & area sekitar exchanger',
+  'Cek kebocoran flange & sambungan pipa',
+  'Cek kondisi isolasi & pressure gauge',
+];
+
+const VESSEL_OVERLAY_SUGGESTIONS: string[] = [
+  'Cek level glass & instrumentasi lokal',
+  'Cleaning area sekitar & drain valve',
+  'Cek kebocoran flange & manhole',
+];
+
+export function getContextualOverlaySuggestions(
+  areaTag: string,
+  savedHistory: string[]
+): string[] {
+  const upper = (areaTag || '').toUpperCase();
+  let priority: string[] = [];
+
+  if (/\bGA[-\s]?\d|PUMP|POMPA/.test(upper)) {
+    priority = PUMP_OVERLAY_SUGGESTIONS;
+  } else if (/\b(EA|EC)[-\s]?\d|EXCHANGER|CONDENSER|COOLER/.test(upper)) {
+    priority = EXCHANGER_OVERLAY_SUGGESTIONS;
+  } else if (/\b(DA|FA)[-\s]?\d|VESSEL|TOWER|DRUM/.test(upper)) {
+    priority = VESSEL_OVERLAY_SUGGESTIONS;
+  }
+
+  return [...new Set([...priority, ...savedHistory, ...DEFAULT_OVERLAY_SUGGESTIONS])].slice(0, 24);
+}
 
 export const REPORTED_LOG_KEY = 'tpm_reported_log_v1';
 export const REPORTED_PENDING_DELETE_KEY = 'tpm_reported_pending_delete_v1';
@@ -215,10 +251,6 @@ export function getOperationalShiftInfo(now: Date = new Date()): OperationalShif
   if (hour < 15) return { dateStr: todayStr, shift: 'PAGI' };
   if (hour < 23) return { dateStr: todayStr, shift: 'SORE' };
   return { dateStr: todayStr, shift: 'MALAM' };
-}
-
-export function getCurrentActiveShift(): ShiftName {
-  return getOperationalShiftInfo().shift;
 }
 
 export function getReportedLog(): Record<string, ReportedLogEntry> {
@@ -419,33 +451,21 @@ export function loadOverlayHistory(): string[] {
   } catch {
     saved = [];
   }
-  return [...new Set([...saved, ...DEFAULT_OVERLAY_SUGGESTIONS])].slice(0, 20);
+  return saved.slice(0, 20);
 }
 
 export function saveOverlayHistory(texts: string[]): string[] {
   const currentTexts = texts.map((t) => t.trim()).filter((t) => t.length >= 3);
   if (currentTexts.length === 0) return loadOverlayHistory();
 
-  let saved: string[] = [];
-  try {
-    const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        saved = parsed.filter((x): x is string => typeof x === 'string');
-      }
-    }
-  } catch {
-    saved = [];
-  }
-
+  const saved = loadOverlayHistory();
   const updated = [...new Set([...currentTexts, ...saved])].slice(0, 20);
   try {
     localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(updated));
   } catch {
     // Ignore storage errors
   }
-  return [...new Set([...updated, ...DEFAULT_OVERLAY_SUGGESTIONS])].slice(0, 20);
+  return updated;
 }
 
 export function compareSemver(localVer: string, remoteVer: string): number {

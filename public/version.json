@@ -1,9 +1,9 @@
 {
-  "version": "2.3.0",
+  "version": "2.4.0",
   "notes": [
-    "Modal Riwayat Pembaruan (CHANGELOG.md) dapat dibuka langsung dari badge versi di footer",
-    "Perbaikan logika Shift Malam lintas hari (00:00–06:59 otomatis mengacu tanggal H-1)",
-    "Format tanggal Indonesia rata tengah & kontrol Kolase lebih seragam di iOS/Android",
-    "Validasi wajib minimal 1 baris keterangan sebelum kirim ke WhatsApp & optimasi RAM decode foto"
+    "Floating toast loading foto 150ms anti-layout shift dan anti-flicker",
+    "Deteksi otomatis foto kembar/duplikat berdasarkan size & lastModified di grid kolase",
+    "Saran keterangan pintar kontekstual sesuai jenis Tag Equipment (Pompa, Exchanger, Vessel)",
+    "Modal Riwayat Pembaruan kini berbentuk accordion ringkas dengan versi terbaru terbuka otomatis"
   ]
 }

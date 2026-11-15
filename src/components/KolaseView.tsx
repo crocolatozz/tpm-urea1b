@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   formatDateIndo,
   getAreaForDateAndShift,
+  getContextualOverlaySuggestions,
   getLocalTodayStr,
   getOperationalShiftInfo,
   loadOverlayHistory,
@@ -49,6 +50,23 @@ function detectIOSDevice(): boolean {
   );
 }
 
+interface FloatingToastState {
+  message: string;
+  kind: 'loading' | 'warning';
+}
+
+function resolveKolaseDate(p?: KolaseInitialParams, fallbackDate?: string): string {
+  if (p?.date && /^\d{4}-\d{2}-\d{2}$/.test(p.date)) return p.date;
+  return fallbackDate || getOperationalShiftInfo().dateStr;
+}
+
+function resolveKolaseShift(p?: KolaseInitialParams, fallbackShift?: ShiftName): ShiftName {
+  if (p?.shift && (['PAGI', 'SORE', 'MALAM'] as const).includes(p.shift as ShiftName)) {
+    return p.shift as ShiftName;
+  }
+  return fallbackShift || getOperationalShiftInfo().shift;
+}
+
 export const KolaseView: React.FC<KolaseViewProps> = ({
   initialParams,
   onReportSubmitted,
@@ -58,34 +76,16 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
   const isIOS = useMemo(() => detectIOSDevice(), []);
   const defaultOpShift = useMemo(() => getOperationalShiftInfo(), []);
 
-  const resolveInitialDate = (p?: KolaseInitialParams) =>
-    p?.date && /^\d{4}-\d{2}-\d{2}$/.test(p.date) ? p.date : getOperationalShiftInfo().dateStr;
-
-  const resolveInitialShift = (p?: KolaseInitialParams): ShiftName =>
-    p?.shift && (['PAGI', 'SORE', 'MALAM'] as const).includes(p.shift as ShiftName)
-      ? (p.shift as ShiftName)
-      : getOperationalShiftInfo().shift;
-
   const [tpmDate, setTpmDate] = useState<string>(() =>
-    initialParams?.date && /^\d{4}-\d{2}-\d{2}$/.test(initialParams.date)
-      ? initialParams.date
-      : defaultOpShift.dateStr
+    resolveKolaseDate(initialParams, defaultOpShift.dateStr)
   );
   const [tpmShift, setTpmShift] = useState<ShiftName>(() =>
-    initialParams?.shift && (['PAGI', 'SORE', 'MALAM'] as const).includes(initialParams.shift as ShiftName)
-      ? (initialParams.shift as ShiftName)
-      : defaultOpShift.shift
+    resolveKolaseShift(initialParams, defaultOpShift.shift)
   );
   const [tpmArea, setTpmArea] = useState<string>(() => {
     if (initialParams?.area) return initialParams.area;
-    const initDate =
-      initialParams?.date && /^\d{4}-\d{2}-\d{2}$/.test(initialParams.date)
-        ? initialParams.date
-        : defaultOpShift.dateStr;
-    const initShift =
-      initialParams?.shift && (['PAGI', 'SORE', 'MALAM'] as const).includes(initialParams.shift as ShiftName)
-        ? (initialParams.shift as ShiftName)
-        : defaultOpShift.shift;
+    const initDate = resolveKolaseDate(initialParams, defaultOpShift.dateStr);
+    const initShift = resolveKolaseShift(initialParams, defaultOpShift.shift);
     return getAreaForDateAndShift(initDate, initShift);
   });
 
@@ -94,16 +94,18 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
   const [row2, setRow2] = useState<string>(savedPrefs.row2);
   const [row3, setRow3] = useState<string>(savedPrefs.row3);
 
-  const [overlayHistory, setOverlayHistory] = useState<string[]>(() => loadOverlayHistory());
+  const [savedOverlayHistory, setSavedOverlayHistory] = useState<string[]>(() =>
+    loadOverlayHistory()
+  );
 
   const [beforeSlots, setBeforeSlots] = useState<Array<LoadedPhotoSlot | null>>([]);
   const [afterSlots, setAfterSlots] = useState<Array<LoadedPhotoSlot | null>>([]);
-  const [loadingMsg, setLoadingMsg] = useState<string | null>(null);
   const [isPickingFile, setIsPickingFile] = useState(false);
   const [isReportSubmitted, setIsReportSubmitted] = useState(false);
 
-  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [toast, setToast] = useState<FloatingToastState | null>(null);
   const toastTimerRef = useRef<number | null>(null);
+  const loadingDelayTimerRef = useRef<number | null>(null);
 
   const [copyBtnLabel, setCopyBtnLabel] = useState('📋 Salin Caption');
   const [exportStatus, setExportStatus] = useState<'idle' | 'exporting' | 'done'>('idle');
@@ -112,20 +114,32 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
   const pendingTargetRef = useRef<{ side: 'before' | 'after'; index: number } | null>(null);
   const isMountedRef = useRef(true);
 
-  const showToast = useCallback((message: string) => {
+  const clearToastTimers = useCallback(() => {
     if (toastTimerRef.current !== null) {
       window.clearTimeout(toastTimerRef.current);
-    }
-    setToastMsg(message);
-    toastTimerRef.current = window.setTimeout(() => {
-      if (isMountedRef.current) {
-        setToastMsg(null);
-      }
       toastTimerRef.current = null;
-    }, 3500);
+    }
+    if (loadingDelayTimerRef.current !== null) {
+      window.clearTimeout(loadingDelayTimerRef.current);
+      loadingDelayTimerRef.current = null;
+    }
   }, []);
 
-  // Keep refs to slots for safe unmount memory cleanup
+  const showWarningToast = useCallback(
+    (message: string) => {
+      clearToastTimers();
+      setToast({ message, kind: 'warning' });
+      toastTimerRef.current = window.setTimeout(() => {
+        if (isMountedRef.current) {
+          setToast(null);
+        }
+        toastTimerRef.current = null;
+      }, 3500);
+    },
+    [clearToastTimers]
+  );
+
+  // Keep refs to slots for safe unmount memory cleanup & async duplicate checks
   const slotsCleanupRef = useRef<{
     before: Array<LoadedPhotoSlot | null>;
     after: Array<LoadedPhotoSlot | null>;
@@ -136,19 +150,17 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-      if (toastTimerRef.current !== null) {
-        window.clearTimeout(toastTimerRef.current);
-      }
+      clearToastTimers();
       freeSlotArray(slotsCleanupRef.current.before);
       freeSlotArray(slotsCleanupRef.current.after);
     };
-  }, []);
+  }, [clearToastTimers]);
 
   // Sync incoming navigation params when user taps a schedule card
   useEffect(() => {
     if (!initialParams?.requestKey) return;
-    const nextDate = resolveInitialDate(initialParams);
-    const nextShift = resolveInitialShift(initialParams);
+    const nextDate = resolveKolaseDate(initialParams);
+    const nextShift = resolveKolaseShift(initialParams);
     setTpmDate(nextDate);
     setTpmShift(nextShift);
     setTpmArea(initialParams.area || getAreaForDateAndShift(nextDate, nextShift));
@@ -252,21 +264,33 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
       return;
     }
 
-    if (files.length > 1) {
-      showToast(
-        `⚠️ Terdeteksi ${files.length} foto dipilih — otomatis memakai foto terakhir yang diklik.`
-      );
-    }
-
     const selectedFile = files[files.length - 1];
-
     setIsPickingFile(true);
-    setLoadingMsg('⏳ Memproses foto...');
+
+    // Smart delay 150ms agar decode cepat bebas kedipan & bebas layout shift
+    if (loadingDelayTimerRef.current !== null) {
+      window.clearTimeout(loadingDelayTimerRef.current);
+    }
+    loadingDelayTimerRef.current = window.setTimeout(() => {
+      loadingDelayTimerRef.current = null;
+      if (isMountedRef.current) {
+        if (toastTimerRef.current !== null) {
+          window.clearTimeout(toastTimerRef.current);
+          toastTimerRef.current = null;
+        }
+        setToast({ message: '⏳ Memuat foto...', kind: 'loading' });
+      }
+    }, 150);
 
     try {
       const processed = await processAndResizeFile(selectedFile);
       // Selalu reset input setelah diproses agar handle file sementara Safari iOS tetap valid
       inputEl.value = '';
+
+      if (loadingDelayTimerRef.current !== null) {
+        window.clearTimeout(loadingDelayTimerRef.current);
+        loadingDelayTimerRef.current = null;
+      }
 
       if (!isMountedRef.current) {
         freeSingleSlot(processed);
@@ -274,9 +298,28 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
       }
 
       if (!processed) {
-        setLoadingMsg('⚠️ Gagal memuat foto. Pastikan format gambar didukung.');
+        showWarningToast('⚠️ Gagal memuat foto. Pastikan format gambar didukung.');
         return;
       }
+
+      // Cek apakah foto identik (size + lastModified) sudah terpasang di slot aktif lain
+      const activeOtherSlots = [
+        ...slotsCleanupRef.current.before
+          .slice(0, rows)
+          .map((slot, idx) => ({ side: 'before' as const, idx, slot })),
+        ...slotsCleanupRef.current.after
+          .slice(0, rows)
+          .map((slot, idx) => ({ side: 'after' as const, idx, slot })),
+      ];
+      const isDuplicateElsewhere = activeOtherSlots.some(
+        (item) =>
+          !(item.side === target.side && item.idx === target.index) &&
+          item.slot !== null &&
+          item.slot.fileSize !== undefined &&
+          item.slot.lastModified !== undefined &&
+          item.slot.fileSize === selectedFile.size &&
+          item.slot.lastModified === selectedFile.lastModified
+      );
 
       const setSlots = target.side === 'before' ? setBeforeSlots : setAfterSlots;
       setSlots((prev) => {
@@ -287,11 +330,25 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
         return next.slice(0, rows);
       });
       setIsReportSubmitted(false);
-      setLoadingMsg(null);
+
+      if (isDuplicateElsewhere) {
+        showWarningToast('⚠️ Foto yang sama terdeteksi sudah terpasang di slot lain.');
+      } else if (files.length > 1) {
+        showWarningToast(
+          `⚠️ Terdeteksi ${files.length} foto dipilih — otomatis memakai foto terakhir yang diklik.`
+        );
+      } else {
+        setToast((prev) => (prev?.kind === 'loading' ? null : prev));
+      }
     } finally {
       inputEl.value = '';
+      if (loadingDelayTimerRef.current !== null) {
+        window.clearTimeout(loadingDelayTimerRef.current);
+        loadingDelayTimerRef.current = null;
+      }
       if (isMountedRef.current) {
         setIsPickingFile(false);
+        setToast((prev) => (prev?.kind === 'loading' ? null : prev));
       }
     }
   };
@@ -313,13 +370,14 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
     setBeforeSlots([]);
     setAfterSlots([]);
     setIsReportSubmitted(false);
-    setLoadingMsg(null);
+    clearToastTimers();
+    setToast(null);
     if (slotPickerRef.current) slotPickerRef.current.value = '';
   };
 
   const handleCommitHistory = useCallback(() => {
     const updated = saveOverlayHistory([row1, row2, row3]);
-    setOverlayHistory(updated);
+    setSavedOverlayHistory(updated);
   }, [row1, row2, row3]);
 
   const handleCopyCaption = async () => {
@@ -347,7 +405,7 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
       .slice(0, rows)
       .some((val) => val.trim().length > 0);
     if (!hasActivityNote) {
-      showToast('Isi minimal 1 baris keterangan kegiatan dulu');
+      showWarningToast('Isi minimal 1 baris keterangan kegiatan dulu');
       return;
     }
 
@@ -440,17 +498,22 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
     );
   };
 
+  const contextualSuggestions = useMemo(
+    () => getContextualOverlaySuggestions(tpmArea, savedOverlayHistory),
+    [tpmArea, savedOverlayHistory]
+  );
+
   const rowValues = [row1, row2, row3];
   const displayAreaStamp = tpmArea.trim() || 'TPM UREA 1B';
 
   return (
     <>
-      {toastMsg && (
+      {toast && (
         <div
-          role="alert"
+          role={toast.kind === 'loading' ? 'status' : 'alert'}
           className="modal-pop fixed bottom-6 left-1/2 z-[10000] w-[calc(100%-2rem)] max-w-[420px] -translate-x-1/2 rounded-xl border border-[#ff9500]/60 bg-[#2a2216]/95 px-4 py-3 text-center text-[0.84rem] font-semibold text-[#ffd180] shadow-[0_8px_24px_rgba(0,0,0,0.6)] backdrop-blur-md"
         >
-          {toastMsg}
+          {toast.message}
         </div>
       )}
 
@@ -553,12 +616,6 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
               })}
             </div>
           </div>
-
-          {loadingMsg && (
-            <div className="w-full rounded-lg border border-[#2b4c70] bg-[#1a2736] px-3 py-1.5 text-center text-xs font-semibold text-[#8ab4f8]">
-              {loadingMsg}
-            </div>
-          )}
 
           {/* Frame Kolase Live Preview (Anti-Overflow) */}
           <div className="w-full max-w-full overflow-hidden rounded-lg border border-[#2f2f2f] bg-black p-2 sm:p-2.5">
@@ -694,7 +751,7 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
           </div>
 
           <datalist id="overlayHistoryList">
-            {overlayHistory.map((item) => (
+            {contextualSuggestions.map((item) => (
               <option key={item} value={item} />
             ))}
           </datalist>

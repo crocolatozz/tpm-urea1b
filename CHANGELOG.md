@@ -2,6 +2,21 @@
 
 Semua perubahan penting pada aplikasi **Dashboard & Kolase Foto TPM Urea 1B** dicatat di file ini mengikuti standar [Semantic Versioning](https://semver.org/).
 
+## [2.4.0] - 2026-11-15
+
+### Ditambahkan
+- **Deteksi Foto Kembar / Duplikat (`KolaseView.tsx`, `imageCollage.ts`):** Menyimpan metadata ringan `size` dan `lastModified` tiap slot foto untuk mendeteksi jika foto identik sudah terpasang di slot lain (aman terhadap penamaan seragam `image.jpg` di Safari iOS), lalu menampilkan toast peringatan kuning tanpa memblokir input foto.
+- **Saran Keterangan Pintar Kontekstual (`tpmData.ts`, `KolaseView.tsx`):** Memprioritaskan saran perawatan otomatis berdasarkan awalan/kode Tag Equipment aktif (Pompa `GA-`/`PUMP`, Exchanger `EA-`/`EC-`, Vessel/Tower `DA-`/`FA-`) dengan tetap menyertakan saran umum TPM Urea di bagian bawah.
+- **Accordion Riwayat Pembaruan (`ChangelogModal.tsx`):** Tiap blok versi pada modal Riwayat Pembaruan kini berbentuk accordion; versi terbaru (`2.4.0`) terbuka otomatis, sedangkan versi lama terlipat rapi dan dapat diketuk untuk membuka rinciannya.
+
+### Diubah
+- **Anti-Layout Shift & Smart Delay Toast Loading Foto (`KolaseView.tsx`):** Mengganti banner inline `"Memproses foto..."` di atas grid dengan floating toast kuning (`⏳ Memuat foto...`) berjeda **150ms** agar bebas kedipan (*anti-flicker*) pada decode cepat dan menjaga posisi grid tidak bergeser.
+- **Sentralisasi Manajemen Floating Toast (`KolaseView.tsx`):** Menggabungkan seluruh toast (loading 150ms, peringatan foto kembar, multi-foto iOS, dan validasi keterangan kosong) dalam satu state terpusat dengan cleanup timeout `useRef`.
+- **Sinkronisasi Versi `2.4.0`:** Memperbarui `APP_VERSION`, `package.json`, `public/version.json`, dan manifest `vite.config.js` ke versi `2.4.0`.
+
+### Diperbaiki
+- **Audit & Pembersihan Kode Mati (`tpmData.ts`, `index.css`, `KolaseView.tsx`):** Menghapus fungsi/helper mati (`getCurrentActiveShift`), rule CSS input date lama yang sudah digantikan overlay rata tengah, serta menyederhanakan inisialisasi state duplikat di `KolaseView.tsx`.
+
 ## [2.3.0] - 2026-11-15
 
 ### Ditambahkan

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import changelogRaw from '../../CHANGELOG.md?raw';
 import { APP_VERSION } from '../data/tpmData';
 
@@ -84,6 +84,24 @@ function renderFormattedText(text: string): React.ReactNode[] {
 
 export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose }) => {
   const releases = useMemo(() => parseChangelogMarkdown(changelogRaw), []);
+  const latestVersionLine = releases[0]?.versionLine || '';
+
+  const [expandedMap, setExpandedMap] = useState<Record<string, boolean>>(() =>
+    latestVersionLine ? { [latestVersionLine]: true } : {}
+  );
+
+  useEffect(() => {
+    if (isOpen && latestVersionLine) {
+      setExpandedMap({ [latestVersionLine]: true });
+    }
+  }, [isOpen, latestVersionLine]);
+
+  const toggleVersion = (versionLine: string) => {
+    setExpandedMap((prev) => ({
+      ...prev,
+      [versionLine]: !prev[versionLine],
+    }));
+  };
 
   if (!isOpen) return null;
 
@@ -110,41 +128,71 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
           </button>
         </div>
 
-        <div className="flex-1 space-y-4 overflow-y-auto pr-1 text-left">
-          {releases.map((rel, idx) => (
-            <div
-              key={rel.versionLine}
-              className={`rounded-xl border p-3.5 ${
-                idx === 0
-                  ? 'border-[#007aff]/45 bg-[#172230]'
-                  : 'border-[#303030] bg-[#242424]'
-              }`}
-            >
-              <div className="mb-2 flex items-center justify-between gap-2 border-b border-white/10 pb-1.5">
-                <span className="text-[0.9rem] font-bold text-white">v{rel.versionLine}</span>
-                {idx === 0 && (
-                  <span className="rounded-full bg-[#34c759]/20 px-2 py-0.5 text-[0.65rem] font-bold text-[#4cd964]">
-                    TERBARU
-                  </span>
+        <div className="flex-1 space-y-2.5 overflow-y-auto pr-1 text-left">
+          {releases.map((rel, idx) => {
+            const isExpanded = Boolean(expandedMap[rel.versionLine]);
+            const isLatest = idx === 0;
+
+            return (
+              <div
+                key={rel.versionLine}
+                className={`overflow-hidden rounded-xl border transition-colors ${
+                  isLatest
+                    ? 'border-[#007aff]/45 bg-[#172230]'
+                    : 'border-[#303030] bg-[#242424]'
+                }`}
+              >
+                <button
+                  type="button"
+                  aria-expanded={isExpanded}
+                  onClick={() => toggleVersion(rel.versionLine)}
+                  className="flex w-full cursor-pointer items-center justify-between gap-2 px-3.5 py-3 text-left transition active:bg-white/5"
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="truncate text-[0.88rem] font-bold text-white">
+                      v{rel.versionLine}
+                    </span>
+                    {isLatest && (
+                      <span className="shrink-0 rounded-full bg-[#34c759]/20 px-2 py-0.5 text-[0.65rem] font-bold text-[#4cd964]">
+                        TERBARU
+                      </span>
+                    )}
+                  </div>
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2.3}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                    className={`h-4 w-4 shrink-0 text-[#9a9a9a] transition-transform duration-200 ${
+                      isExpanded ? 'rotate-180' : ''
+                    }`}
+                  >
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
+
+                {isExpanded && (
+                  <div className="space-y-2.5 border-t border-white/10 px-3.5 pt-2.5 pb-3.5">
+                    {rel.sections.map((sec) => (
+                      <div key={sec.heading}>
+                        <h4 className="mb-1 text-[0.76rem] font-bold uppercase tracking-wide text-[#8ab4f8]">
+                          {sec.heading}
+                        </h4>
+                        <ul className="flex list-disc flex-col gap-1.5 pl-4 text-[0.8rem] leading-[1.45] text-[#d6d6d6]">
+                          {sec.items.map((item, i) => (
+                            <li key={i}>{renderFormattedText(item)}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
-
-              <div className="space-y-2.5">
-                {rel.sections.map((sec) => (
-                  <div key={sec.heading}>
-                    <h4 className="mb-1 text-[0.76rem] font-bold uppercase tracking-wide text-[#8ab4f8]">
-                      {sec.heading}
-                    </h4>
-                    <ul className="flex list-disc flex-col gap-1.5 pl-4 text-[0.8rem] leading-[1.45] text-[#d6d6d6]">
-                      {sec.items.map((item, i) => (
-                        <li key={i}>{renderFormattedText(item)}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <button

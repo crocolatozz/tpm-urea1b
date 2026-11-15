@@ -3,6 +3,8 @@ import { formatDateIndo } from '../data/tpmData';
 export interface LoadedPhotoSlot {
   canvas: HTMLCanvasElement;
   previewUrl: string;
+  fileSize?: number;
+  lastModified?: number;
 }
 
 export interface CollageExportOptions {
@@ -22,6 +24,8 @@ export function freeSingleSlot(slot: LoadedPhotoSlot | null | undefined): void {
     slot.canvas.height = 0;
   }
   slot.previewUrl = '';
+  slot.fileSize = undefined;
+  slot.lastModified = undefined;
 }
 
 export function freeSlotArray(slots: Array<LoadedPhotoSlot | null | undefined>): void {
@@ -184,6 +188,8 @@ function loadViaObjectUrl(file: File): Promise<LoadedPhotoSlot | null> {
 }
 
 export async function processAndResizeFile(file: File): Promise<LoadedPhotoSlot | null> {
+  let result: LoadedPhotoSlot | null = null;
+
   if (typeof createImageBitmap === 'function') {
     let bitmap: ImageBitmap | null = null;
     try {
@@ -191,10 +197,7 @@ export async function processAndResizeFile(file: File): Promise<LoadedPhotoSlot 
         resizeWidth: 1200,
         resizeQuality: 'high',
       });
-      const processed = resizeSourceToOffscreenCanvas(bitmap, bitmap.width, bitmap.height);
-      if (processed) {
-        return processed;
-      }
+      result = resizeSourceToOffscreenCanvas(bitmap, bitmap.width, bitmap.height);
     } catch {
       // Fallback to new Image() pipeline on browsers without resizeWidth support
     } finally {
@@ -202,7 +205,16 @@ export async function processAndResizeFile(file: File): Promise<LoadedPhotoSlot 
     }
   }
 
-  return loadViaObjectUrl(file);
+  if (!result) {
+    result = await loadViaObjectUrl(file);
+  }
+
+  if (result) {
+    result.fileSize = file.size;
+    result.lastModified = file.lastModified;
+  }
+
+  return result;
 }
 
 function drawRoundedRect(

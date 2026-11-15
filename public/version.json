@@ -1,9 +1,9 @@
 {
-  "version": "2.6.1",
+  "version": "2.7.0",
   "notes": [
-    "Penyesuaian proporsi header, footer, dan padding kolase canvas agar identik 1:1 dengan tampilan Preview",
-    "Perbaikan sinkronisasi state Tanggal & Shift ke tampilan UI, filter Tag Equipment, dan Caption WhatsApp",
-    "Custom dropdown Shift dengan ikon SVG cuaca menempel rapi serta polesan warna & ikon di halaman Kolase",
-    "Penyelarasan isi & warna badge pada Panduan serta ringkas placeholder pencarian alat"
+    "Restrukturisasi tata letak kolase split atas–bawah (TPM [TAG] di atas, BEFORE/AFTER, & SHIFT/tanggal di bawah) dengan sinkronisasi proporsi 1:1 antara Preview dan Canvas",
+    "Penyimpanan permanen 6 slot foto saat berganti mode grid, batas 30 karakter + penghitung di Keterangan Kegiatan, serta fitur Gembok Pengunci Data Laporan",
+    "Redesain Dashboard 2-baris simetris dengan panah lebar penuh, subjudul biru sky-200 + ikon sky-400, serta feedback tombol Salin & Bersihkan 2 detik",
+    "Peningkatan stabilitas sistem: hierarki tipografi 4-tingkat anti-zoom iOS, anti-autofill Android, Global Modal Scroll Lock, dan Storage Version Guard"
   ]
 }

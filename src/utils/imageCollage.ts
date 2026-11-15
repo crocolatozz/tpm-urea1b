@@ -396,6 +396,57 @@ function drawImageCover(
   ctx.drawImage(imgCanvas, sx, sy, sw, sh, x, y, w, h);
 }
 
+const CANVAS_PAD = 20;
+const CANVAS_GAP = 14;
+const CANVAS_CELL_RADIUS = 20;
+const CANVAS_TOP_HEADER_H = 88;
+const CANVAS_TOP_HEADER_FONT = 60;
+const CANVAS_SUB_HEADER_H = 56;
+const CANVAS_SUB_HEADER_FONT = 46;
+const CANVAS_FOOTER_H = 84;
+const CANVAS_FOOTER_FONT = 46;
+const CANVAS_PILL_FONT = 50;
+const CANVAS_PILL_PAD_X = 28;
+const CANVAS_PILL_PAD_Y = 14;
+const CANVAS_PILL_BOTTOM = 18;
+const CANVAS_WIDTH_BASE = COLLAGE_CELL_WIDTH * 2 + CANVAS_GAP + CANVAS_PAD * 2;
+
+export const COLLAGE_PREVIEW_SPEC = {
+  paddingCqw: `${((CANVAS_PAD / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
+  gapCqw: `${((CANVAS_GAP / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
+  cellRadiusCqw: `${((CANVAS_CELL_RADIUS / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
+  topHeaderHeightCqw: `${((CANVAS_TOP_HEADER_H / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
+  topHeaderFontCqw: `${((CANVAS_TOP_HEADER_FONT / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
+  subHeaderHeightCqw: `${((CANVAS_SUB_HEADER_H / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
+  subHeaderFontCqw: `${((CANVAS_SUB_HEADER_FONT / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
+  footerHeightCqw: `${((CANVAS_FOOTER_H / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
+  footerFontCqw: `${((CANVAS_FOOTER_FONT / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
+  pillFontCqw: `${((CANVAS_PILL_FONT / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
+  pillPadXCqw: `${((CANVAS_PILL_PAD_X / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
+  pillPadYCqw: `${((CANVAS_PILL_PAD_Y / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
+  pillBottomCqw: `${((CANVAS_PILL_BOTTOM / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
+} as const;
+
+function traceRoundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number
+): void {
+  const ctxWithRoundRect = ctx as CanvasRenderingContext2D & {
+    roundRect?: (x: number, y: number, w: number, h: number, radii?: number) => void;
+  };
+  if (typeof ctxWithRoundRect.roundRect === 'function') {
+    ctx.beginPath();
+    ctxWithRoundRect.roundRect(x, y, width, height, radius);
+    ctx.closePath();
+    return;
+  }
+  drawRoundedRect(ctx, x, y, width, height, radius);
+}
+
 export function renderCollageToCanvas(
   canvas: HTMLCanvasElement,
   opts: CollageExportOptions
@@ -407,14 +458,21 @@ export function renderCollageToCanvas(
 
   const cellWidth = COLLAGE_CELL_WIDTH;
   const cellHeight = COLLAGE_CELL_HEIGHT; // 1:1 square Instagram-style grid
-  const gap = Math.round(cellWidth * 0.012);
-  const padding = gap;
-  const headerHeight = Math.round(cellWidth * 0.115);
-  const footerHeight = Math.round(cellWidth * 0.1);
+  const gap = CANVAS_GAP;
+  const padding = CANVAS_PAD;
+  const topHeaderHeight = CANVAS_TOP_HEADER_H;
+  const subHeaderHeight = CANVAS_SUB_HEADER_H;
+  const footerHeight = CANVAS_FOOTER_H;
 
   const canvasWidth = cellWidth * 2 + gap + padding * 2;
   const canvasHeight =
-    headerHeight + cellHeight * rows + gap * (rows - 1) + footerHeight + padding * 2;
+    padding +
+    topHeaderHeight +
+    subHeaderHeight +
+    cellHeight * rows +
+    gap * (rows - 1) +
+    footerHeight +
+    padding;
 
   canvas.width = canvasWidth;
   canvas.height = canvasHeight;
@@ -423,51 +481,76 @@ export function renderCollageToCanvas(
   ctx.fillStyle = '#000000';
   ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-  // Main Column Headers (BEFORE | AFTER)
-  const headerFontSize = Math.round(cellWidth * 0.052);
+  // 1. Header Paling Atas (Tengah): TPM [TAG EQUIPMENT]
+  const areaLabel = areaName.trim() || '-';
+  const topHeaderText = `TPM ${areaLabel}`;
+  const maxTopHeaderWidth = Math.round(canvasWidth * 0.92);
+  let topFontSize = CANVAS_TOP_HEADER_FONT;
+
+  ctx.save();
+  ctx.font = `800 ${topFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+  while (ctx.measureText(topHeaderText).width > maxTopHeaderWidth && topFontSize > 26) {
+    topFontSize -= 2;
+    ctx.font = `800 ${topFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+  }
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(topHeaderText, canvasWidth / 2, padding + topHeaderHeight / 2, maxTopHeaderWidth);
+  ctx.restore();
+
+  // 2. Sub-Header Kolom (BEFORE | AFTER)
   const ctxWithSpacing = ctx as CanvasRenderingContext2D & { letterSpacing?: string };
   ctx.save();
-  ctx.fillStyle = '#ffffff';
-  ctx.font = `800 ${headerFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+  ctx.fillStyle = '#e5e7eb';
+  ctx.font = `800 ${CANVAS_SUB_HEADER_FONT}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
   if ('letterSpacing' in ctxWithSpacing) {
-    ctxWithSpacing.letterSpacing = `${Math.max(1, Math.round(headerFontSize * 0.06))}px`;
+    ctxWithSpacing.letterSpacing = `${Math.max(1, Math.round(CANVAS_SUB_HEADER_FONT * 0.06))}px`;
   }
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
   const leftColCenterX = padding + cellWidth / 2;
   const rightColCenterX = padding + cellWidth + gap + cellWidth / 2;
-  const headerCenterY = padding + headerHeight / 2;
+  const subHeaderCenterY = padding + topHeaderHeight + subHeaderHeight / 2;
 
-  ctx.fillText('BEFORE', leftColCenterX, headerCenterY);
-  ctx.fillText('AFTER', rightColCenterX, headerCenterY);
+  ctx.fillText('BEFORE', leftColCenterX, subHeaderCenterY);
+  ctx.fillText('AFTER', rightColCenterX, subHeaderCenterY);
   ctx.restore();
 
-  // Render Grid Photos
-  const startY = padding + headerHeight;
+  // 3. Area Tengah (Grid Foto dengan Sudut Membulat roundRect)
+  const startY = padding + topHeaderHeight + subHeaderHeight;
 
   for (let r = 0; r < rows; r++) {
     const y = startY + r * (cellHeight + gap);
 
     const beforeSlot = beforeSlots[r];
+    ctx.save();
+    traceRoundedRect(ctx, padding, y, cellWidth, cellHeight, CANVAS_CELL_RADIUS);
+    ctx.clip();
     if (beforeSlot?.canvas) {
       drawImageCover(ctx, beforeSlot.canvas, padding, y, cellWidth, cellHeight);
     } else {
       ctx.fillStyle = '#141414';
       ctx.fillRect(padding, y, cellWidth, cellHeight);
     }
+    ctx.restore();
 
     const afterSlot = afterSlots[r];
     const xRight = padding + cellWidth + gap;
+    ctx.save();
+    traceRoundedRect(ctx, xRight, y, cellWidth, cellHeight, CANVAS_CELL_RADIUS);
+    ctx.clip();
     if (afterSlot?.canvas) {
       drawImageCover(ctx, afterSlot.canvas, xRight, y, cellWidth, cellHeight);
     } else {
       ctx.fillStyle = '#141414';
       ctx.fillRect(xRight, y, cellWidth, cellHeight);
     }
+    ctx.restore();
   }
 
-  // Render Row Text Overlays with Auto-Scaled Pill
+  // Kapsul Keterangan Melayang di Tepi Bawah-Tengah Setiap Baris Foto
   const maxPillWidth = canvasWidth - padding * 2 - 48;
   rowTexts.slice(0, rows).forEach((rawText, r) => {
     const text = rawText ? rawText.trim() : '';
@@ -477,30 +560,30 @@ export function renderCollageToCanvas(
     const rowBottomY = startY + (r + 1) * cellHeight + r * gap;
 
     ctx.save();
-    let fontSize = 58;
-    const minFontSize = 24;
-    const padX = 32;
-    const padY = 16;
+    let fontSize = CANVAS_PILL_FONT;
+    const minFontSize = 22;
+    const padX = CANVAS_PILL_PAD_X;
+    const padY = CANVAS_PILL_PAD_Y;
 
-    ctx.font = `bold ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+    ctx.font = `700 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
     let metrics = ctx.measureText(text);
 
     while (metrics.width + padX * 2 > maxPillWidth && fontSize > minFontSize) {
       fontSize -= 2;
-      ctx.font = `bold ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+      ctx.font = `700 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
       metrics = ctx.measureText(text);
     }
 
     const bgW = Math.min(metrics.width + padX * 2, maxPillWidth);
     const bgH = Math.round(fontSize * 1.15) + padY * 2;
-    const textY = rowBottomY - bgH / 2 - 24;
+    const textY = rowBottomY - bgH / 2 - CANVAS_PILL_BOTTOM;
     const cornerRadius = Math.min(20, Math.round(bgH / 3));
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-    drawRoundedRect(ctx, centerX - bgW / 2, textY - bgH / 2, bgW, bgH, cornerRadius);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.82)';
+    traceRoundedRect(ctx, centerX - bgW / 2, textY - bgH / 2, bgW, bgH, cornerRadius);
     ctx.fill();
 
     ctx.fillStyle = '#ffffff';
@@ -508,24 +591,23 @@ export function renderCollageToCanvas(
     ctx.restore();
   });
 
-  // Compact & Proportional Timestamp Metadata Strip in Bottom Frame
-  const areaLabel = areaName.trim() || 'TPM UREA 1B';
+  // 4. Footer Paling Bawah (Tengah): SHIFT [PAGI/SORE/MALAM] • [DD/MM/YYYY]
   const dateLabel = formatDateIndo(dateStr);
-  const stampText = `TPM ${areaLabel}   •   SHIFT ${shiftName}   •   ${dateLabel}`;
+  const stampText = `SHIFT ${shiftName} • ${dateLabel}`;
 
   const footerCenterY = startY + rows * cellHeight + (rows - 1) * gap + footerHeight / 2;
   ctx.save();
-  let stampFontSize = Math.round(cellWidth * 0.041);
+  let stampFontSize = CANVAS_FOOTER_FONT;
   const maxStampWidth = Math.round(canvasWidth * 0.92);
   ctx.font = `700 ${stampFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
-  while (ctx.measureText(stampText).width > maxStampWidth && stampFontSize > 18) {
+  while (ctx.measureText(stampText).width > maxStampWidth && stampFontSize > 20) {
     stampFontSize -= 1;
     ctx.font = `700 ${stampFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
   }
-  ctx.fillStyle = '#e5e7eb';
+  ctx.fillStyle = '#d1d5db';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(stampText, canvasWidth / 2, footerCenterY);
+  ctx.fillText(stampText, canvasWidth / 2, footerCenterY, maxStampWidth);
   ctx.restore();
 
   return true;

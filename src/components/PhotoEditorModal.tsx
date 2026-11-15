@@ -7,6 +7,7 @@ import {
   type CropAreaPixels,
   type LoadedPhotoSlot,
 } from '../utils/imageCollage';
+import { useModalScrollLock } from '../hooks/useModalScrollLock';
 import { IconImageSwap, IconRotateCw } from './Icons';
 
 interface PhotoEditorModalProps {
@@ -48,6 +49,8 @@ export const PhotoEditorModal: React.FC<PhotoEditorModalProps> = ({
     });
   }, []);
 
+  useModalScrollLock(isOpen && slot !== null);
+
   if (!isOpen || !slot) return null;
 
   const handleRotate90 = () => {
@@ -86,9 +89,9 @@ export const PhotoEditorModal: React.FC<PhotoEditorModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="photo-editor-title"
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/88 p-3.5 backdrop-blur-[4px]"
+      className="fixed inset-0 z-[9999] flex touch-none items-center justify-center overscroll-contain bg-black/88 p-3.5 backdrop-blur-[4px]"
     >
-      <div className="modal-pop flex max-h-[92dvh] w-full max-w-[440px] flex-col gap-3.5 rounded-[16px] border border-[#383838] bg-[#1e1e1e] p-4 text-white shadow-[0_12px_36px_rgba(0,0,0,0.75)]">
+      <div className="modal-pop flex max-h-[92dvh] w-full max-w-[440px] flex-col gap-3.5 overscroll-contain rounded-[16px] border border-[#383838] bg-[#1e1e1e] p-4 text-white shadow-[0_12px_36px_rgba(0,0,0,0.75)]">
         {/* Zona 1: Header Atas (Judul di kiri, tombol pil 🖼️ Ganti Foto di kanan — tanpa tombol ✕) */}
         <div className="flex items-center justify-between gap-2 border-b border-[#303030] pb-2.5">
           <h3 id="photo-editor-title" className="truncate text-[0.98rem] font-bold text-white">

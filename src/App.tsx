@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   APP_VERSION,
-  clearLegacyOverlayHistory,
+  ensureStorageVersionGuard,
   getAreaForDateAndShift,
   getOperationalShiftInfo,
   type ReportedLogEntry,
@@ -104,6 +104,7 @@ export const App: React.FC = () => {
   const [kolaseContext, setKolaseContext] = useState<KolaseContextState>(() =>
     buildInitialKolaseContext(parseLocationToRouteState())
   );
+  const [kolaseSelectionKey, setKolaseSelectionKey] = useState<number>(1);
   const [reportedLog, setReportedLog] = useState<Record<string, ReportedLogEntry>>({});
   const [guideOpen, setGuideOpen] = useState(false);
   const [changelogOpen, setChangelogOpen] = useState(false);
@@ -139,9 +140,9 @@ export const App: React.FC = () => {
     }, 3500);
   }, []);
 
-  // Bersihkan sisa key riwayat caption lama di localStorage saat aplikasi dimuat
+  // Jalankan Storage Version Guard & pembersihan legacy key saat aplikasi dimuat
   useEffect(() => {
-    clearLegacyOverlayHistory();
+    ensureStorageVersionGuard();
     return () => {
       if (updateToastTimerRef.current !== null) {
         window.clearTimeout(updateToastTimerRef.current);
@@ -178,6 +179,7 @@ export const App: React.FC = () => {
             area: nextArea,
           };
         });
+        setKolaseSelectionKey((k) => k + 1);
       }
     };
 
@@ -209,6 +211,7 @@ export const App: React.FC = () => {
           shift: params.shift,
           area: params.area,
         });
+        setKolaseSelectionKey((k) => k + 1);
       } else {
         window.location.hash = '#kolase';
       }
@@ -301,18 +304,18 @@ export const App: React.FC = () => {
   return (
     <div className="flex w-full max-w-[800px] flex-1 flex-col gap-4">
       <header className="flex flex-col items-center text-center">
-        <h1 className="mb-1 flex items-center justify-center gap-2 text-[1.45rem] font-bold text-white sm:text-[1.5rem]">
+        <h1 className="mb-1 flex items-center justify-center gap-2 text-[21px] font-bold text-white sm:text-[22px]">
           {route === 'kolase' ? (
             <>
-              <IconImage className="text-[#007aff]" /> Kolase Foto TPM
+              <IconImage className="text-sky-400" /> Kolase Foto TPM
             </>
           ) : (
             <>
-              <IconSettings className="text-[#8ab4f8]" /> Dashboard TPM Urea 1B
+              <IconSettings className="text-sky-400" /> Dashboard TPM Urea 1B
             </>
           )}
         </h1>
-        <p className="text-[0.88rem] text-[#aaaaaa]">
+        <p className="text-[14px] text-[#aaaaaa]">
           {route === 'kolase'
             ? 'Susun Dokumentasi Before & After'
             : 'Monitoring & Jadwal Inspeksi Mesin'}
@@ -320,7 +323,7 @@ export const App: React.FC = () => {
         <button
           type="button"
           onClick={() => setGuideOpen(true)}
-          className="mt-2.5 inline-flex cursor-pointer items-center gap-1.5 rounded-[20px] border border-[#2b4c70] bg-[#1a2736] px-[18px] py-[7px] text-[0.84rem] font-semibold text-[#64b5f6] transition active:scale-[0.96] active:bg-[#23364b]"
+          className="mt-2.5 inline-flex cursor-pointer items-center gap-1.5 rounded-[20px] border border-[#2b4c70] bg-[#1a2736] px-[18px] py-[7px] text-[13px] font-semibold text-[#64b5f6] transition active:scale-[0.96] active:bg-[#23364b]"
         >
           <IconHelpCircle /> Panduan
         </button>
@@ -334,20 +337,18 @@ export const App: React.FC = () => {
             e.preventDefault();
             navigateToJadwal();
           }}
-          className={`flex min-w-0 items-center gap-2.5 rounded-xl border p-3 text-white no-underline transition sm:gap-3 sm:p-3.5 ${
+          className={`flex min-w-0 items-center justify-center gap-2.5 rounded-xl border p-3 text-white no-underline transition sm:gap-3 sm:p-3.5 ${
             route === 'jadwal'
               ? 'border-[#007aff] bg-[#1a2736]'
               : 'border-[#333] bg-[#1e1e1e]'
           }`}
         >
-          <span className="shrink-0 text-[1.3rem] text-[#8ab4f8] sm:text-[1.4rem]">
+          <span className="shrink-0 text-[1.3rem] text-sky-400 sm:text-[1.4rem]">
             <IconCalendar />
           </span>
-          <div className="min-w-0">
-            <h3 className="truncate text-[0.9rem] font-bold sm:text-[0.95rem]">Jadwal TPM</h3>
-            <p className="truncate text-[0.72rem] text-[#aaaaaa] sm:text-[0.75rem]">
-              Monitoring Rutin
-            </p>
+          <div className="min-w-0 text-left">
+            <h3 className="truncate text-[16px] font-bold">Jadwal TPM</h3>
+            <p className="truncate text-[12px] text-[#aaaaaa]">Monitoring Rutin</p>
           </div>
         </a>
 
@@ -357,20 +358,18 @@ export const App: React.FC = () => {
             e.preventDefault();
             navigateToKolase();
           }}
-          className={`flex min-w-0 items-center gap-2.5 rounded-xl border p-3 text-white no-underline transition sm:gap-3 sm:p-3.5 ${
+          className={`flex min-w-0 items-center justify-center gap-2.5 rounded-xl border p-3 text-white no-underline transition sm:gap-3 sm:p-3.5 ${
             route === 'kolase'
               ? 'border-[#007aff] bg-[#1a2736]'
               : 'border-[#333] bg-[#1e1e1e]'
           }`}
         >
-          <span className="shrink-0 text-[1.3rem] text-[#8ab4f8] sm:text-[1.4rem]">
+          <span className="shrink-0 text-[1.3rem] text-sky-400 sm:text-[1.4rem]">
             <IconCamera />
           </span>
-          <div className="min-w-0">
-            <h3 className="truncate text-[0.9rem] font-bold sm:text-[0.95rem]">Kolase Foto</h3>
-            <p className="truncate text-[0.72rem] text-[#aaaaaa] sm:text-[0.75rem]">
-              Before &amp; After
-            </p>
+          <div className="min-w-0 text-left">
+            <h3 className="truncate text-[16px] font-bold">Kolase Foto</h3>
+            <p className="truncate text-[12px] text-[#aaaaaa]">Before &amp; After</p>
           </div>
         </a>
       </nav>
@@ -388,6 +387,7 @@ export const App: React.FC = () => {
             date={kolaseContext.date}
             shift={kolaseContext.shift}
             area={kolaseContext.area}
+            selectionKey={kolaseSelectionKey}
             reportedLog={reportedLog}
             onDateChange={handleKolaseDateChange}
             onShiftChange={handleKolaseShiftChange}

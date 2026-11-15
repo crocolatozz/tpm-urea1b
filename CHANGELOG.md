@@ -2,6 +2,19 @@
 
 Semua perubahan penting pada aplikasi **Dashboard & Kolase Foto TPM Urea 1B** dicatat di file ini mengikuti standar [Semantic Versioning](https://semver.org/).
 
+## [2.7.0] - 2026-11-15
+
+### Ditambahkan
+- **Gembok Pengunci Data Laporan & Ikon Kalender (`KolaseView.tsx`, `Icons.tsx`):** Menambahkan header `[Dokumen] Data Laporan` lengkap dengan tombol gembok pengunci default, modal konfirmasi `Batal` / `Buka Kunci`, badge `Mode Manual`, *auto-lock* saat pindah tab/pilih jadwal baru/tekan `Kirim ke WhatsApp`, serta ikon SVG kalender (`text-sky-400`) di field Tanggal.
+- **Penyimpanan Permanen 6 Slot Foto & Batas 30 Karakter (`KolaseView.tsx`):** Menjaga keutuhan 6 slot foto (`index 0–5`) saat berpindah mode grid (`2x1`/`2x2`/`2x3`), menambahkan `maxLength={30}` + penghitung `0/30`–`30/30`, serta placeholder baru di kolom Baris 1–3.
+- **Global Modal Scroll Lock & Storage Version Guard (`useModalScrollLock.ts`, `tpmData.ts`):** Mengunci scroll latar belakang memakai *reference counter* (`overflow-hidden`, `touch-none`, `overscroll-contain`) pada seluruh modal termasuk modal bertumpuk, serta menambahkan pengecekan `STORAGE_VERSION` dan validasi defensif `localStorage` agar anti-crash saat transisi versi.
+
+### Diubah
+- **Tata Letak Kolase Split Atas–Bawah Identik 1:1 (`KolaseView.tsx`, `imageCollage.ts`):** Menempatkan `TPM [TAG EQUIPMENT]` (dengan auto-scale *maxWidth*) di header paling atas, sub-header `BEFORE` | `AFTER`, grid foto bersudut membulat `roundRect()` dengan kapsul keterangan di tepi bawah-tengah baris, serta footer `SHIFT [PAGI/SORE/MALAM] • [DD/MM/YYYY]`, dengan rasio `cqw` 1:1 antara Preview dan hasil Canvas Export.
+- **Feedback Tombol `Salin Caption` & `Bersihkan` (`KolaseView.tsx`):** Tombol `Salin Caption` berubah hijau sukses (`✓ Tersalin!`) selama 2 detik saat disalin, dan tombol `Bersihkan` beraksen rose lembut yang berubah merah tegas (`✓ Dibersihkan!`) selama 2 detik saat ditekan.
+- **Redesain Dashboard, Navigasi Atas & Tipografi 4-Tingkat (`DashboardView.tsx`, `App.tsx`, `index.css`):** Memusatkan tab navigasi atas, menyeragamkan subjudul Level 2 (`text-sky-200` + ikon `text-sky-400`), menata `Tanggal Jadwal` & `Cari Alat / Area` responsif 2 kolom, menyederhanakan subjudul `Jadwal TPM Hari Ini` / `Daftar Jadwal TPM`, memperbarui placeholder menjadi `Misal: GA101, FLARE...`, merancang ulang kartu jadwal 2-baris simetris dengan panah lebar penuh, serta menerapkan hierarki tipografi 4-tingkat (`16px` anti-zoom iOS) dan atribut anti-autofill Android.
+- **Pembaruan Modal Panduan & Sinkronisasi Versi `2.7.0` (`GuideModal.tsx`, `package.json`, `version.json`, `vite.config.js`):** Menambahkan ikon `20px` di atas tab panduan, auto-reset scroll saat membuka/pindah tab, menyelaraskan poin panduan Tab 1–3, serta memperbarui seluruh indikator versi ke `2.7.0`.
+
 ## [2.6.1] - 2026-11-15
 
 ### Diperbaiki

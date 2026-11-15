@@ -1,6 +1,7 @@
 import React from 'react';
 import { APP_VERSION } from '../data/tpmData';
 import { normalizeReleaseNotes, type UpdateModalState } from '../hooks/useAppUpdater';
+import { useModalScrollLock } from '../hooks/useModalScrollLock';
 import { IconArrowRight, IconRocket, IconSync, IconWifiOff } from './Icons';
 
 interface ForceUpdateModalProps {
@@ -18,6 +19,8 @@ export const ForceUpdateModal: React.FC<ForceUpdateModalProps> = ({
   onConfirm,
   onDismiss,
 }) => {
+  useModalScrollLock(modalState.mode !== 'closed');
+
   if (modalState.mode === 'closed') return null;
 
   const notesList = Array.isArray(modalState.releaseNotes)
@@ -25,8 +28,8 @@ export const ForceUpdateModal: React.FC<ForceUpdateModalProps> = ({
     : normalizeReleaseNotes(modalState.releaseNotes);
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/82 p-4 backdrop-blur-[4px]">
-      <div className="modal-pop max-h-[90dvh] w-full max-w-[440px] overflow-y-auto rounded-[16px] border border-[#383838] bg-[#1e1e1e] p-5 text-white shadow-[0_10px_30px_rgba(0,0,0,0.65)]">
+    <div className="fixed inset-0 z-[9999] flex touch-none items-center justify-center overscroll-contain bg-black/82 p-4 backdrop-blur-[4px]">
+      <div className="modal-pop max-h-[90dvh] w-full max-w-[440px] overflow-y-auto overscroll-contain rounded-[16px] border border-[#383838] bg-[#1e1e1e] p-5 text-white shadow-[0_10px_30px_rgba(0,0,0,0.65)]">
         <div className="mb-3.5 flex items-center justify-between border-b border-[#333] pb-2.5">
           <h3 className="flex items-center gap-1.5 text-[1.05rem] font-bold text-[#007aff]">
             <IconRocket /> Pembaruan Aplikasi Tersedia

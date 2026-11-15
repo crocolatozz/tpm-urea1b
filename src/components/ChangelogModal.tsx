@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import changelogRaw from '../../CHANGELOG.md?raw';
 import { APP_VERSION } from '../data/tpmData';
+import { useModalScrollLock } from '../hooks/useModalScrollLock';
 import { IconChevronDown, IconHistory, IconSync } from './Icons';
 
 interface ChangelogModalProps {
@@ -111,16 +112,18 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({
     }));
   };
 
+  useModalScrollLock(isOpen);
+
   if (!isOpen) return null;
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/82 p-4 backdrop-blur-[4px]"
+      className="fixed inset-0 z-[9999] flex touch-none items-center justify-center overscroll-contain bg-black/82 p-4 backdrop-blur-[4px]"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="modal-pop flex max-h-[88dvh] w-full max-w-[460px] flex-col rounded-[16px] border border-[#383838] bg-[#1e1e1e] p-5 text-white shadow-[0_10px_30px_rgba(0,0,0,0.65)]">
+      <div className="modal-pop flex max-h-[88dvh] w-full max-w-[460px] flex-col overscroll-contain rounded-[16px] border border-[#383838] bg-[#1e1e1e] p-5 text-white shadow-[0_10px_30px_rgba(0,0,0,0.65)]">
         <div className="mb-3.5 flex shrink-0 items-center justify-between border-b border-[#333] pb-2.5">
           <div>
             <h3 className="flex items-center gap-1.5 text-[1.05rem] font-bold text-[#007aff]">

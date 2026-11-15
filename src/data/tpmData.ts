@@ -1,4 +1,5 @@
-export const APP_VERSION = '2.6.1';
+export const APP_VERSION = '2.7.0';
+export const STORAGE_VERSION = '2.7.0';
 
 export type ShiftName = 'PAGI' | 'SORE' | 'MALAM';
 export type GridType = '2x1' | '2x2' | '2x3';
@@ -54,6 +55,7 @@ export const SHIFT_TIME_RANGES: Record<ShiftName, string> = {
 export const REPORTED_LOG_KEY = 'tpm_reported_log_v1';
 export const REPORTED_PENDING_DELETE_KEY = 'tpm_reported_pending_delete_v1';
 export const PREFS_STORAGE_KEY = 'tpm_kolase_prefs_v1';
+export const STORAGE_VERSION_KEY = 'tpm_storage_version_v1';
 const LEGACY_OVERLAY_HISTORY_KEY = 'tpm_overlay_history_v1';
 
 export function clearLegacyOverlayHistory(): void {
@@ -61,6 +63,97 @@ export function clearLegacyOverlayHistory(): void {
     localStorage.removeItem(LEGACY_OVERLAY_HISTORY_KEY);
   } catch {
     // Ignore storage access errors
+  }
+}
+
+function isPlainObject(val: unknown): val is Record<string, unknown> {
+  return typeof val === 'object' && val !== null && !Array.isArray(val);
+}
+
+function sanitizeReportedLogMap(raw: unknown): Record<string, ReportedLogEntry> {
+  if (!isPlainObject(raw)) return {};
+  const clean: Record<string, ReportedLogEntry> = {};
+  Object.entries(raw).forEach(([key, val]) => {
+    if (!/^\d{4}-\d{2}-\d{2}_(PAGI|SORE|MALAM)$/.test(key) || !isPlainObject(val)) return;
+    const area = typeof val.area === 'string' && val.area.trim() ? val.area : '-';
+    const ts = typeof val.ts === 'number' && Number.isFinite(val.ts) ? val.ts : Date.now();
+    clean[key] = {
+      area,
+      ts,
+      ...(val.pendingOffline === true ? { pendingOffline: true } : {}),
+    };
+  });
+  return clean;
+}
+
+function sanitizePendingDeletesMap(raw: unknown): Record<string, number> {
+  if (!isPlainObject(raw)) return {};
+  const clean: Record<string, number> = {};
+  Object.entries(raw).forEach(([key, ts]) => {
+    if (
+      /^\d{4}-\d{2}-\d{2}_(PAGI|SORE|MALAM)$/.test(key) &&
+      typeof ts === 'number' &&
+      Number.isFinite(ts)
+    ) {
+      clean[key] = ts;
+    }
+  });
+  return clean;
+}
+
+export function ensureStorageVersionGuard(): void {
+  try {
+    const currentStoredVer = localStorage.getItem(STORAGE_VERSION_KEY);
+    clearLegacyOverlayHistory();
+
+    if (currentStoredVer === STORAGE_VERSION) {
+      return;
+    }
+
+    // Validasi & sanitasi defensif data tersimpan saat transisi versi agar tidak crash
+    try {
+      const rawLog = localStorage.getItem(REPORTED_LOG_KEY);
+      if (rawLog) {
+        const sanitizedLog = sanitizeReportedLogMap(JSON.parse(rawLog));
+        localStorage.setItem(REPORTED_LOG_KEY, JSON.stringify(sanitizedLog));
+      }
+    } catch {
+      localStorage.removeItem(REPORTED_LOG_KEY);
+    }
+
+    try {
+      const rawPending = localStorage.getItem(REPORTED_PENDING_DELETE_KEY);
+      if (rawPending) {
+        const sanitizedPending = sanitizePendingDeletesMap(JSON.parse(rawPending));
+        if (Object.keys(sanitizedPending).length === 0) {
+          localStorage.removeItem(REPORTED_PENDING_DELETE_KEY);
+        } else {
+          localStorage.setItem(REPORTED_PENDING_DELETE_KEY, JSON.stringify(sanitizedPending));
+        }
+      }
+    } catch {
+      localStorage.removeItem(REPORTED_PENDING_DELETE_KEY);
+    }
+
+    try {
+      const rawPrefs = localStorage.getItem(PREFS_STORAGE_KEY);
+      if (rawPrefs) {
+        const parsedPrefs: unknown = JSON.parse(rawPrefs);
+        const safeGrid =
+          isPlainObject(parsedPrefs) &&
+          typeof parsedPrefs.grid === 'string' &&
+          (['2x1', '2x2', '2x3'] as const).includes(parsedPrefs.grid as GridType)
+            ? (parsedPrefs.grid as GridType)
+            : DEFAULT_PREFS.grid;
+        localStorage.setItem(PREFS_STORAGE_KEY, JSON.stringify({ grid: safeGrid }));
+      }
+    } catch {
+      localStorage.setItem(PREFS_STORAGE_KEY, JSON.stringify({ ...DEFAULT_PREFS }));
+    }
+
+    localStorage.setItem(STORAGE_VERSION_KEY, STORAGE_VERSION);
+  } catch {
+    // Ignore storage access errors (Private mode / restricted WebView)
   }
 }
 
@@ -216,7 +309,8 @@ export function getOperationalShiftInfo(now: Date = new Date()): OperationalShif
 export function getReportedLog(): Record<string, ReportedLogEntry> {
   try {
     const raw = localStorage.getItem(REPORTED_LOG_KEY);
-    return raw ? (JSON.parse(raw) as Record<string, ReportedLogEntry>) : {};
+    if (!raw) return {};
+    return sanitizeReportedLogMap(JSON.parse(raw));
   } catch {
     return {};
   }
@@ -225,7 +319,8 @@ export function getReportedLog(): Record<string, ReportedLogEntry> {
 function getPendingDeletes(): Record<string, number> {
   try {
     const raw = localStorage.getItem(REPORTED_PENDING_DELETE_KEY);
-    return raw ? (JSON.parse(raw) as Record<string, number>) : {};
+    if (!raw) return {};
+    return sanitizePendingDeletesMap(JSON.parse(raw));
   } catch {
     return {};
   }
@@ -372,11 +467,13 @@ export function loadSavedPreferences(): KolaseDraftPrefs {
   try {
     const raw = localStorage.getItem(PREFS_STORAGE_KEY);
     if (!raw) return { ...DEFAULT_PREFS };
-    const parsed = JSON.parse(raw) as Partial<KolaseDraftPrefs>;
+    const parsed: unknown = JSON.parse(raw);
+    if (!isPlainObject(parsed)) return { ...DEFAULT_PREFS };
     return {
       grid:
-        parsed.grid && (['2x1', '2x2', '2x3'] as const).includes(parsed.grid)
-          ? parsed.grid
+        typeof parsed.grid === 'string' &&
+        (['2x1', '2x2', '2x3'] as const).includes(parsed.grid as GridType)
+          ? (parsed.grid as GridType)
           : DEFAULT_PREFS.grid,
     };
   } catch {

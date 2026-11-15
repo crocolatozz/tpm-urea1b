@@ -1,7 +1,7 @@
 {
   "name": "kolase-foto-tpm",
   "private": true,
-  "version": "2.4.0",
+  "version": "2.5.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -20,6 +20,7 @@
     "firebase": "^13.3.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "react-easy-crop": "^6.2.5",
     "tailwindcss": "^4.3.5",
     "typescript": "^7.0.2",
     "vite-plugin-pwa": "^2.0.0"

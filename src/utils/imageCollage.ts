@@ -1,10 +1,30 @@
 import { formatDateIndo } from '../data/tpmData';
 
+export const COLLAGE_CELL_WIDTH = 800;
+export const COLLAGE_CELL_HEIGHT = 800;
+export const COLLAGE_CELL_ASPECT = COLLAGE_CELL_WIDTH / COLLAGE_CELL_HEIGHT;
+
+export interface CropAreaPixels {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface PhotoEditParams {
+  crop: { x: number; y: number };
+  zoom: number;
+  rotation: number;
+}
+
 export interface LoadedPhotoSlot {
   canvas: HTMLCanvasElement;
+  sourceCanvas: HTMLCanvasElement;
+  sourceUrl: string;
   previewUrl: string;
   fileSize?: number;
   lastModified?: number;
+  editParams?: PhotoEditParams;
 }
 
 export interface CollageExportOptions {
@@ -23,13 +43,50 @@ export function freeSingleSlot(slot: LoadedPhotoSlot | null | undefined): void {
     slot.canvas.width = 0;
     slot.canvas.height = 0;
   }
+  if (slot.sourceCanvas && slot.sourceCanvas !== slot.canvas) {
+    slot.sourceCanvas.width = 0;
+    slot.sourceCanvas.height = 0;
+  }
   slot.previewUrl = '';
+  slot.sourceUrl = '';
   slot.fileSize = undefined;
   slot.lastModified = undefined;
+  slot.editParams = undefined;
 }
 
 export function freeSlotArray(slots: Array<LoadedPhotoSlot | null | undefined>): void {
   slots.forEach(freeSingleSlot);
+}
+
+function createThumbnailDataUrl(sourceCanvas: HTMLCanvasElement): string {
+  try {
+    const thumbMax = 480;
+    let thumbW = sourceCanvas.width;
+    let thumbH = sourceCanvas.height;
+    if (thumbW > thumbMax || thumbH > thumbMax) {
+      if (thumbW >= thumbH) {
+        thumbW = thumbMax;
+        thumbH = Math.round((sourceCanvas.height * thumbMax) / sourceCanvas.width);
+      } else {
+        thumbH = thumbMax;
+        thumbW = Math.round((sourceCanvas.width * thumbMax) / sourceCanvas.height);
+      }
+    }
+    const thumbCanvas = document.createElement('canvas');
+    thumbCanvas.width = Math.max(1, thumbW);
+    thumbCanvas.height = Math.max(1, thumbH);
+    const thumbCtx = thumbCanvas.getContext('2d');
+    if (thumbCtx) {
+      thumbCtx.drawImage(sourceCanvas, 0, 0, thumbCanvas.width, thumbCanvas.height);
+      const url = thumbCanvas.toDataURL('image/jpeg', 0.72);
+      thumbCanvas.width = 0;
+      thumbCanvas.height = 0;
+      return url;
+    }
+    return sourceCanvas.toDataURL('image/jpeg', 0.65);
+  } catch {
+    return '';
+  }
 }
 
 function resizeSourceToOffscreenCanvas(
@@ -61,38 +118,108 @@ function resizeSourceToOffscreenCanvas(
 
   offCtx.drawImage(source, 0, 0, targetW, targetH);
 
-  // Create lightweight thumbnail DataURL for smooth mobile grid preview
-  let previewUrl = '';
+  const previewUrl = createThumbnailDataUrl(offCanvas);
+  let sourceUrl = '';
   try {
-    const thumbMax = 480;
-    let thumbW = targetW;
-    let thumbH = targetH;
-    if (targetW > thumbMax || targetH > thumbMax) {
-      if (targetW >= targetH) {
-        thumbW = thumbMax;
-        thumbH = Math.round((targetH * thumbMax) / targetW);
-      } else {
-        thumbH = thumbMax;
-        thumbW = Math.round((targetW * thumbMax) / targetH);
-      }
-    }
-    const thumbCanvas = document.createElement('canvas');
-    thumbCanvas.width = thumbW;
-    thumbCanvas.height = thumbH;
-    const thumbCtx = thumbCanvas.getContext('2d');
-    if (thumbCtx) {
-      thumbCtx.drawImage(offCanvas, 0, 0, thumbW, thumbH);
-      previewUrl = thumbCanvas.toDataURL('image/jpeg', 0.72);
-      thumbCanvas.width = 0;
-      thumbCanvas.height = 0;
-    } else {
-      previewUrl = offCanvas.toDataURL('image/jpeg', 0.65);
-    }
+    sourceUrl = offCanvas.toDataURL('image/jpeg', 0.92);
   } catch {
-    previewUrl = '';
+    sourceUrl = previewUrl;
   }
 
-  return { canvas: offCanvas, previewUrl };
+  return {
+    canvas: offCanvas,
+    sourceCanvas: offCanvas,
+    sourceUrl,
+    previewUrl,
+  };
+}
+
+export function renderEditedSlot(
+  slot: LoadedPhotoSlot,
+  croppedAreaPixels: CropAreaPixels,
+  rotationDeg: number,
+  editParams: PhotoEditParams
+): LoadedPhotoSlot | null {
+  const srcCanvas = slot.sourceCanvas;
+  if (!srcCanvas || !srcCanvas.width || !srcCanvas.height) return null;
+
+  const srcW = srcCanvas.width;
+  const srcH = srcCanvas.height;
+  const normalizedRot = ((rotationDeg % 360) + 360) % 360;
+  const rad = (normalizedRot * Math.PI) / 180;
+
+  const rotW = Math.max(
+    1,
+    Math.round(Math.abs(Math.cos(rad) * srcW) + Math.abs(Math.sin(rad) * srcH))
+  );
+  const rotH = Math.max(
+    1,
+    Math.round(Math.abs(Math.sin(rad) * srcW) + Math.abs(Math.cos(rad) * srcH))
+  );
+
+  const rotCanvas = document.createElement('canvas');
+  rotCanvas.width = rotW;
+  rotCanvas.height = rotH;
+  const rotCtx = rotCanvas.getContext('2d');
+  if (!rotCtx) return null;
+
+  rotCtx.fillStyle = '#000000';
+  rotCtx.fillRect(0, 0, rotW, rotH);
+  rotCtx.translate(rotW / 2, rotH / 2);
+  rotCtx.rotate(rad);
+  rotCtx.drawImage(srcCanvas, -srcW / 2, -srcH / 2);
+
+  const safeX = Math.max(0, Math.min(rotW - 1, Math.round(croppedAreaPixels.x)));
+  const safeY = Math.max(0, Math.min(rotH - 1, Math.round(croppedAreaPixels.y)));
+  const safeW = Math.max(1, Math.min(rotW - safeX, Math.round(croppedAreaPixels.width)));
+  const safeH = Math.max(1, Math.min(rotH - safeY, Math.round(croppedAreaPixels.height)));
+
+  const MAX_OUT = 1200;
+  let outW = safeW;
+  let outH = safeH;
+  if (outW > MAX_OUT || outH > MAX_OUT) {
+    if (outW >= outH) {
+      outW = MAX_OUT;
+      outH = Math.max(1, Math.round((safeH * MAX_OUT) / safeW));
+    } else {
+      outH = MAX_OUT;
+      outW = Math.max(1, Math.round((safeW * MAX_OUT) / safeH));
+    }
+  }
+
+  const outCanvas = document.createElement('canvas');
+  outCanvas.width = outW;
+  outCanvas.height = outH;
+  const outCtx = outCanvas.getContext('2d');
+  if (!outCtx) {
+    rotCanvas.width = 0;
+    rotCanvas.height = 0;
+    return null;
+  }
+
+  outCtx.fillStyle = '#000000';
+  outCtx.fillRect(0, 0, outW, outH);
+  outCtx.drawImage(rotCanvas, safeX, safeY, safeW, safeH, 0, 0, outW, outH);
+
+  rotCanvas.width = 0;
+  rotCanvas.height = 0;
+
+  if (slot.canvas && slot.canvas !== slot.sourceCanvas) {
+    slot.canvas.width = 0;
+    slot.canvas.height = 0;
+  }
+
+  const previewUrl = createThumbnailDataUrl(outCanvas);
+
+  return {
+    canvas: outCanvas,
+    sourceCanvas: slot.sourceCanvas,
+    sourceUrl: slot.sourceUrl,
+    previewUrl,
+    fileSize: slot.fileSize,
+    lastModified: slot.lastModified,
+    editParams,
+  };
 }
 
 function resizeImageToOffscreenCanvas(img: HTMLImageElement): LoadedPhotoSlot | null {
@@ -278,8 +405,8 @@ export function renderCollageToCanvas(
 
   const { rows, beforeSlots, afterSlots, rowTexts, areaName, shiftName, dateStr } = opts;
 
-  const cellWidth = 800;
-  const cellHeight = 800; // 1:1 square Instagram-style grid
+  const cellWidth = COLLAGE_CELL_WIDTH;
+  const cellHeight = COLLAGE_CELL_HEIGHT; // 1:1 square Instagram-style grid
   const gap = 12;
   const padding = gap;
   const headerHeight = 160;

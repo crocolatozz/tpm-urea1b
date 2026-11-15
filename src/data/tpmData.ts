@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.4.0';
+export const APP_VERSION = '2.5.0';
 
 export type ShiftName = 'PAGI' | 'SORE' | 'MALAM';
 export type GridType = '2x1' | '2x2' | '2x3';
@@ -54,55 +54,18 @@ export const SHIFT_TIME_RANGES: Record<ShiftName, string> = {
   MALAM: '23:00 – 07:00',
 };
 
-export const DEFAULT_OVERLAY_SUGGESTIONS: string[] = [
-  'Regreasing BV',
-  'Cleaning baseplate pompa',
-  'Cleaning instrumentasi',
-  'Cleaning area & grating',
-  'Pengecekan level & kondisi oli',
-  'Cleaning body motor & coupling',
-];
-
-const PUMP_OVERLAY_SUGGESTIONS: string[] = [
-  'Cek level & kejernihan oli bearing',
-  'Cleaning body pompa & baseplate',
-  'Cek kebocoran mechanical seal & vibrasi',
-];
-
-const EXCHANGER_OVERLAY_SUGGESTIONS: string[] = [
-  'Cleaning body & area sekitar exchanger',
-  'Cek kebocoran flange & sambungan pipa',
-  'Cek kondisi isolasi & pressure gauge',
-];
-
-const VESSEL_OVERLAY_SUGGESTIONS: string[] = [
-  'Cek level glass & instrumentasi lokal',
-  'Cleaning area sekitar & drain valve',
-  'Cek kebocoran flange & manhole',
-];
-
-export function getContextualOverlaySuggestions(
-  areaTag: string,
-  savedHistory: string[]
-): string[] {
-  const upper = (areaTag || '').toUpperCase();
-  let priority: string[] = [];
-
-  if (/\bGA[-\s]?\d|PUMP|POMPA/.test(upper)) {
-    priority = PUMP_OVERLAY_SUGGESTIONS;
-  } else if (/\b(EA|EC)[-\s]?\d|EXCHANGER|CONDENSER|COOLER/.test(upper)) {
-    priority = EXCHANGER_OVERLAY_SUGGESTIONS;
-  } else if (/\b(DA|FA)[-\s]?\d|VESSEL|TOWER|DRUM/.test(upper)) {
-    priority = VESSEL_OVERLAY_SUGGESTIONS;
-  }
-
-  return [...new Set([...priority, ...savedHistory, ...DEFAULT_OVERLAY_SUGGESTIONS])].slice(0, 24);
-}
-
 export const REPORTED_LOG_KEY = 'tpm_reported_log_v1';
 export const REPORTED_PENDING_DELETE_KEY = 'tpm_reported_pending_delete_v1';
 export const PREFS_STORAGE_KEY = 'tpm_kolase_prefs_v1';
-export const HISTORY_STORAGE_KEY = 'tpm_overlay_history_v1';
+const LEGACY_OVERLAY_HISTORY_KEY = 'tpm_overlay_history_v1';
+
+export function clearLegacyOverlayHistory(): void {
+  try {
+    localStorage.removeItem(LEGACY_OVERLAY_HISTORY_KEY);
+  } catch {
+    // Ignore storage access errors
+  }
+}
 
 export function normalizeEquipmentSearch(str: string): string {
   return str.toUpperCase().replace(/\s+/g, '');
@@ -436,36 +399,6 @@ export function savePreferences(prefs: KolaseDraftPrefs): void {
   } catch {
     // Ignore storage errors
   }
-}
-
-export function loadOverlayHistory(): string[] {
-  let saved: string[] = [];
-  try {
-    const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        saved = parsed.filter((x): x is string => typeof x === 'string');
-      }
-    }
-  } catch {
-    saved = [];
-  }
-  return saved.slice(0, 20);
-}
-
-export function saveOverlayHistory(texts: string[]): string[] {
-  const currentTexts = texts.map((t) => t.trim()).filter((t) => t.length >= 3);
-  if (currentTexts.length === 0) return loadOverlayHistory();
-
-  const saved = loadOverlayHistory();
-  const updated = [...new Set([...currentTexts, ...saved])].slice(0, 20);
-  try {
-    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(updated));
-  } catch {
-    // Ignore storage errors
-  }
-  return updated;
 }
 
 export function compareSemver(localVer: string, remoteVer: string): number {

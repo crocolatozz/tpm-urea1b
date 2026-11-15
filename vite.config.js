@@ -95,7 +95,7 @@ export default defineConfig(({ command }) => {
           name: 'Dashboard TPM Urea 1B',
           short_name: 'TPM Urea 1B',
           description:
-            'Monitoring jadwal inspeksi mesin dan kolase foto dokumentasi Before & After TPM Urea 1B (v2.4.0).',
+            'Monitoring jadwal inspeksi mesin dan kolase foto dokumentasi Before & After TPM Urea 1B (v2.5.0).',
           start_url: basePath,
           scope: basePath,
           display: 'standalone',

@@ -5,6 +5,8 @@ import { APP_VERSION } from '../data/tpmData';
 interface ChangelogModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onCheckUpdate: () => void;
+  isCheckingUpdate: boolean;
 }
 
 interface ChangelogSection {
@@ -82,7 +84,12 @@ function renderFormattedText(text: string): React.ReactNode[] {
   });
 }
 
-export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose }) => {
+export const ChangelogModal: React.FC<ChangelogModalProps> = ({
+  isOpen,
+  onClose,
+  onCheckUpdate,
+  isCheckingUpdate,
+}) => {
   const releases = useMemo(() => parseChangelogMarkdown(changelogRaw), []);
   const latestVersionLine = releases[0]?.versionLine || '';
 
@@ -120,11 +127,27 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ isOpen, onClose 
           </div>
           <button
             type="button"
-            onClick={onClose}
-            aria-label="Tutup riwayat pembaruan"
-            className="flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-full border border-[#444] bg-[#2c2c2c] text-base text-[#ccc]"
+            disabled={isCheckingUpdate}
+            onClick={onCheckUpdate}
+            aria-label="Cek Update"
+            title="Cek Update"
+            className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-emerald-600 text-white transition hover:bg-emerald-500 active:scale-95 disabled:cursor-wait disabled:opacity-80"
           >
-            ✕
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2.2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              className={`h-5 w-5 ${isCheckingUpdate ? 'animate-spin' : ''}`}
+            >
+              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+              <path d="M16 16h5v5" />
+            </svg>
           </button>
         </div>
 

@@ -1,5 +1,10 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { APP_VERSION, type ReportedLogEntry, type ShiftName } from './data/tpmData';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  APP_VERSION,
+  clearLegacyOverlayHistory,
+  type ReportedLogEntry,
+  type ShiftName,
+} from './data/tpmData';
 import { useNativeTouchGuard } from './hooks/useNativeTouchGuard';
 import { usePWAInstall } from './hooks/usePWAInstall';
 import { useAppUpdater } from './hooks/useAppUpdater';
@@ -66,12 +71,45 @@ export const App: React.FC = () => {
   const [changelogOpen, setChangelogOpen] = useState(false);
   const [iosModalOpen, setIosModalOpen] = useState(false);
   const [hasFilledPhotos, setHasFilledPhotos] = useState(false);
+  const [updateToast, setUpdateToast] = useState<{
+    message: string;
+    tone: 'success' | 'warning';
+  } | null>(null);
+  const updateToastTimerRef = useRef<number | null>(null);
 
   const effectiveHasFilledPhotos = routeState.route === 'kolase' && hasFilledPhotos;
 
   const { isInstallable, isIOS, showInstallButton, install } = usePWAInstall();
-  const { modalState, isUpdating, errorMsg, confirmUpdate, dismissUpdate } =
-    useAppUpdater(effectiveHasFilledPhotos);
+  const {
+    modalState,
+    isUpdating,
+    isCheckingUpdate,
+    errorMsg,
+    confirmUpdate,
+    dismissUpdate,
+    checkForUpdatesManual,
+  } = useAppUpdater(effectiveHasFilledPhotos);
+
+  const showUpdateToast = useCallback((message: string, tone: 'success' | 'warning') => {
+    if (updateToastTimerRef.current !== null) {
+      window.clearTimeout(updateToastTimerRef.current);
+    }
+    setUpdateToast({ message, tone });
+    updateToastTimerRef.current = window.setTimeout(() => {
+      setUpdateToast(null);
+      updateToastTimerRef.current = null;
+    }, 3500);
+  }, []);
+
+  // Bersihkan sisa key riwayat caption lama di localStorage saat aplikasi dimuat
+  useEffect(() => {
+    clearLegacyOverlayHistory();
+    return () => {
+      if (updateToastTimerRef.current !== null) {
+        window.clearTimeout(updateToastTimerRef.current);
+      }
+    };
+  }, []);
 
   // Real-time Firestore + localStorage sync for reported shift badges
   useEffect(() => {
@@ -168,6 +206,17 @@ export const App: React.FC = () => {
       setIosModalOpen(true);
     }
   };
+
+  const handleCheckUpdate = useCallback(async () => {
+    const result = await checkForUpdatesManual();
+    if (result === 'update-available') {
+      setChangelogOpen(false);
+    } else if (result === 'up-to-date') {
+      showUpdateToast('✅ Aplikasi sudah versi terbaru', 'success');
+    } else {
+      showUpdateToast('⚠️ Gagal cek update (mode offline)', 'warning');
+    }
+  }, [checkForUpdatesManual, showUpdateToast]);
 
   return (
     <div className="flex w-full max-w-[800px] flex-1 flex-col gap-4">
@@ -282,7 +331,12 @@ export const App: React.FC = () => {
       </footer>
 
       <GuideModal isOpen={guideOpen} onClose={() => setGuideOpen(false)} />
-      <ChangelogModal isOpen={changelogOpen} onClose={() => setChangelogOpen(false)} />
+      <ChangelogModal
+        isOpen={changelogOpen}
+        onClose={() => setChangelogOpen(false)}
+        onCheckUpdate={handleCheckUpdate}
+        isCheckingUpdate={isCheckingUpdate}
+      />
       <IosInstallModal isOpen={iosModalOpen} onClose={() => setIosModalOpen(false)} />
       <ForceUpdateModal
         modalState={modalState}
@@ -292,6 +346,19 @@ export const App: React.FC = () => {
         onDismiss={dismissUpdate}
       />
       <OfflineBanner />
+
+      {updateToast && (
+        <div
+          role={updateToast.tone === 'success' ? 'status' : 'alert'}
+          className={`modal-pop fixed bottom-6 left-1/2 z-[10001] w-[calc(100%-2rem)] max-w-[420px] -translate-x-1/2 rounded-xl border px-4 py-3 text-center text-[0.84rem] font-semibold shadow-[0_8px_24px_rgba(0,0,0,0.65)] backdrop-blur-md ${
+            updateToast.tone === 'success'
+              ? 'border-[#34c759]/60 bg-[#18281e]/95 text-[#86efac]'
+              : 'border-[#ff9500]/60 bg-[#2a2216]/95 text-[#ffd180]'
+          }`}
+        >
+          {updateToast.message}
+        </div>
+      )}
     </div>
   );
 };

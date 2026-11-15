@@ -1,9 +1,9 @@
 {
-  "version": "2.4.0",
+  "version": "2.5.0",
   "notes": [
-    "Floating toast loading foto 150ms anti-layout shift dan anti-flicker",
-    "Deteksi otomatis foto kembar/duplikat berdasarkan size & lastModified di grid kolase",
-    "Saran keterangan pintar kontekstual sesuai jenis Tag Equipment (Pompa, Exchanger, Vessel)",
-    "Modal Riwayat Pembaruan kini berbentuk accordion ringkas dengan versi terbaru terbuka otomatis"
+    "Editor Atur Foto lokal 100% offline: Crop 1:1, Zoom 1x–3x, Rotate 90°, dan Ganti Foto",
+    "Tombol bundar hijau Cek Update manual di modal Riwayat Pembaruan dengan gatekeeper pop-up ketat",
+    "Penghapusan fitur saran caption & pembersihan otomatis riwayat ketikan lama",
+    "Pembaruan panduan pengguna untuk editor foto dan pengecekan update manual"
   ]
 }

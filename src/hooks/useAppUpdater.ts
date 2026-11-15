@@ -9,7 +9,10 @@ export type UpdateModalState =
       remoteVersion: string;
       releaseNotes: string[];
       swDriven: boolean;
+      manualTriggered: boolean;
     };
+
+export type ManualCheckResult = 'update-available' | 'up-to-date' | 'offline';
 
 interface VersionJsonPayload {
   version?: string;
@@ -20,8 +23,6 @@ interface VersionJsonPayload {
 const DEFAULT_RELEASE_NOTES: string[] = [
   'Versi baru aplikasi TPM Urea 1B sudah siap. Perbarui sekarang agar fitur dan jadwal selalu akurat.',
 ];
-
-const VISIBILITY_CHECK_COOLDOWN_MS = 60_000;
 
 export function normalizeReleaseNotes(rawNotes: unknown): string[] {
   if (Array.isArray(rawNotes)) {
@@ -44,10 +45,14 @@ export function normalizeReleaseNotes(rawNotes: unknown): string[] {
 }
 
 async function fetchRemoteVersionJson(): Promise<VersionJsonPayload | null> {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return null;
+  }
+
   const controller = new AbortController();
   const timer = window.setTimeout(() => controller.abort(), 5000);
   try {
-    const res = await fetch(`./version.json?t=${Date.now()}`, {
+    const res = await fetch(`${import.meta.env.BASE_URL}version.json?t=${Date.now()}`, {
       cache: 'no-store',
       signal: controller.signal,
     });
@@ -62,14 +67,28 @@ async function fetchRemoteVersionJson(): Promise<VersionJsonPayload | null> {
   }
 }
 
+async function checkServiceWorkersForWaiting(): Promise<boolean> {
+  if (import.meta.env.DEV || !('serviceWorker' in navigator)) {
+    return false;
+  }
+  try {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(regs.map((r) => r.update().catch(() => {})));
+    return regs.some((r) => Boolean(r.waiting));
+  } catch {
+    return false;
+  }
+}
+
 export function useAppUpdater(suppressPrompt = false) {
   const [modalState, setModalState] = useState<UpdateModalState>({ mode: 'closed' });
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  // Pure in-memory postpone state for the current app session only (resets naturally on cold start)
-  const [isDismissed, setIsDismissed] = useState(false);
+
+  // Pure in-memory postpone state for the current app session only (resets on cold start)
   const isDismissedRef = useRef(false);
-  const lastCheckTsRef = useRef<number>(0);
+  const coldStartCheckedRef = useRef(false);
 
   const {
     needRefresh: [needRefresh],
@@ -87,108 +106,97 @@ export function useAppUpdater(suppressPrompt = false) {
     },
   });
 
-  const checkForUpdates = useCallback(
-    async (force = false) => {
+  const needRefreshRef = useRef(needRefresh);
+  needRefreshRef.current = needRefresh;
+
+  // Kondisi (a): Cek otomatis HANYA sekali saat aplikasi pertama kali dibuka (cold load)
+  useEffect(() => {
+    if (coldStartCheckedRef.current) return;
+    coldStartCheckedRef.current = true;
+
+    let cancelled = false;
+
+    const runColdStartCheck = async () => {
       if (isDismissedRef.current) return;
 
-      const now = Date.now();
-      if (!force && now - lastCheckTsRef.current < VISIBILITY_CHECK_COOLDOWN_MS) {
-        return;
-      }
-      lastCheckTsRef.current = now;
+      const [hasWaitingSw, data] = await Promise.all([
+        checkServiceWorkersForWaiting(),
+        fetchRemoteVersionJson(),
+      ]);
 
-      let hasWaitingSw = false;
-
-      if (!import.meta.env.DEV && 'serviceWorker' in navigator) {
-        try {
-          const regs = await navigator.serviceWorker.getRegistrations();
-          await Promise.all(regs.map((r) => r.update().catch(() => {})));
-          hasWaitingSw = regs.some((r) => Boolean(r.waiting));
-        } catch {
-          // Ignore SW inspection errors
-        }
-      }
-
-      const data = await fetchRemoteVersionJson();
-
-      // Re-check postpone state after async fetch completes
-      if (isDismissedRef.current) return;
+      if (cancelled || isDismissedRef.current) return;
 
       const hasNewerVersion = Boolean(
         data?.version && compareSemver(APP_VERSION, data.version) > 0
       );
+      const swUpdateReady = (needRefreshRef.current || hasWaitingSw) && !import.meta.env.DEV;
 
       if (hasNewerVersion && data?.version) {
         setModalState({
           mode: 'prompt',
           remoteVersion: data.version,
           releaseNotes: normalizeReleaseNotes(data.notes),
-          swDriven: needRefresh || hasWaitingSw,
+          swDriven: swUpdateReady,
+          manualTriggered: false,
         });
         return;
       }
 
-      if ((needRefresh || hasWaitingSw) && !import.meta.env.DEV) {
+      if (swUpdateReady) {
         setModalState({
           mode: 'prompt',
           remoteVersion: data?.version || APP_VERSION,
           releaseNotes: normalizeReleaseNotes(data?.notes),
           swDriven: true,
+          manualTriggered: false,
         });
       }
-    },
-    [needRefresh]
-  );
+    };
 
-  // Enrich and open prompt when Workbox detects a waiting SW (only if not postponed in this session)
-  useEffect(() => {
-    if (!needRefresh || isDismissed) return;
-    let cancelled = false;
-
-    fetchRemoteVersionJson().then((data) => {
-      if (cancelled || isDismissedRef.current) return;
-
-      const hasNewerRemote = Boolean(
-        data?.version && compareSemver(APP_VERSION, data.version) > 0
-      );
-      if (import.meta.env.DEV && !hasNewerRemote) {
-        return;
-      }
-
-      const remoteVer = hasNewerRemote && data?.version ? data.version : APP_VERSION;
-
-      setModalState({
-        mode: 'prompt',
-        remoteVersion: remoteVer,
-        releaseNotes: normalizeReleaseNotes(data?.notes),
-        swDriven: true,
-      });
-    });
+    void runColdStartCheck();
 
     return () => {
       cancelled = true;
     };
-  }, [needRefresh, isDismissed]);
+  }, []);
 
-  // Cold start check + throttled (60s) visibilitychange check WITHOUT resetting isDismissed
-  useEffect(() => {
-    void checkForUpdates(true);
+  // Kondisi (b): Cek manual lewat tombol bundar hijau Cek Update
+  const checkForUpdatesManual = useCallback(async (): Promise<ManualCheckResult> => {
+    setIsCheckingUpdate(true);
+    try {
+      const [hasWaitingSw, data] = await Promise.all([
+        checkServiceWorkersForWaiting(),
+        fetchRemoteVersionJson(),
+      ]);
 
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        void checkForUpdates(false);
+      if (!data) {
+        return 'offline';
       }
-    };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [checkForUpdates]);
+      const hasNewerVersion = compareSemver(APP_VERSION, data.version ?? '') > 0;
+      const swUpdateReady = (needRefreshRef.current || hasWaitingSw) && !import.meta.env.DEV;
+
+      if (hasNewerVersion || swUpdateReady) {
+        isDismissedRef.current = false;
+        setErrorMsg(null);
+        setModalState({
+          mode: 'prompt',
+          remoteVersion: hasNewerVersion && data.version ? data.version : APP_VERSION,
+          releaseNotes: normalizeReleaseNotes(data.notes),
+          swDriven: swUpdateReady,
+          manualTriggered: true,
+        });
+        return 'update-available';
+      }
+
+      return 'up-to-date';
+    } finally {
+      setIsCheckingUpdate(false);
+    }
+  }, []);
 
   const dismissUpdate = useCallback(() => {
     isDismissedRef.current = true;
-    setIsDismissed(true);
     setErrorMsg(null);
     setIsUpdating(false);
     setModalState({ mode: 'closed' });
@@ -209,7 +217,6 @@ export function useAppUpdater(suppressPrompt = false) {
     }, 8000);
 
     try {
-      // Pastikan koneksi stabil & server benar-benar merespons sebelum proses reload / aktivasi SW
       const probe = await fetchRemoteVersionJson();
       if (aborted) return;
 
@@ -222,7 +229,7 @@ export function useAppUpdater(suppressPrompt = false) {
         return;
       }
 
-      if (needRefresh) {
+      if (needRefreshRef.current) {
         await updateServiceWorker(true);
       }
 
@@ -248,15 +255,20 @@ export function useAppUpdater(suppressPrompt = false) {
         '📶 Gagal memuat pembaruan. Cache offline tetap aman—silakan tutup dan coba lagi saat sinyal stabil.'
       );
     }
-  }, [modalState, needRefresh, updateServiceWorker]);
+  }, [modalState, updateServiceWorker]);
 
-  const visibleModalState: UpdateModalState = suppressPrompt ? { mode: 'closed' } : modalState;
+  const visibleModalState: UpdateModalState =
+    modalState.mode === 'prompt' && suppressPrompt && !modalState.manualTriggered
+      ? { mode: 'closed' }
+      : modalState;
 
   return {
     modalState: visibleModalState,
     isUpdating,
+    isCheckingUpdate,
     errorMsg,
     confirmUpdate,
     dismissUpdate,
+    checkForUpdatesManual,
   };
 }

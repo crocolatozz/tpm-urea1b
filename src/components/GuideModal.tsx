@@ -96,18 +96,20 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
               <ul className="flex list-disc flex-col gap-2 pl-[18px]">
                 <li>
                   Pilih ukuran grid (<strong>2x1</strong>, <strong>2x2</strong>, atau{' '}
-                  <strong>2x3</strong>) lalu <strong>tap langsung 1 kotak slot</strong> pada area
-                  Preview untuk memasukkan foto.
+                  <strong>2x3</strong>) lalu <strong>tap kotak slot (+)</strong> pada area Preview
+                  untuk memasukkan foto. Jika foto yang sama terpasang di slot lain, peringatan akan
+                  muncul otomatis.
                 </li>
                 <li>
-                  Untuk mengganti foto yang sudah terisi, <strong>tap langsung pada foto</strong>{' '}
-                  tersebut. Untuk menghapus foto dari slot, tap ikon <strong>✕</strong> di pojok
-                  kanan atas foto.
+                  <strong>Tap foto yang sudah terpasang</strong> untuk membuka editor{' '}
+                  <strong>Atur Foto</strong> (geser crop 1:1, <em>pinch-zoom</em>, putar{' '}
+                  <strong>↻ 90°</strong>, atau <strong>🖼️ Ganti Foto</strong>). Tap ikon{' '}
+                  <strong>✕</strong> di pojok foto untuk menghapusnya.
                 </li>
                 <li>
-                  Isi keterangan kegiatan di <strong>Baris 1–3</strong> (wajib diisi minimal 1
-                  baris), lalu tekan tombol hijau <strong>🚀 Kirim ke WhatsApp</strong> dan pilih
-                  grup WA tujuan.
+                  Isi keterangan kegiatan secara manual di <strong>Baris 1–3</strong> mengikuti teks
+                  contoh (minimal 1 baris), lalu tekan tombol hijau{' '}
+                  <strong>🚀 Kirim ke WhatsApp</strong> dan pilih grup WA tujuan.
                 </li>
               </ul>
             </div>
@@ -131,9 +133,10 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
                   <strong>Tambah ke Layar Utama ➕</strong>.
                 </li>
                 <li>
-                  <strong>Mode Offline &amp; Sinkronisasi:</strong> Jadwal dan pembuat kolase tetap
-                  berjalan tanpa sinyal; status <strong>✓ DILAPORKAN</strong> akan otomatis
-                  tersinkron saat koneksi internet kembali stabil.
+                  <strong>Cek Update Manual &amp; Offline:</strong> Ketuk badge{' '}
+                  <strong>Versi</strong> di footer ➔ ketuk <strong>tombol bundar hijau</strong> di
+                  pojok kanan atas modal untuk mengecek versi baru. Mode offline tetap aman bekerja
+                  dan status <strong>✓ DILAPORKAN</strong> otomatis tersinkron saat sinyal kembali.
                 </li>
               </ul>
             </div>

@@ -2,6 +2,23 @@
 
 Semua perubahan penting pada aplikasi **Dashboard & Kolase Foto TPM Urea 1B** dicatat di file ini mengikuti standar [Semantic Versioning](https://semver.org/).
 
+## [2.5.0] - 2026-11-15
+
+### Ditambahkan
+- **Editor Foto Lokal 100% Offline (`PhotoEditorModal.tsx`, `imageCollage.ts`, `react-easy-crop`):** Mengetuk foto yang sudah terpasang di grid kolase kini membuka modal **Atur Foto** dengan kontrol geser posisi, *pinch-zoom* + slider zoom (`1x–3x`), rotasi kelipatan `90°`, tombol `Reset`, serta tombol `🖼️ Ganti Foto`.
+- **Tombol Bundar Hijau Cek Update Manual (`ChangelogModal.tsx`, `App.tsx`):** Mengganti tombol `✕` di pojok kanan atas modal Riwayat Pembaruan dengan tombol bundar hijau berikon panah melingkar (`Cek Update`) lengkap dengan animasi putar dan toast status hasil pengecekan (versi baru, sudah terbaru, atau mode offline).
+- **Pembersihan Memori Riwayat Lama (`App.tsx`):** Menghapus otomatis sisa key riwayat caption lama (`tpm_overlay_history_v1`) dari `localStorage` saat aplikasi dimuat.
+
+### Diubah
+- **Manajemen Kualitas Gambar Sumber (`imageCollage.ts`, `KolaseView.tsx`):** Menyimpan kanvas sumber hasil decode awal (`max 1200px`) pada setiap slot agar pengeditan crop/rotasi ulang dapat dilakukan berkali-kali tanpa menurunkan ketajaman gambar, sambil mempertahankan metadata `fileSize` dan `lastModified`.
+- **Gatekeeper Pop-Up Update Ketat (`useAppUpdater.ts`, `App.tsx`):** Mengunci pop-up konfirmasi update agar hanya muncul saat aplikasi pertama kali dibuka (*cold load*) atau ketika tombol bundar hijau **Cek Update** ditekan (menonaktifkan pemicu otomatis background seperti `visibilitychange`).
+- **Input Keterangan Manual (`KolaseView.tsx`):** Menyederhanakan input Baris 1–3 menjadi isian manual dengan `autoComplete="off"` dan teks `placeholder` contoh saja.
+- **Pembaruan Panduan Aplikasi (`GuideModal.tsx`):** Memperbarui panduan **2. Grid Kolase** (fitur Atur Foto, deteksi foto kembar, isian manual Baris 1–3) dan **3. Install App** (cara cek update manual lewat tombol bundar hijau).
+- **Sinkronisasi Versi `2.5.0`:** Memperbarui `APP_VERSION`, `package.json`, `public/version.json`, dan manifest `vite.config.js` ke versi `2.5.0`.
+
+### Dihapus
+- **Fitur Saran Teks & Riwayat Caption (`KolaseView.tsx`, `tpmData.ts`):** Menghapus total `<datalist id="overlayHistoryList">`, `getContextualOverlaySuggestions()`, daftar saran caption bawaan, serta seluruh logic baca/simpan riwayat keterangan ke `localStorage`.
+
 ## [2.4.0] - 2026-11-15
 
 ### Ditambahkan

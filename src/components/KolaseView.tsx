@@ -2,12 +2,9 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   formatDateIndo,
   getAreaForDateAndShift,
-  getContextualOverlaySuggestions,
   getLocalTodayStr,
   getOperationalShiftInfo,
-  loadOverlayHistory,
   loadSavedPreferences,
-  saveOverlayHistory,
   savePreferences,
   type GridType,
   type ShiftName,
@@ -20,6 +17,7 @@ import {
   renderCollageToCanvas,
   type LoadedPhotoSlot,
 } from '../utils/imageCollage';
+import { PhotoEditorModal } from './PhotoEditorModal';
 
 export interface KolaseInitialParams {
   date?: string;
@@ -94,14 +92,14 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
   const [row2, setRow2] = useState<string>(savedPrefs.row2);
   const [row3, setRow3] = useState<string>(savedPrefs.row3);
 
-  const [savedOverlayHistory, setSavedOverlayHistory] = useState<string[]>(() =>
-    loadOverlayHistory()
-  );
-
   const [beforeSlots, setBeforeSlots] = useState<Array<LoadedPhotoSlot | null>>([]);
   const [afterSlots, setAfterSlots] = useState<Array<LoadedPhotoSlot | null>>([]);
   const [isPickingFile, setIsPickingFile] = useState(false);
   const [isReportSubmitted, setIsReportSubmitted] = useState(false);
+  const [editingTarget, setEditingTarget] = useState<{
+    side: 'before' | 'after';
+    index: number;
+  } | null>(null);
 
   const [toast, setToast] = useState<FloatingToastState | null>(null);
   const toastTimerRef = useRef<number | null>(null);
@@ -372,16 +370,30 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
     setIsReportSubmitted(false);
     clearToastTimers();
     setToast(null);
+    setEditingTarget(null);
     if (slotPickerRef.current) slotPickerRef.current.value = '';
   };
 
-  const handleCommitHistory = useCallback(() => {
-    const updated = saveOverlayHistory([row1, row2, row3]);
-    setSavedOverlayHistory(updated);
-  }, [row1, row2, row3]);
+  const handleSaveEditedSlot = (updatedSlot: LoadedPhotoSlot) => {
+    if (!editingTarget) return;
+    const setSlots = editingTarget.side === 'before' ? setBeforeSlots : setAfterSlots;
+    setSlots((prev) => {
+      const next = [...prev];
+      next[editingTarget.index] = updatedSlot;
+      return next;
+    });
+    setIsReportSubmitted(false);
+    setEditingTarget(null);
+  };
+
+  const handleReplaceEditedPhoto = () => {
+    if (!editingTarget) return;
+    const { side, index } = editingTarget;
+    triggerSlotPicker(side, index);
+    setEditingTarget(null);
+  };
 
   const handleCopyCaption = async () => {
-    handleCommitHistory();
     const copied = await copyTextToClipboard(captionText);
     if (!isMountedRef.current) return;
     if (copied) {
@@ -410,7 +422,6 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
     }
 
     setExportStatus('exporting');
-    handleCommitHistory();
 
     const exportCanvas = document.createElement('canvas');
     const rendered = renderCollageToCanvas(exportCanvas, {
@@ -498,10 +509,15 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
     );
   };
 
-  const contextualSuggestions = useMemo(
-    () => getContextualOverlaySuggestions(tpmArea, savedOverlayHistory),
-    [tpmArea, savedOverlayHistory]
-  );
+  const editingSlot =
+    editingTarget !== null
+      ? (editingTarget.side === 'before' ? beforeSlots : afterSlots)[editingTarget.index] || null
+      : null;
+
+  const editingSlotLabel =
+    editingTarget !== null
+      ? `${editingTarget.side === 'before' ? 'Before' : 'After'} ${editingTarget.index + 1}`
+      : '';
 
   const rowValues = [row1, row2, row3];
   const displayAreaStamp = tpmArea.trim() || 'TPM UREA 1B';
@@ -662,19 +678,19 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
                               <img
                                 src={cell.slot.previewUrl}
                                 alt={cell.label}
-                                onClick={() => triggerSlotPicker(cell.side, r)}
+                                onClick={() => setEditingTarget({ side: cell.side, index: r })}
                                 className="h-full w-full cursor-pointer object-cover"
                               />
                             ) : (
                               <div
-                                onClick={() => triggerSlotPicker(cell.side, r)}
+                                onClick={() => setEditingTarget({ side: cell.side, index: r })}
                                 className="flex h-full w-full cursor-pointer items-center justify-center bg-[#1c1c1c] text-xs text-[#888]"
                               >
                                 {cell.label}
                               </div>
                             )}
 
-                            {/* Tombol Hapus (✕) saja — tap langsung foto untuk ganti */}
+                            {/* Tombol Hapus (✕) saja — tap langsung foto untuk buka editor Atur Foto */}
                             <button
                               type="button"
                               aria-label={`Hapus ${cell.label}`}
@@ -750,22 +766,15 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
             </button>
           </div>
 
-          <datalist id="overlayHistoryList">
-            {contextualSuggestions.map((item) => (
-              <option key={item} value={item} />
-            ))}
-          </datalist>
-
           <div className="flex w-full flex-col gap-2">
             <input
               type="text"
               id="row1Text"
               aria-label="Kegiatan Baris 1"
-              list="overlayHistoryList"
+              autoComplete="off"
               value={row1}
               onChange={(e) => setRow1(e.target.value)}
-              onBlur={handleCommitHistory}
-              placeholder="Baris 1 (misal: Regreasing BV)"
+              placeholder="Misal: Regreasing BV"
               className="tpm-input"
             />
 
@@ -774,11 +783,10 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
                 type="text"
                 id="row2Text"
                 aria-label="Kegiatan Baris 2"
-                list="overlayHistoryList"
+                autoComplete="off"
                 value={row2}
                 onChange={(e) => setRow2(e.target.value)}
-                onBlur={handleCommitHistory}
-                placeholder="Baris 2 (misal: Cleaning baseplate pompa)"
+                placeholder="Misal: Cleaning baseplate pompa"
                 className="tpm-input"
               />
             )}
@@ -788,11 +796,10 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
                 type="text"
                 id="row3Text"
                 aria-label="Kegiatan Baris 3"
-                list="overlayHistoryList"
+                autoComplete="off"
                 value={row3}
                 onChange={(e) => setRow3(e.target.value)}
-                onBlur={handleCommitHistory}
-                placeholder="Baris 3 (misal: Cleaning area & grating)"
+                placeholder="Misal: Cleaning area & grating"
                 className="tpm-input"
               />
             )}
@@ -837,6 +844,15 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
           </button>
         </div>
       </div>
+
+      <PhotoEditorModal
+        isOpen={editingTarget !== null && editingSlot !== null}
+        slotLabel={editingSlotLabel}
+        slot={editingSlot}
+        onSave={handleSaveEditedSlot}
+        onReplacePhoto={handleReplaceEditedPhoto}
+        onCancel={() => setEditingTarget(null)}
+      />
     </>
   );
 };

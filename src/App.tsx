@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   APP_VERSION,
   clearLegacyOverlayHistory,
+  getAreaForDateAndShift,
+  getOperationalShiftInfo,
   type ReportedLogEntry,
   type ShiftName,
 } from './data/tpmData';
@@ -14,7 +16,7 @@ import {
   unpublishShiftReport,
 } from './services/shiftReportSync';
 import { DashboardView } from './components/DashboardView';
-import { KolaseView, type KolaseInitialParams } from './components/KolaseView';
+import { KolaseView } from './components/KolaseView';
 import { GuideModal } from './components/GuideModal';
 import { ChangelogModal } from './components/ChangelogModal';
 import { IosInstallModal } from './components/IosInstallModal';
@@ -33,49 +35,75 @@ import {
 
 type AppRoute = 'jadwal' | 'kolase';
 
-interface RouteState {
-  route: AppRoute;
-  kolaseParams: KolaseInitialParams;
+interface KolaseContextState {
+  date: string;
+  shift: ShiftName;
+  area: string;
 }
 
-function parseLocationToRouteState(): RouteState {
+interface ParsedHashRoute {
+  route: AppRoute;
+  date?: string;
+  shift?: ShiftName;
+  area?: string;
+}
+
+function parseLocationToRouteState(): ParsedHashRoute {
   const hash = window.location.hash || '';
   if (hash.startsWith('#kolase')) {
     const queryIdx = hash.indexOf('?');
     const searchStr = queryIdx !== -1 ? hash.slice(queryIdx + 1) : '';
     const params = new URLSearchParams(searchStr);
+    const rawDate = params.get('date') || undefined;
+    const rawShift = params.get('shift') || undefined;
+    const rawArea = params.get('area');
     return {
       route: 'kolase',
-      kolaseParams: {
-        date: params.get('date') || undefined,
-        shift: params.get('shift') || undefined,
-        area: params.get('area') || undefined,
-      },
+      date: rawDate && /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : undefined,
+      shift:
+        rawShift && (['PAGI', 'SORE', 'MALAM'] as const).includes(rawShift as ShiftName)
+          ? (rawShift as ShiftName)
+          : undefined,
+      area: rawArea !== null ? rawArea : undefined,
     };
   }
 
   const legacyParams = new URLSearchParams(window.location.search);
   if (legacyParams.has('date') || legacyParams.has('shift') || legacyParams.has('area')) {
+    const rawDate = legacyParams.get('date') || undefined;
+    const rawShift = legacyParams.get('shift') || undefined;
+    const rawArea = legacyParams.get('area');
     return {
       route: 'kolase',
-      kolaseParams: {
-        date: legacyParams.get('date') || undefined,
-        shift: legacyParams.get('shift') || undefined,
-        area: legacyParams.get('area') || undefined,
-      },
+      date: rawDate && /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : undefined,
+      shift:
+        rawShift && (['PAGI', 'SORE', 'MALAM'] as const).includes(rawShift as ShiftName)
+          ? (rawShift as ShiftName)
+          : undefined,
+      area: rawArea !== null ? rawArea : undefined,
     };
   }
 
   return {
     route: 'jadwal',
-    kolaseParams: {},
   };
+}
+
+function buildInitialKolaseContext(parsed: ParsedHashRoute): KolaseContextState {
+  const op = getOperationalShiftInfo();
+  const date = parsed.date || op.dateStr;
+  const shift = parsed.shift || op.shift;
+  const area = parsed.area !== undefined ? parsed.area : getAreaForDateAndShift(date, shift);
+  return { date, shift, area };
 }
 
 export const App: React.FC = () => {
   useNativeTouchGuard();
 
-  const [routeState, setRouteState] = useState<RouteState>(() => parseLocationToRouteState());
+  const [route, setRoute] = useState<AppRoute>(() => parseLocationToRouteState().route);
+  const [kolaseContext, setKolaseContext] = useState<KolaseContextState>(() =>
+    buildInitialKolaseContext(parseLocationToRouteState())
+  );
   const [reportedLog, setReportedLog] = useState<Record<string, ReportedLogEntry>>({});
   const [guideOpen, setGuideOpen] = useState(false);
   const [changelogOpen, setChangelogOpen] = useState(false);
@@ -87,7 +115,7 @@ export const App: React.FC = () => {
   } | null>(null);
   const updateToastTimerRef = useRef<number | null>(null);
 
-  const effectiveHasFilledPhotos = routeState.route === 'kolase' && hasFilledPhotos;
+  const effectiveHasFilledPhotos = route === 'kolase' && hasFilledPhotos;
 
   const { isInstallable, isIOS, showInstallButton, install } = usePWAInstall();
   const {
@@ -132,13 +160,25 @@ export const App: React.FC = () => {
   useEffect(() => {
     const handleHashChange = () => {
       const parsed = parseLocationToRouteState();
-      setRouteState((prev) => ({
-        route: parsed.route,
-        kolaseParams:
-          parsed.route === 'kolase'
-            ? { ...parsed.kolaseParams, requestKey: (prev.kolaseParams.requestKey || 0) + 1 }
-            : prev.kolaseParams,
-      }));
+      setRoute(parsed.route);
+      if (
+        parsed.route === 'kolase' &&
+        (parsed.date !== undefined || parsed.shift !== undefined || parsed.area !== undefined)
+      ) {
+        setKolaseContext((prev) => {
+          const nextDate = parsed.date || prev.date;
+          const nextShift = parsed.shift || prev.shift;
+          const nextArea =
+            parsed.area !== undefined
+              ? parsed.area
+              : getAreaForDateAndShift(nextDate, nextShift);
+          return {
+            date: nextDate,
+            shift: nextShift,
+            area: nextArea,
+          };
+        });
+      }
     };
 
     window.addEventListener('hashchange', handleHashChange);
@@ -146,13 +186,12 @@ export const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    document.title =
-      routeState.route === 'kolase' ? 'Kolase Foto TPM' : 'Dashboard TPM Urea 1B';
-  }, [routeState.route]);
+    document.title = route === 'kolase' ? 'Kolase Foto TPM' : 'Dashboard TPM Urea 1B';
+  }, [route]);
 
   const navigateToJadwal = useCallback(() => {
     window.location.hash = '#jadwal';
-    setRouteState((prev) => ({ ...prev, route: 'jadwal' }));
+    setRoute('jadwal');
     window.scrollTo(0, 0);
   }, []);
 
@@ -165,22 +204,15 @@ export const App: React.FC = () => {
           area: params.area,
         });
         window.location.hash = `#kolase?${search.toString()}`;
-        setRouteState((prev) => ({
-          route: 'kolase',
-          kolaseParams: {
-            date: params.date,
-            shift: params.shift,
-            area: params.area,
-            requestKey: (prev.kolaseParams.requestKey || 0) + 1,
-          },
-        }));
+        setKolaseContext({
+          date: params.date,
+          shift: params.shift,
+          area: params.area,
+        });
       } else {
         window.location.hash = '#kolase';
-        setRouteState((prev) => ({
-          route: 'kolase',
-          kolaseParams: prev.kolaseParams,
-        }));
       }
+      setRoute('kolase');
       window.scrollTo(0, 0);
     },
     []
@@ -224,13 +256,26 @@ export const App: React.FC = () => {
     [handleReportUndo]
   );
 
+  const handleKolaseDateChange = useCallback((newDate: string) => {
+    setKolaseContext((prev) => ({
+      date: newDate,
+      shift: prev.shift,
+      area: getAreaForDateAndShift(newDate, prev.shift),
+    }));
+  }, []);
+
+  const handleKolaseShiftChange = useCallback((newShift: ShiftName) => {
+    setKolaseContext((prev) => ({
+      date: prev.date,
+      shift: newShift,
+      area: getAreaForDateAndShift(prev.date, newShift),
+    }));
+  }, []);
+
   const handleKolaseAreaChange = useCallback((area: string) => {
-    setRouteState((prev) => ({
+    setKolaseContext((prev) => ({
       ...prev,
-      kolaseParams: {
-        ...prev.kolaseParams,
-        area,
-      },
+      area,
     }));
   }, []);
 
@@ -257,7 +302,7 @@ export const App: React.FC = () => {
     <div className="flex w-full max-w-[800px] flex-1 flex-col gap-4">
       <header className="flex flex-col items-center text-center">
         <h1 className="mb-1 flex items-center justify-center gap-2 text-[1.45rem] font-bold text-white sm:text-[1.5rem]">
-          {routeState.route === 'kolase' ? (
+          {route === 'kolase' ? (
             <>
               <IconImage className="text-[#007aff]" /> Kolase Foto TPM
             </>
@@ -268,7 +313,7 @@ export const App: React.FC = () => {
           )}
         </h1>
         <p className="text-[0.88rem] text-[#aaaaaa]">
-          {routeState.route === 'kolase'
+          {route === 'kolase'
             ? 'Susun Dokumentasi Before & After'
             : 'Monitoring & Jadwal Inspeksi Mesin'}
         </p>
@@ -290,7 +335,7 @@ export const App: React.FC = () => {
             navigateToJadwal();
           }}
           className={`flex min-w-0 items-center gap-2.5 rounded-xl border p-3 text-white no-underline transition sm:gap-3 sm:p-3.5 ${
-            routeState.route === 'jadwal'
+            route === 'jadwal'
               ? 'border-[#007aff] bg-[#1a2736]'
               : 'border-[#333] bg-[#1e1e1e]'
           }`}
@@ -313,7 +358,7 @@ export const App: React.FC = () => {
             navigateToKolase();
           }}
           className={`flex min-w-0 items-center gap-2.5 rounded-xl border p-3 text-white no-underline transition sm:gap-3 sm:p-3.5 ${
-            routeState.route === 'kolase'
+            route === 'kolase'
               ? 'border-[#007aff] bg-[#1a2736]'
               : 'border-[#333] bg-[#1e1e1e]'
           }`}
@@ -332,7 +377,7 @@ export const App: React.FC = () => {
 
       {/* Main View */}
       <main className="w-full min-w-0">
-        {routeState.route === 'jadwal' ? (
+        {route === 'jadwal' ? (
           <DashboardView
             reportedLog={reportedLog}
             onSelectShift={(params) => navigateToKolase(params)}
@@ -340,11 +385,15 @@ export const App: React.FC = () => {
           />
         ) : (
           <KolaseView
-            initialParams={routeState.kolaseParams}
+            date={kolaseContext.date}
+            shift={kolaseContext.shift}
+            area={kolaseContext.area}
             reportedLog={reportedLog}
+            onDateChange={handleKolaseDateChange}
+            onShiftChange={handleKolaseShiftChange}
+            onAreaChange={handleKolaseAreaChange}
             onReportSubmitted={handleReportSubmitted}
             onRestoreReport={handleReportRestore}
-            onAreaChange={handleKolaseAreaChange}
             onHasFilledPhotosChange={setHasFilledPhotos}
           />
         )}

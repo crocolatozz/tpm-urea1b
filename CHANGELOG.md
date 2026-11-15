@@ -2,6 +2,17 @@
 
 Semua perubahan penting pada aplikasi **Dashboard & Kolase Foto TPM Urea 1B** dicatat di file ini mengikuti standar [Semantic Versioning](https://semver.org/).
 
+## [2.6.1] - 2026-11-15
+
+### Diperbaiki
+- **Sinkronisasi State Tanggal & Shift Kolase (`KolaseView.tsx`, `App.tsx`):** Menjadikan Tanggal, Shift, dan Tag Equipment satu sumber state (*single source of truth*) agar perubahan Tanggal atau Shift langsung memperbarui tampilan UI, filter Tag Equipment, kotak Preview, dan teks Caption WhatsApp secara *real-time* tanpa tertimpa state lama.
+- **Proporsi Canvas Kolase Identik 1:1 dengan Preview (`imageCollage.ts`):** Menyesuaikan tinggi bar header (`cellWidth * 0.115`), font header (`cellWidth * 0.052` dengan *letter-spacing*), tinggi bar footer (`cellWidth * 0.10`), font footer (`cellWidth * 0.041` dengan pengaman otomatis pada `92%` lebar kanvas), serta padding/jarak antar-sel (`cellWidth * 0.012`), dengan mempertahankan gaya dan posisi kapsul keterangan tengah.
+
+### Diubah
+- **Custom Dropdown Shift dengan Ikon Cuaca (`KolaseView.tsx`, `Icons.tsx`):** Mengganti `<select>` bawaan pada pemilih Shift menjadi dropdown kustom bergaya *dark mode* dengan ikon SVG cuaca `1em` (`Sun` `text-amber-400`, `CloudSun` `text-orange-400`, `Moon` `text-indigo-300`) yang menempel rapat di sisi kiri teks Shift.
+- **Polesan Visual & Konsistensi UI (`KolaseView.tsx`, `Icons.tsx`, `DashboardView.tsx`):** Menambahkan ikon SVG sapu (`IconBroom`) pada tombol **Bersihkan**, menyamakan header **Caption WhatsApp** menjadi biru, membulatkan sudut foto terisi (`overflow-hidden rounded-lg`), memperkalem tombol hapus slot (`bg-slate-950/80` + aksen `rose`), mengubah tombol aktif **Kirim ke WhatsApp** menjadi emerald berteks putih (`bg-emerald-600 text-white`), serta meringkas placeholder pencarian alat menjadi `Cari alat (GA101, FLARE)...`.
+- **Penyelarasan Panduan Aplikasi (`GuideModal.tsx`):** Menyeragamkan label **`Cari Alat / Area`**, badge **`SHIFT AKTIF`** & **`Ya, Update`** hijau (`text-emerald-400`), badge **`DILAPORKAN`** dengan ikon centang `1em`, **`Buat Kolase`**, serta **`Install Aplikasi`** biru (`text-sky-400`), dengan presisi ukuran inline SVG `w-[1em] h-[1em] align-[-0.125em]`.
+
 ## [2.6.0] - 2026-11-15
 
 ### Ditambahkan

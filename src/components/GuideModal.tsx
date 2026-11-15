@@ -92,28 +92,30 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
                 <li>
                   Tap kotak tanggal untuk memilih lewat kalender, tekan panah{' '}
                   <strong className="inline-flex items-center">
-                    <IconChevronLeft />
+                    <IconChevronLeft className="inline-block h-[1em] w-[1em] align-[-0.125em]" />
                   </strong>{' '}
                   dan{' '}
                   <strong className="inline-flex items-center">
-                    <IconChevronRight />
+                    <IconChevronRight className="inline-block h-[1em] w-[1em] align-[-0.125em]" />
                   </strong>{' '}
-                  untuk geser harian, atau ketik di <strong>Cari Alat</strong> untuk melihat jadwal
-                  rotasi 15 hari.
+                  untuk geser harian, atau ketik di <strong>Cari Alat / Area</strong> untuk melihat
+                  jadwal rotasi 15 hari.
                 </li>
                 <li>
-                  Badge <strong>SHIFT AKTIF</strong> menandakan shift berjalan (termasuk shift
-                  malam lintas hari jam 00:00–06:59). Status{' '}
-                  <strong className="inline-flex items-center gap-0.5 text-[#8cc8ff]">
-                    <IconCheck /> DILAPORKAN
+                  Badge <strong className="text-emerald-400">SHIFT AKTIF</strong> menandakan shift
+                  berjalan (termasuk shift malam lintas hari jam 00:00–06:59). Status{' '}
+                  <strong className="inline-flex items-center gap-1 text-sky-400">
+                    <IconCheck className="inline-block h-[1em] w-[1em] align-[-0.125em]" />{' '}
+                    DILAPORKAN
                   </strong>{' '}
                   otomatis tersinkron ke semua HP operator lain dan bisa di-tap untuk reset bila
                   perlu.
                 </li>
                 <li>
                   Tap kartu jadwal (
-                  <strong className="inline-flex items-center gap-1">
-                    Buat Kolase <IconArrowRight />
+                  <strong className="inline-flex items-center gap-1 text-sky-400">
+                    Buat Kolase{' '}
+                    <IconArrowRight className="inline-block h-[1em] w-[1em] align-[-0.125em]" />
                   </strong>
                   ) untuk langsung mengisi tanggal, shift, dan nama equipment ke halaman Kolase.
                 </li>
@@ -132,33 +134,39 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
                   <strong>2x3</strong>) lalu <strong>tap kotak slot (+)</strong> untuk memasukkan
                   foto. Tap foto terpasang untuk membuka <strong>Atur Foto</strong> (crop 1:1,
                   pinch-zoom, putar{' '}
-                  <strong className="inline-flex items-center gap-0.5">
-                    <IconRotateCw /> 90°
+                  <strong className="inline-flex items-center gap-1">
+                    <IconRotateCw className="inline-block h-[1em] w-[1em] align-[-0.125em]" /> 90°
                   </strong>
                   , atau{' '}
-                  <strong className="inline-flex items-center gap-0.5">
-                    <IconImageSwap /> Ganti Foto
+                  <strong className="inline-flex items-center gap-1">
+                    <IconImageSwap className="inline-block h-[1em] w-[1em] align-[-0.125em]" />{' '}
+                    Ganti Foto
                   </strong>
                   ). Tap{' '}
                   <strong className="inline-flex items-center">
-                    <IconClose />
+                    <IconClose className="inline-block h-[1em] w-[1em] align-[-0.125em]" />
                   </strong>{' '}
                   di pojok foto untuk menghapusnya.
                 </li>
                 <li>
                   Isi keterangan kegiatan secara manual di <strong>Baris 1–3</strong> (minimal 1
                   baris), lalu tekan tombol hijau{' '}
-                  <strong className="inline-flex items-center gap-1 text-[#4cd964]">
-                    <IconSend /> Kirim ke WhatsApp
+                  <strong className="inline-flex items-center gap-1 text-emerald-400">
+                    <IconSend className="inline-block h-[1em] w-[1em] align-[-0.125em]" /> Kirim ke
+                    WhatsApp
                   </strong>{' '}
                   dan pilih grup WA tujuan.
                 </li>
                 <li>
                   Setelah kirim ke WhatsApp, pop-up konfirmasi akan muncul otomatis: pilih{' '}
-                  <strong className="text-[#4cd964]">Ya, Update</strong> untuk menjaga status{' '}
-                  <strong>Terlapor</strong> serta membersihkan foto &amp; caption, atau pilih{' '}
-                  <strong>Batal</strong> jika pengiriman gagal untuk membatalkan status dan
-                  mengirim ulang tanpa mengisi dari awal.
+                  <strong className="text-emerald-400">Ya, Update</strong> untuk menjaga status{' '}
+                  <strong className="inline-flex items-center gap-1 text-sky-400">
+                    <IconCheck className="inline-block h-[1em] w-[1em] align-[-0.125em]" />{' '}
+                    DILAPORKAN
+                  </strong>{' '}
+                  serta membersihkan foto &amp; caption, atau pilih <strong>Batal</strong> jika
+                  pengiriman gagal untuk membatalkan status dan mengirim ulang tanpa mengisi dari
+                  awal.
                 </li>
               </ul>
             </div>
@@ -172,32 +180,39 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
               <ul className="flex list-disc flex-col gap-2 pl-[18px]">
                 <li>
                   <strong>Android (Chrome / Samsung Browser):</strong> Tap tombol biru{' '}
-                  <strong className="inline-flex items-center gap-1">
-                    <IconDownload /> Install Aplikasi
+                  <strong className="inline-flex items-center gap-1 text-sky-400">
+                    <IconDownload className="inline-block h-[1em] w-[1em] align-[-0.125em]" />{' '}
+                    Install Aplikasi
                   </strong>{' '}
-                  atau buka menu browser <IconArrowRight className="text-[#8ab4f8]" /> pilih{' '}
-                  <strong>Install app / Tambahkan ke layar utama</strong>. Jika muncul peringatan
-                  Play Protect di Samsung Browser, pilih{' '}
+                  atau buka menu browser{' '}
+                  <IconArrowRight className="inline-block h-[1em] w-[1em] align-[-0.125em] text-[#8ab4f8]" />{' '}
+                  pilih <strong>Install app / Tambahkan ke layar utama</strong>. Jika muncul
+                  peringatan Play Protect di Samsung Browser, pilih{' '}
                   <strong>Install anyway / Tetap install</strong>.
                 </li>
                 <li>
                   <strong>iPhone (Safari):</strong> Tap ikon{' '}
-                  <strong className="inline-flex items-center gap-1">
-                    Share <IconShareIos className="text-[#64b5f6]" />
+                  <strong className="inline-flex items-center gap-1 text-sky-400">
+                    Share{' '}
+                    <IconShareIos className="inline-block h-[1em] w-[1em] align-[-0.125em]" />
                   </strong>{' '}
-                  <IconArrowRight className="text-[#8ab4f8]" /> pilih{' '}
-                  <strong className="inline-flex items-center gap-1">
-                    Tambah ke Layar Utama <IconPlusSquare className="text-[#64b5f6]" />
+                  <IconArrowRight className="inline-block h-[1em] w-[1em] align-[-0.125em] text-[#8ab4f8]" />{' '}
+                  pilih{' '}
+                  <strong className="inline-flex items-center gap-1 text-sky-400">
+                    Tambah ke Layar Utama{' '}
+                    <IconPlusSquare className="inline-block h-[1em] w-[1em] align-[-0.125em]" />
                   </strong>
                   .
                 </li>
                 <li>
                   <strong>Cek Update Manual &amp; Offline:</strong> Ketuk badge{' '}
-                  <strong>Versi</strong> di footer <IconArrowRight className="text-[#8ab4f8]" />{' '}
+                  <strong>Versi</strong> di footer{' '}
+                  <IconArrowRight className="inline-block h-[1em] w-[1em] align-[-0.125em] text-[#8ab4f8]" />{' '}
                   ketuk <strong>tombol bundar hijau</strong> di pojok kanan atas modal untuk mengecek
                   versi baru. Mode offline tetap aman bekerja dan status{' '}
-                  <strong className="inline-flex items-center gap-0.5">
-                    <IconCheck /> DILAPORKAN
+                  <strong className="inline-flex items-center gap-1 text-sky-400">
+                    <IconCheck className="inline-block h-[1em] w-[1em] align-[-0.125em]" />{' '}
+                    DILAPORKAN
                   </strong>{' '}
                   otomatis tersinkron saat sinyal kembali.
                 </li>

@@ -211,7 +211,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               id="equipmentSearchInput"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Ketik kode alat (GA101, FLARE, GB301)..."
+              placeholder="Cari alat (GA101, FLARE)..."
               className="tpm-input pr-10!"
             />
             {searchQuery.trim() && (

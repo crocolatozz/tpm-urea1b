@@ -1,9 +1,9 @@
 {
-  "version": "2.6.0",
+  "version": "2.6.1",
   "notes": [
-    "Standardisasi seluruh ikon antarmuka menjadi inline SVG 1em (cuaca shift, Send 45°, Copy, dan Ganti Foto)",
-    "Modal konfirmasi pasca-kirim WhatsApp dengan optimistic update status Terlapor dan rollback jika dibatalkan",
-    "Reset otomatis input caption Baris 1–3 saat berpindah tab sambil mempertahankan Tag Equipment",
-    "Penyempurnaan tombol Reset merah kalem di Atur Foto dan animasi spin simetris min. 600ms di tombol Cek Update"
+    "Penyesuaian proporsi header, footer, dan padding kolase canvas agar identik 1:1 dengan tampilan Preview",
+    "Perbaikan sinkronisasi state Tanggal & Shift ke tampilan UI, filter Tag Equipment, dan Caption WhatsApp",
+    "Custom dropdown Shift dengan ikon SVG cuaca menempel rapi serta polesan warna & ikon di halaman Kolase",
+    "Penyelarasan isi & warna badge pada Panduan serta ringkas placeholder pencarian alat"
   ]
 }

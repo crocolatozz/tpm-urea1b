@@ -407,10 +407,10 @@ export function renderCollageToCanvas(
 
   const cellWidth = COLLAGE_CELL_WIDTH;
   const cellHeight = COLLAGE_CELL_HEIGHT; // 1:1 square Instagram-style grid
-  const gap = 12;
+  const gap = Math.round(cellWidth * 0.012);
   const padding = gap;
-  const headerHeight = 160;
-  const footerHeight = 96; // Dedicated clean bottom frame strip for legible timestamp & area
+  const headerHeight = Math.round(cellWidth * 0.115);
+  const footerHeight = Math.round(cellWidth * 0.1);
 
   const canvasWidth = cellWidth * 2 + gap + padding * 2;
   const canvasHeight =
@@ -424,8 +424,14 @@ export function renderCollageToCanvas(
   ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
   // Main Column Headers (BEFORE | AFTER)
+  const headerFontSize = Math.round(cellWidth * 0.052);
+  const ctxWithSpacing = ctx as CanvasRenderingContext2D & { letterSpacing?: string };
+  ctx.save();
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 76px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  ctx.font = `800 ${headerFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+  if ('letterSpacing' in ctxWithSpacing) {
+    ctxWithSpacing.letterSpacing = `${Math.max(1, Math.round(headerFontSize * 0.06))}px`;
+  }
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
@@ -435,6 +441,7 @@ export function renderCollageToCanvas(
 
   ctx.fillText('BEFORE', leftColCenterX, headerCenterY);
   ctx.fillText('AFTER', rightColCenterX, headerCenterY);
+  ctx.restore();
 
   // Render Grid Photos
   const startY = padding + headerHeight;
@@ -501,18 +508,18 @@ export function renderCollageToCanvas(
     ctx.restore();
   });
 
-  // Redesigned Large & Legible Timestamp Metadata Strip in Bottom Frame
+  // Compact & Proportional Timestamp Metadata Strip in Bottom Frame
   const areaLabel = areaName.trim() || 'TPM UREA 1B';
   const dateLabel = formatDateIndo(dateStr);
   const stampText = `TPM ${areaLabel}   •   SHIFT ${shiftName}   •   ${dateLabel}`;
 
   const footerCenterY = startY + rows * cellHeight + (rows - 1) * gap + footerHeight / 2;
   ctx.save();
-  let stampFontSize = 40;
-  const maxStampWidth = canvasWidth - padding * 2 - 40;
+  let stampFontSize = Math.round(cellWidth * 0.041);
+  const maxStampWidth = Math.round(canvasWidth * 0.92);
   ctx.font = `700 ${stampFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
-  while (ctx.measureText(stampText).width > maxStampWidth && stampFontSize > 24) {
-    stampFontSize -= 2;
+  while (ctx.measureText(stampText).width > maxStampWidth && stampFontSize > 18) {
+    stampFontSize -= 1;
     ctx.font = `700 ${stampFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
   }
   ctx.fillStyle = '#e5e7eb';

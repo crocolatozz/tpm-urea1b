@@ -5,7 +5,7 @@ interface IconProps {
   className?: string;
 }
 
-const baseIconClass = 'inline-block h-[1em] w-[1em] shrink-0 align-middle';
+const baseIconClass = 'inline-block h-[1em] w-[1em] shrink-0 align-[-0.125em]';
 
 export const IconClose: React.FC<IconProps> = ({ className = '' }) => (
   <svg
@@ -299,6 +299,25 @@ export const IconTrash: React.FC<IconProps> = ({ className = '' }) => (
     <path d="M3 6h18" />
     <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
     <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+  </svg>
+);
+
+export const IconBroom: React.FC<IconProps> = ({ className = '' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2.2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    className={`${baseIconClass} ${className}`.trim()}
+  >
+    <path d="M20 4 12 12" />
+    <path d="m9.5 9.5 5 5" />
+    <path d="M9.5 9.5 3.5 14.5l6 6 5-6" />
+    <path d="m11 11-5.5 5.5" />
+    <path d="m13 13-5.5 5.5" />
   </svg>
 );
 

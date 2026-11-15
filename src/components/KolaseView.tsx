@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   formatDateIndo,
-  getAreaForDateAndShift,
   getLocalTodayStr,
   getOperationalShiftInfo,
   loadSavedPreferences,
@@ -21,7 +20,9 @@ import {
 import { PhotoEditorModal } from './PhotoEditorModal';
 import {
   IconAlertTriangle,
+  IconBroom,
   IconCheck,
+  IconChevronDown,
   IconClose,
   IconCopy,
   IconEditPen,
@@ -34,23 +35,20 @@ import {
   ShiftWeatherIcon,
 } from './Icons';
 
-export interface KolaseInitialParams {
-  date?: string;
-  shift?: string;
-  area?: string;
-  requestKey?: number;
-}
-
 interface KolaseViewProps {
-  initialParams?: KolaseInitialParams;
+  date: string;
+  shift: ShiftName;
+  area: string;
   reportedLog: Record<string, ReportedLogEntry>;
+  onDateChange: (date: string) => void;
+  onShiftChange: (shift: ShiftName) => void;
+  onAreaChange: (area: string) => void;
   onReportSubmitted: (dateStr: string, shift: ShiftName, area: string) => Promise<void>;
   onRestoreReport: (
     dateStr: string,
     shift: ShiftName,
     previousEntry: ReportedLogEntry | null
   ) => Promise<void>;
-  onAreaChange?: (area: string) => void;
   onHasFilledPhotosChange?: (hasPhotos: boolean) => void;
 }
 
@@ -75,18 +73,6 @@ interface FloatingToastState {
   kind: 'loading' | 'warning';
 }
 
-function resolveKolaseDate(p?: KolaseInitialParams, fallbackDate?: string): string {
-  if (p?.date && /^\d{4}-\d{2}-\d{2}$/.test(p.date)) return p.date;
-  return fallbackDate || getOperationalShiftInfo().dateStr;
-}
-
-function resolveKolaseShift(p?: KolaseInitialParams, fallbackShift?: ShiftName): ShiftName {
-  if (p?.shift && (['PAGI', 'SORE', 'MALAM'] as const).includes(p.shift as ShiftName)) {
-    return p.shift as ShiftName;
-  }
-  return fallbackShift || getOperationalShiftInfo().shift;
-}
-
 interface PostSendModalState {
   dateStr: string;
   shift: ShiftName;
@@ -95,35 +81,33 @@ interface PostSendModalState {
 }
 
 export const KolaseView: React.FC<KolaseViewProps> = ({
-  initialParams,
+  date,
+  shift,
+  area,
   reportedLog,
+  onDateChange,
+  onShiftChange,
+  onAreaChange,
   onReportSubmitted,
   onRestoreReport,
-  onAreaChange,
   onHasFilledPhotosChange,
 }) => {
   const savedPrefs = useMemo(() => loadSavedPreferences(), []);
   const isIOS = useMemo(() => detectIOSDevice(), []);
-  const defaultOpShift = useMemo(() => getOperationalShiftInfo(), []);
 
-  const [tpmDate, setTpmDate] = useState<string>(() =>
-    resolveKolaseDate(initialParams, defaultOpShift.dateStr)
-  );
-  const [tpmShift, setTpmShift] = useState<ShiftName>(() =>
-    resolveKolaseShift(initialParams, defaultOpShift.shift)
-  );
-  const [tpmArea, setTpmArea] = useState<string>(() => {
-    if (typeof initialParams?.area === 'string') return initialParams.area;
-    const initDate = resolveKolaseDate(initialParams, defaultOpShift.dateStr);
-    const initShift = resolveKolaseShift(initialParams, defaultOpShift.shift);
-    return getAreaForDateAndShift(initDate, initShift);
-  });
+  // Single source of truth berasal dari App.tsx (sinkron penuh ke UI, filter Tag Equipment, Preview, & Caption WA)
+  const tpmDate = date;
+  const tpmShift = shift;
+  const tpmArea = area;
 
   const [gridType, setGridType] = useState<GridType>(savedPrefs.grid);
   // Caption Baris 1-3 selalu bersih di local state & tidak disimpan ke localStorage/App.tsx
   const [row1, setRow1] = useState<string>('');
   const [row2, setRow2] = useState<string>('');
   const [row3, setRow3] = useState<string>('');
+
+  const [shiftMenuOpen, setShiftMenuOpen] = useState(false);
+  const shiftDropdownRef = useRef<HTMLDivElement | null>(null);
 
   const [beforeSlots, setBeforeSlots] = useState<Array<LoadedPhotoSlot | null>>([]);
   const [afterSlots, setAfterSlots] = useState<Array<LoadedPhotoSlot | null>>([]);
@@ -188,16 +172,29 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
     };
   }, [clearToastTimers]);
 
-  // Sync incoming navigation params when user taps a schedule card
+  // Tutup custom dropdown Shift saat tap/klik di luar area atau menekan Escape
   useEffect(() => {
-    if (!initialParams?.requestKey) return;
-    const nextDate = resolveKolaseDate(initialParams);
-    const nextShift = resolveKolaseShift(initialParams);
-    const nextArea = initialParams.area || getAreaForDateAndShift(nextDate, nextShift);
-    setTpmDate(nextDate);
-    setTpmShift(nextShift);
-    setTpmArea(nextArea);
-  }, [initialParams]);
+    if (!shiftMenuOpen) return;
+    const handleOutside = (event: PointerEvent) => {
+      if (
+        shiftDropdownRef.current &&
+        !shiftDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShiftMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShiftMenuOpen(false);
+      }
+    };
+    document.addEventListener('pointerdown', handleOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handleOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [shiftMenuOpen]);
 
   // Persist ONLY grid layout preference (captions are never stored to localStorage)
   useEffect(() => {
@@ -243,22 +240,16 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
 
   const handleDateChange = (newDate: string) => {
     const val = newDate || getOperationalShiftInfo().dateStr;
-    const nextArea = getAreaForDateAndShift(val, tpmShift);
-    setTpmDate(val);
-    setTpmArea(nextArea);
-    onAreaChange?.(nextArea);
+    onDateChange(val);
   };
 
   const handleShiftChange = (newShift: ShiftName) => {
-    const nextArea = getAreaForDateAndShift(effectiveDate, newShift);
-    setTpmShift(newShift);
-    setTpmArea(nextArea);
-    onAreaChange?.(nextArea);
+    onShiftChange(newShift);
+    setShiftMenuOpen(false);
   };
 
   const handleAreaInputChange = (nextArea: string) => {
-    setTpmArea(nextArea);
-    onAreaChange?.(nextArea);
+    onAreaChange(nextArea);
   };
 
   const handleGridSelect = (nextGrid: GridType) => {
@@ -623,7 +614,7 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
         </div>
       )}
 
-      <div className="mb-2 flex w-full flex-col gap-4 overflow-hidden rounded-xl bg-[#1e1e1e] p-3.5 shadow-[0_4px_12px_rgba(0,0,0,0.3)] sm:p-5">
+      <div className="mb-2 flex w-full flex-col gap-4 overflow-x-clip rounded-xl bg-[#1e1e1e] p-3.5 shadow-[0_4px_12px_rgba(0,0,0,0.3)] sm:p-5">
         {/* File Picker: multiple khusus iOS (dengan auto-pick terakhir), Android single-select */}
         <input
           ref={slotPickerRef}
@@ -634,7 +625,7 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
           className="hidden"
         />
 
-        {/* Bagian 1: Kontrol Atas Rata Tengah (Tanggal, Shift, & Full-Width Tag Equipment) */}
+        {/* Bagian 1: Kontrol Atas Rata Tengah (Tanggal, Custom Dropdown Shift, & Full-Width Tag Equipment) */}
         <div className="flex w-full flex-col gap-2">
           <div className="grid w-full grid-cols-2 gap-2">
             {/* Input Tanggal dengan Overlay Rata Tengah DD/MM/YYYY */}
@@ -646,7 +637,7 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
                 type="date"
                 id="tpmDateInput"
                 aria-label="Tanggal"
-                value={tpmDate}
+                value={effectiveDate}
                 onChange={(e) => handleDateChange(e.target.value)}
                 onClick={(e) => {
                   try {
@@ -659,22 +650,56 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
               />
             </div>
 
-            {/* Dropdown Shift Rata Tengah dengan Ikon Cuaca SVG 1em */}
-            <div className="relative flex h-[42px] min-w-0 items-center">
-              <span className="pointer-events-none absolute left-3 z-10 flex items-center text-base">
-                <ShiftWeatherIcon shift={tpmShift} />
-              </span>
-              <select
+            {/* Custom Dropdown Shift dengan Ikon SVG Cuaca 1em Menempel Rapat */}
+            <div ref={shiftDropdownRef} className="relative flex h-[42px] min-w-0 items-center">
+              <button
+                type="button"
                 id="tpmShiftInput"
                 aria-label="Shift"
-                value={tpmShift}
-                onChange={(e) => handleShiftChange(e.target.value as ShiftName)}
-                className="tpm-select tpm-select-centered min-h-[42px]! px-8! py-2! text-center font-semibold"
+                aria-haspopup="listbox"
+                aria-expanded={shiftMenuOpen}
+                onClick={() => setShiftMenuOpen((prev) => !prev)}
+                className="relative flex h-[42px] w-full cursor-pointer items-center justify-center rounded-lg border border-[#3a3a3a] bg-[#2a2a2a] px-8 text-[16px] font-semibold text-white transition hover:border-[#4b4b4b] active:scale-[0.99]"
               >
-                <option value="PAGI">PAGI</option>
-                <option value="SORE">SORE</option>
-                <option value="MALAM">MALAM</option>
-              </select>
+                <span className="inline-flex items-center gap-1.5">
+                  <ShiftWeatherIcon shift={tpmShift} />
+                  <span>{tpmShift}</span>
+                </span>
+                <IconChevronDown
+                  className={`pointer-events-none absolute right-2.5 text-sm text-[#9ca3af] transition-transform duration-150 ${
+                    shiftMenuOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+
+              {shiftMenuOpen && (
+                <div
+                  role="listbox"
+                  aria-label="Pilih Shift"
+                  className="modal-pop absolute top-[calc(100%+6px)] right-0 left-0 z-30 overflow-hidden rounded-lg border border-[#3f3f3f] bg-[#242424] py-1 shadow-[0_10px_28px_rgba(0,0,0,0.75)]"
+                >
+                  {(['PAGI', 'SORE', 'MALAM'] as const).map((optShift) => {
+                    const selected = tpmShift === optShift;
+                    return (
+                      <button
+                        key={optShift}
+                        type="button"
+                        role="option"
+                        aria-selected={selected}
+                        onClick={() => handleShiftChange(optShift)}
+                        className={`flex w-full cursor-pointer items-center justify-center gap-1.5 px-3 py-2.5 text-[15px] font-semibold transition ${
+                          selected
+                            ? 'bg-[#1a2736] text-[#8ab4f8]'
+                            : 'text-white hover:bg-[#303030]'
+                        }`}
+                      >
+                        <ShiftWeatherIcon shift={optShift} />
+                        <span>{optShift}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 
@@ -765,21 +790,21 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
                     {cells.map((cell) => (
                       <div
                         key={cell.side}
-                        className="relative aspect-square w-full min-w-0 overflow-hidden rounded-[4px] bg-[#141414]"
+                        className="relative aspect-square w-full min-w-0 overflow-hidden rounded-lg bg-[#141414]"
                       >
                         {cell.slot ? (
-                          <>
+                          <div className="relative h-full w-full overflow-hidden rounded-lg">
                             {cell.slot.previewUrl ? (
                               <img
                                 src={cell.slot.previewUrl}
                                 alt={cell.label}
                                 onClick={() => setEditingTarget({ side: cell.side, index: r })}
-                                className="h-full w-full cursor-pointer object-cover"
+                                className="h-full w-full cursor-pointer rounded-lg object-cover"
                               />
                             ) : (
                               <div
                                 onClick={() => setEditingTarget({ side: cell.side, index: r })}
-                                className="flex h-full w-full cursor-pointer items-center justify-center bg-[#1c1c1c] text-xs text-[#888]"
+                                className="flex h-full w-full cursor-pointer items-center justify-center rounded-lg bg-[#1c1c1c] text-xs text-[#888]"
                               >
                                 {cell.label}
                               </div>
@@ -793,16 +818,16 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
                                 e.stopPropagation();
                                 removeSingleSlot(cell.side, r);
                               }}
-                              className="absolute top-1.5 right-1.5 z-10 flex h-7 w-7 cursor-pointer items-center justify-center rounded-md bg-[#ff453a]/85 text-sm font-bold text-white backdrop-blur-xs active:scale-90"
+                              className="absolute top-1.5 right-1.5 z-10 flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-rose-500/40 bg-slate-950/80 text-sm font-bold text-rose-400 backdrop-blur-xs transition hover:bg-rose-950/90 active:scale-90"
                             >
                               <IconClose />
                             </button>
-                          </>
+                          </div>
                         ) : (
                           <button
                             type="button"
                             onClick={() => triggerSlotPicker(cell.side, r)}
-                            className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-1 border border-dashed border-[#444] bg-[#141414] p-2 text-[#8f8f8f] transition active:border-[#007aff] active:bg-[#1a2736] active:text-white"
+                            className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-[#444] bg-[#141414] p-2 text-[#8f8f8f] transition active:border-[#007aff] active:bg-[#1a2736] active:text-white"
                           >
                             <IconPlus className="text-xl text-[#007aff]" />
                             <span className="text-[0.72rem] font-semibold">{cell.label}</span>
@@ -857,9 +882,9 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
                 setRow2('');
                 setRow3('');
               }}
-              className="cursor-pointer rounded-md border border-[#444] bg-[#2a2a2a] px-2.5 py-1 text-[0.72rem] font-semibold text-[#ccc] active:scale-[0.96] active:bg-[#383838]"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-[#444] bg-[#2a2a2a] px-2.5 py-1 text-[0.72rem] font-semibold text-[#ccc] transition active:scale-[0.96] active:bg-[#383838]"
             >
-              Bersihkan
+              <IconBroom /> Bersihkan
             </button>
           </div>
 
@@ -905,7 +930,7 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
           {/* Pratinjau Caption WhatsApp */}
           <div className="flex w-full min-w-0 flex-col gap-1.5 pt-1">
             <div className="flex items-center justify-between gap-2">
-              <span className="inline-flex items-center gap-1.5 text-[0.82rem] font-semibold text-[#aaaaaa]">
+              <span className="inline-flex items-center gap-1.5 text-[0.9rem] font-bold text-[#007aff]">
                 <IconMessageSquare /> Caption WhatsApp
               </span>
               <button
@@ -933,16 +958,16 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
             </div>
           </div>
 
-          {/* Tombol Utama "Kirim ke WhatsApp" (Aksen Hijau selaras indikator SHIFT AKTIF) */}
+          {/* Tombol Utama "Kirim ke WhatsApp" (Emerald konsisten dengan tombol aksi utama) */}
           <button
             type="button"
             disabled={!hasPhotos || exportStatus === 'exporting'}
             onClick={handleExportCollage}
-            className="mt-0.5 inline-flex min-h-[50px] w-full cursor-pointer items-center justify-center gap-2 rounded-lg border-0 bg-[#34c759] px-5 py-3.5 text-base font-extrabold text-[#052310] shadow-[0_4px_14px_rgba(52,199,89,0.28)] transition hover:bg-[#3fd164] active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-[#2a332d] disabled:text-[#6b7c70] disabled:shadow-none"
+            className="mt-0.5 inline-flex min-h-[50px] w-full cursor-pointer items-center justify-center gap-2 rounded-lg border-0 bg-emerald-600 px-5 py-3.5 text-base font-extrabold text-white shadow-[0_4px_14px_rgba(16,185,129,0.28)] transition hover:bg-emerald-500 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-[#2a332d] disabled:text-[#6b7c70] disabled:shadow-none"
           >
             {exportStatus === 'exporting' ? (
               <>
-                <span className="spinner border-[#052310]/30! border-t-[#052310]!" /> Menyiapkan
+                <span className="spinner border-white/30! border-t-white!" /> Menyiapkan
                 gambar...
               </>
             ) : (
@@ -1001,7 +1026,7 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
               <button
                 type="button"
                 onClick={handleConfirmPostSend}
-                className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-lg border-0 bg-[#34c759] px-3 py-2.5 text-[0.88rem] font-extrabold text-[#052310] transition hover:bg-[#3fd164] active:scale-[0.98]"
+                className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-lg border-0 bg-emerald-600 px-3 py-2.5 text-[0.88rem] font-extrabold text-white transition hover:bg-emerald-500 active:scale-[0.98]"
               >
                 Ya, Update
               </button>

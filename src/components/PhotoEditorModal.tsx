@@ -7,6 +7,7 @@ import {
   type CropAreaPixels,
   type LoadedPhotoSlot,
 } from '../utils/imageCollage';
+import { IconImageSwap, IconRotateCw } from './Icons';
 
 interface PhotoEditorModalProps {
   isOpen: boolean;
@@ -98,7 +99,7 @@ export const PhotoEditorModal: React.FC<PhotoEditorModalProps> = ({
             onClick={onReplacePhoto}
             className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-[#3a4f66] bg-[#1b2938] px-3 py-1.5 text-[0.76rem] font-bold text-[#8ab4f8] transition hover:bg-[#23364b] active:scale-95"
           >
-            🖼️ Ganti Foto
+            <IconImageSwap /> Ganti Foto
           </button>
         </div>
 
@@ -122,7 +123,7 @@ export const PhotoEditorModal: React.FC<PhotoEditorModalProps> = ({
         {/* Zona 3: Kontrol Bawah */}
         <div className="flex flex-col gap-3">
           {/* Baris Alat: Slider Zoom tipis (kiri) + Rotate 90° & Reset (kanan) */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-[#323232] bg-[#252525] px-2.5 py-2">
               <span className="shrink-0 text-[0.72rem] font-semibold text-[#aaa]">Zoom</span>
               <input
@@ -143,15 +144,15 @@ export const PhotoEditorModal: React.FC<PhotoEditorModalProps> = ({
             <button
               type="button"
               onClick={handleRotate90}
-              className="shrink-0 cursor-pointer rounded-lg border border-[#3a3a3a] bg-[#282828] px-2.5 py-2 text-[0.78rem] font-bold text-white transition hover:bg-[#323232] active:scale-95"
+              className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-lg border border-[#3a3a3a] bg-[#282828] px-2.5 py-2 text-[0.78rem] font-bold text-white transition hover:bg-[#323232] active:scale-95"
             >
-              ↻ 90°
+              <IconRotateCw /> 90°
             </button>
 
             <button
               type="button"
               onClick={handleReset}
-              className="shrink-0 cursor-pointer rounded-lg border border-[#3a3a3a] bg-[#282828] px-2.5 py-2 text-[0.78rem] font-semibold text-[#ccc] transition hover:bg-[#323232] active:scale-95"
+              className="shrink-0 cursor-pointer rounded-lg border border-rose-500/30 bg-rose-500/15 px-2.5 py-2 text-[0.78rem] font-semibold text-rose-400 transition hover:bg-rose-500/25 active:scale-95"
             >
               Reset
             </button>
@@ -162,7 +163,7 @@ export const PhotoEditorModal: React.FC<PhotoEditorModalProps> = ({
             <button
               type="button"
               onClick={onCancel}
-              className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-lg border border-[#444] bg-[#2c2c2c] px-4 py-2.5 text-[0.9rem] font-semibold text-white transition hover:bg-[#353535] active:scale-[0.98]"
+              className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-lg border border-slate-600/50 bg-slate-700 px-4 py-2.5 text-[0.9rem] font-semibold text-slate-200 transition hover:bg-slate-600 active:scale-[0.98]"
             >
               Batal
             </button>

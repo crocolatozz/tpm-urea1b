@@ -20,6 +20,16 @@ import { ChangelogModal } from './components/ChangelogModal';
 import { IosInstallModal } from './components/IosInstallModal';
 import { ForceUpdateModal } from './components/ForceUpdateModal';
 import { OfflineBanner } from './components/OfflineBanner';
+import {
+  IconAlertTriangle,
+  IconCalendar,
+  IconCamera,
+  IconCheck,
+  IconDownload,
+  IconHelpCircle,
+  IconImage,
+  IconSettings,
+} from './components/Icons';
 
 type AppRoute = 'jadwal' | 'kolase';
 
@@ -199,6 +209,31 @@ export const App: React.FC = () => {
     await unpublishShiftReport(dateStr, shift);
   }, []);
 
+  const handleReportRestore = useCallback(
+    async (dateStr: string, shift: ShiftName, previousEntry: ReportedLogEntry | null) => {
+      if (!previousEntry) {
+        await handleReportUndo(dateStr, shift);
+        return;
+      }
+      setReportedLog((prev) => ({
+        ...prev,
+        [`${dateStr}_${shift}`]: previousEntry,
+      }));
+      await publishShiftReport(dateStr, shift, previousEntry.area);
+    },
+    [handleReportUndo]
+  );
+
+  const handleKolaseAreaChange = useCallback((area: string) => {
+    setRouteState((prev) => ({
+      ...prev,
+      kolaseParams: {
+        ...prev.kolaseParams,
+        area,
+      },
+    }));
+  }, []);
+
   const handleInstallClick = async () => {
     if (isInstallable) {
       await install();
@@ -212,19 +247,25 @@ export const App: React.FC = () => {
     if (result === 'update-available') {
       setChangelogOpen(false);
     } else if (result === 'up-to-date') {
-      showUpdateToast('✅ Aplikasi sudah versi terbaru', 'success');
+      showUpdateToast('Aplikasi sudah versi terbaru', 'success');
     } else {
-      showUpdateToast('⚠️ Gagal cek update (mode offline)', 'warning');
+      showUpdateToast('Gagal cek update (mode offline)', 'warning');
     }
   }, [checkForUpdatesManual, showUpdateToast]);
 
   return (
     <div className="flex w-full max-w-[800px] flex-1 flex-col gap-4">
       <header className="flex flex-col items-center text-center">
-        <h1 className="mb-1 text-[1.45rem] font-bold text-white sm:text-[1.5rem]">
-          {routeState.route === 'kolase'
-            ? '🖼️ Kolase Foto TPM'
-            : '⚙️ Dashboard TPM Urea 1B'}
+        <h1 className="mb-1 flex items-center justify-center gap-2 text-[1.45rem] font-bold text-white sm:text-[1.5rem]">
+          {routeState.route === 'kolase' ? (
+            <>
+              <IconImage className="text-[#007aff]" /> Kolase Foto TPM
+            </>
+          ) : (
+            <>
+              <IconSettings className="text-[#8ab4f8]" /> Dashboard TPM Urea 1B
+            </>
+          )}
         </h1>
         <p className="text-[0.88rem] text-[#aaaaaa]">
           {routeState.route === 'kolase'
@@ -236,7 +277,7 @@ export const App: React.FC = () => {
           onClick={() => setGuideOpen(true)}
           className="mt-2.5 inline-flex cursor-pointer items-center gap-1.5 rounded-[20px] border border-[#2b4c70] bg-[#1a2736] px-[18px] py-[7px] text-[0.84rem] font-semibold text-[#64b5f6] transition active:scale-[0.96] active:bg-[#23364b]"
         >
-          ❓ Panduan
+          <IconHelpCircle /> Panduan
         </button>
       </header>
 
@@ -254,7 +295,9 @@ export const App: React.FC = () => {
               : 'border-[#333] bg-[#1e1e1e]'
           }`}
         >
-          <span className="shrink-0 text-[1.3rem] sm:text-[1.4rem]">📅</span>
+          <span className="shrink-0 text-[1.3rem] text-[#8ab4f8] sm:text-[1.4rem]">
+            <IconCalendar />
+          </span>
           <div className="min-w-0">
             <h3 className="truncate text-[0.9rem] font-bold sm:text-[0.95rem]">Jadwal TPM</h3>
             <p className="truncate text-[0.72rem] text-[#aaaaaa] sm:text-[0.75rem]">
@@ -275,7 +318,9 @@ export const App: React.FC = () => {
               : 'border-[#333] bg-[#1e1e1e]'
           }`}
         >
-          <span className="shrink-0 text-[1.3rem] sm:text-[1.4rem]">📸</span>
+          <span className="shrink-0 text-[1.3rem] text-[#8ab4f8] sm:text-[1.4rem]">
+            <IconCamera />
+          </span>
           <div className="min-w-0">
             <h3 className="truncate text-[0.9rem] font-bold sm:text-[0.95rem]">Kolase Foto</h3>
             <p className="truncate text-[0.72rem] text-[#aaaaaa] sm:text-[0.75rem]">
@@ -296,7 +341,10 @@ export const App: React.FC = () => {
         ) : (
           <KolaseView
             initialParams={routeState.kolaseParams}
+            reportedLog={reportedLog}
             onReportSubmitted={handleReportSubmitted}
+            onRestoreReport={handleReportRestore}
+            onAreaChange={handleKolaseAreaChange}
             onHasFilledPhotosChange={setHasFilledPhotos}
           />
         )}
@@ -310,7 +358,7 @@ export const App: React.FC = () => {
             onClick={handleInstallClick}
             className="flex cursor-pointer items-center gap-2 rounded-[25px] border-0 bg-gradient-to-br from-[#007aff] to-[#0056b3] px-6 py-3 text-[0.95rem] font-bold text-white shadow-[0_4px_14px_rgba(0,122,255,0.4)] transition active:scale-[0.96]"
           >
-            📲 Install Aplikasi
+            <IconDownload /> Install Aplikasi
           </button>
         )}
 
@@ -350,13 +398,14 @@ export const App: React.FC = () => {
       {updateToast && (
         <div
           role={updateToast.tone === 'success' ? 'status' : 'alert'}
-          className={`modal-pop fixed bottom-6 left-1/2 z-[10001] w-[calc(100%-2rem)] max-w-[420px] -translate-x-1/2 rounded-xl border px-4 py-3 text-center text-[0.84rem] font-semibold shadow-[0_8px_24px_rgba(0,0,0,0.65)] backdrop-blur-md ${
+          className={`modal-pop fixed bottom-6 left-1/2 z-[10001] flex w-[calc(100%-2rem)] max-w-[420px] -translate-x-1/2 items-center justify-center gap-2 rounded-xl border px-4 py-3 text-center text-[0.84rem] font-semibold shadow-[0_8px_24px_rgba(0,0,0,0.65)] backdrop-blur-md ${
             updateToast.tone === 'success'
               ? 'border-[#34c759]/60 bg-[#18281e]/95 text-[#86efac]'
               : 'border-[#ff9500]/60 bg-[#2a2216]/95 text-[#ffd180]'
           }`}
         >
-          {updateToast.message}
+          {updateToast.tone === 'success' ? <IconCheck /> : <IconAlertTriangle />}
+          <span>{updateToast.message}</span>
         </div>
       )}
     </div>

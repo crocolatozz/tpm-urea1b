@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.5.0';
+export const APP_VERSION = '2.6.0';
 
 export type ShiftName = 'PAGI' | 'SORE' | 'MALAM';
 export type GridType = '2x1' | '2x2' | '2x3';
@@ -24,9 +24,6 @@ export interface ReportedLogEntry {
 
 export interface KolaseDraftPrefs {
   grid: GridType;
-  row1: string;
-  row2: string;
-  row3: string;
 }
 
 // Master Database Rotasi 15 Hari TPM Urea 1B (Standar Penamaan Equipment Resmi & Konsisten)
@@ -87,7 +84,7 @@ export function getScheduleForDate(dateStr: string): ScheduleTask[] {
       {
         shift: 'INFO',
         text: 'TIDAK ADA KEGIATAN',
-        subtext: '🏖️ Libur rutin tiap tanggal 31',
+        subtext: 'Libur rutin tiap tanggal 31',
         isOff: true,
       },
     ];
@@ -369,9 +366,6 @@ export function mergeRemoteReportedLog(
 
 export const DEFAULT_PREFS: KolaseDraftPrefs = {
   grid: '2x3',
-  row1: '',
-  row2: '',
-  row3: '',
 };
 
 export function loadSavedPreferences(): KolaseDraftPrefs {
@@ -384,9 +378,6 @@ export function loadSavedPreferences(): KolaseDraftPrefs {
         parsed.grid && (['2x1', '2x2', '2x3'] as const).includes(parsed.grid)
           ? parsed.grid
           : DEFAULT_PREFS.grid,
-      row1: typeof parsed.row1 === 'string' ? parsed.row1 : DEFAULT_PREFS.row1,
-      row2: typeof parsed.row2 === 'string' ? parsed.row2 : DEFAULT_PREFS.row2,
-      row3: typeof parsed.row3 === 'string' ? parsed.row3 : DEFAULT_PREFS.row3,
     };
   } catch {
     return { ...DEFAULT_PREFS };
@@ -395,7 +386,7 @@ export function loadSavedPreferences(): KolaseDraftPrefs {
 
 export function savePreferences(prefs: KolaseDraftPrefs): void {
   try {
-    localStorage.setItem(PREFS_STORAGE_KEY, JSON.stringify(prefs));
+    localStorage.setItem(PREFS_STORAGE_KEY, JSON.stringify({ grid: prefs.grid }));
   } catch {
     // Ignore storage errors
   }

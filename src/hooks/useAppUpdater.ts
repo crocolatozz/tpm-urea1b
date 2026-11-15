@@ -164,9 +164,13 @@ export function useAppUpdater(suppressPrompt = false) {
   const checkForUpdatesManual = useCallback(async (): Promise<ManualCheckResult> => {
     setIsCheckingUpdate(true);
     try {
+      const minSpinDelay = new Promise<void>((resolve) => {
+        window.setTimeout(resolve, 600);
+      });
       const [hasWaitingSw, data] = await Promise.all([
         checkServiceWorkersForWaiting(),
         fetchRemoteVersionJson(),
+        minSpinDelay,
       ]);
 
       if (!data) {
@@ -212,7 +216,7 @@ export function useAppUpdater(suppressPrompt = false) {
       aborted = true;
       setIsUpdating(false);
       setErrorMsg(
-        '📶 Sinyal lemah atau koneksi terputus. Cache offline tetap aman—kamu bisa menutup jendela ini dan tetap bekerja offline.'
+        'Sinyal lemah atau koneksi terputus. Cache offline tetap aman—kamu bisa menutup jendela ini dan tetap bekerja offline.'
       );
     }, 8000);
 
@@ -224,7 +228,7 @@ export function useAppUpdater(suppressPrompt = false) {
         window.clearTimeout(timeoutId);
         setIsUpdating(false);
         setErrorMsg(
-          '📶 Koneksi terputus atau sinyal tidak stabil. Cache offline tetap dipertahankan agar aplikasi tetap bisa dipakai.'
+          'Koneksi terputus atau sinyal tidak stabil. Cache offline tetap dipertahankan agar aplikasi tetap bisa dipakai.'
         );
         return;
       }
@@ -252,7 +256,7 @@ export function useAppUpdater(suppressPrompt = false) {
       window.clearTimeout(timeoutId);
       setIsUpdating(false);
       setErrorMsg(
-        '📶 Gagal memuat pembaruan. Cache offline tetap aman—silakan tutup dan coba lagi saat sinyal stabil.'
+        'Gagal memuat pembaruan. Cache offline tetap aman—silakan tutup dan coba lagi saat sinyal stabil.'
       );
     }
   }, [modalState, updateServiceWorker]);

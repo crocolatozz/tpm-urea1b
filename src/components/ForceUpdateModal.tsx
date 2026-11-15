@@ -1,6 +1,7 @@
 import React from 'react';
 import { APP_VERSION } from '../data/tpmData';
 import { normalizeReleaseNotes, type UpdateModalState } from '../hooks/useAppUpdater';
+import { IconArrowRight, IconRocket, IconSync, IconWifiOff } from './Icons';
 
 interface ForceUpdateModalProps {
   modalState: UpdateModalState;
@@ -27,8 +28,8 @@ export const ForceUpdateModal: React.FC<ForceUpdateModalProps> = ({
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/82 p-4 backdrop-blur-[4px]">
       <div className="modal-pop max-h-[90dvh] w-full max-w-[440px] overflow-y-auto rounded-[16px] border border-[#383838] bg-[#1e1e1e] p-5 text-white shadow-[0_10px_30px_rgba(0,0,0,0.65)]">
         <div className="mb-3.5 flex items-center justify-between border-b border-[#333] pb-2.5">
-          <h3 className="text-[1.05rem] font-bold text-[#007aff]">
-            🚀 Pembaruan Aplikasi Tersedia
+          <h3 className="flex items-center gap-1.5 text-[1.05rem] font-bold text-[#007aff]">
+            <IconRocket /> Pembaruan Aplikasi Tersedia
           </h3>
         </div>
 
@@ -42,7 +43,7 @@ export const ForceUpdateModal: React.FC<ForceUpdateModalProps> = ({
                 v{APP_VERSION}
               </span>
             </div>
-            <span className="text-[1.2rem] font-bold text-[#8ab4f8]">➔</span>
+            <IconArrowRight className="text-[1.2rem] text-[#8ab4f8]" />
             <div className="flex flex-col gap-1">
               <span className="text-[0.74rem] uppercase tracking-[0.4px] text-[#aaaaaa]">
                 Versi Terbaru
@@ -62,8 +63,9 @@ export const ForceUpdateModal: React.FC<ForceUpdateModalProps> = ({
           </div>
 
           {errorMsg && (
-            <div className="mb-3.5 rounded-lg border border-[#ff9500]/35 bg-[#ff9500]/12 px-3 py-2.5 text-left text-[0.8rem] leading-[1.45] text-[#ffb340]">
-              {errorMsg}
+            <div className="mb-3.5 flex items-start gap-2 rounded-lg border border-[#ff9500]/35 bg-[#ff9500]/12 px-3 py-2.5 text-left text-[0.8rem] leading-[1.45] text-[#ffb340]">
+              <IconWifiOff className="mt-0.5 text-base" />
+              <span>{errorMsg}</span>
             </div>
           )}
 
@@ -79,9 +81,13 @@ export const ForceUpdateModal: React.FC<ForceUpdateModalProps> = ({
                   <span className="spinner" /> Memperbarui aplikasi...
                 </>
               ) : errorMsg ? (
-                '🔄 Coba Lagi'
+                <>
+                  <IconSync /> Coba Lagi
+                </>
               ) : (
-                '🔄 Update Sekarang'
+                <>
+                  <IconSync /> Update Sekarang
+                </>
               )}
             </button>
 

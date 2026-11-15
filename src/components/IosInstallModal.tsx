@@ -1,4 +1,5 @@
 import React from 'react';
+import { IconClose, IconPlusSquare, IconShareIos } from './Icons';
 
 interface IosInstallModalProps {
   isOpen: boolean;
@@ -26,16 +27,24 @@ export const IosInstallModal: React.FC<IosInstallModalProps> = ({ isOpen, onClos
             aria-label="Tutup petunjuk install iOS"
             className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-full border border-[#444] bg-[#2c2c2c] text-base text-[#ccc]"
           >
-            ✕
+            <IconClose />
           </button>
         </div>
 
         <ol className="mb-[18px] list-decimal pl-5 text-[0.9rem] leading-[1.6] text-[#ddd]">
           <li className="mb-2">
-            Tap tombol <strong>Share 📤</strong> di bagian bawah Safari.
+            Tap tombol{' '}
+            <strong className="inline-flex items-center gap-1">
+              Share <IconShareIos className="text-[#64b5f6]" />
+            </strong>{' '}
+            di bagian bawah Safari.
           </li>
           <li className="mb-2">
-            Scroll ke bawah lalu pilih <strong>&quot;Tambah ke Layar Utama&quot; ➕</strong>.
+            Scroll ke bawah lalu pilih{' '}
+            <strong className="inline-flex items-center gap-1">
+              &quot;Tambah ke Layar Utama&quot; <IconPlusSquare className="text-[#64b5f6]" />
+            </strong>
+            .
           </li>
           <li className="mb-2">
             Tap <strong>&quot;Tambah&quot;</strong> di pojok kanan atas.

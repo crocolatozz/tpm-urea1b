@@ -15,6 +15,18 @@ import {
   type ShiftName,
 } from '../data/tpmData';
 
+import {
+  IconArrowRight,
+  IconCalendar,
+  IconCheck,
+  IconChevronLeft,
+  IconChevronRight,
+  IconClose,
+  IconInfoCircle,
+  IconUndo,
+  ShiftWeatherIcon,
+} from './Icons';
+
 interface DashboardViewProps {
   reportedLog: Record<string, ReportedLogEntry>;
   onSelectShift: (params: { date: string; shift: ShiftName; area: string }) => void;
@@ -33,36 +45,6 @@ interface UndoTarget {
   shift: ShiftName;
   area: string;
 }
-
-const ChevronLeftIcon: React.FC = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth={2.5}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="h-5 w-5"
-    aria-hidden="true"
-  >
-    <path d="M15 18l-6-6 6-6" />
-  </svg>
-);
-
-const ChevronRightIcon: React.FC = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth={2.5}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="h-5 w-5"
-    aria-hidden="true"
-  >
-    <path d="M9 18l6-6-6-6" />
-  </svg>
-);
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
   reportedLog,
@@ -181,9 +163,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               type="button"
               onClick={() => handleStepDate(-1)}
               aria-label="Tanggal sebelumnya"
-              className="flex h-[46px] w-[46px] shrink-0 cursor-pointer items-center justify-center rounded-lg border border-[#3c3c3c] bg-[#262626] text-white transition active:scale-[0.95] active:bg-[#333]"
+              className="flex h-[46px] w-[46px] shrink-0 cursor-pointer items-center justify-center rounded-lg border border-[#3c3c3c] bg-[#262626] text-xl text-white transition active:scale-[0.95] active:bg-[#333]"
             >
-              <ChevronLeftIcon />
+              <IconChevronLeft />
             </button>
             <div className="relative flex h-[46px] min-w-0 flex-1 items-center justify-center rounded-lg border border-[#3a3a3a] bg-[#2a2a2a] px-3">
               <span className="pointer-events-none whitespace-nowrap text-[16px] font-semibold text-white">
@@ -208,9 +190,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               type="button"
               onClick={() => handleStepDate(1)}
               aria-label="Tanggal berikutnya"
-              className="flex h-[46px] w-[46px] shrink-0 cursor-pointer items-center justify-center rounded-lg border border-[#3c3c3c] bg-[#262626] text-white transition active:scale-[0.95] active:bg-[#333]"
+              className="flex h-[46px] w-[46px] shrink-0 cursor-pointer items-center justify-center rounded-lg border border-[#3c3c3c] bg-[#262626] text-xl text-white transition active:scale-[0.95] active:bg-[#333]"
             >
-              <ChevronRightIcon />
+              <IconChevronRight />
             </button>
           </div>
         </div>
@@ -239,7 +221,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 aria-label="Hapus pencarian"
                 className="absolute right-2.5 flex h-[28px] w-[28px] cursor-pointer items-center justify-center rounded-full border-0 bg-[#3d3d3d] text-[0.85rem] text-white"
               >
-                ✕
+                <IconClose />
               </button>
             )}
           </div>
@@ -296,12 +278,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           isTodayMatch ? 'text-[#34c759]' : 'text-[#007aff]'
                         }`}
                       >
-                        <span>
+                        <span className="inline-flex items-center gap-1">
+                          <ShiftWeatherIcon shift={m.shift} />
                           SHIFT {m.shift} • HARI {m.cycleDay}
                         </span>
                         {isTodayMatch && (
-                          <span className="rounded-[10px] border border-[#34c759]/50 bg-[#34c759]/20 px-1.5 py-[1px] text-[0.65rem] font-bold text-[#4cd964]">
-                            ● HARI INI
+                          <span className="inline-flex items-center gap-1 rounded-[10px] border border-[#34c759]/50 bg-[#34c759]/20 px-1.5 py-[1px] text-[0.65rem] font-bold text-[#4cd964]">
+                            <span className="h-1.5 w-1.5 rounded-full bg-[#4cd964]" /> HARI INI
                           </span>
                         )}
                         {reported && (
@@ -318,22 +301,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                             }}
                             className="inline-flex cursor-pointer items-center gap-1 rounded-[10px] border border-[#64b5f6]/50 bg-[#64b5f6]/18 px-1.5 py-[1px] text-[0.65rem] font-bold text-[#8cc8ff] transition active:scale-95"
                           >
-                            ✓ DILAPORKAN <span className="opacity-70">×</span>
+                            <IconCheck /> DILAPORKAN <IconClose className="opacity-70" />
                           </button>
                         )}
                       </div>
                       <div className="break-words text-[1.05rem] font-bold text-white">
                         {m.areaName}
                       </div>
-                      <div className="text-[0.8rem] text-[#d8b47c]">
-                        {isTodayMatch
-                          ? `📅 Hari Ini (${formatDateIndo(m.nextDateStr)})`
-                          : `📅 Terdekat: ${formatDateIndo(m.nextDateStr)}`}
+                      <div className="flex items-center gap-1.5 text-[0.8rem] text-[#d8b47c]">
+                        <IconCalendar />
+                        <span>
+                          {isTodayMatch
+                            ? `Hari Ini (${formatDateIndo(m.nextDateStr)})`
+                            : `Terdekat: ${formatDateIndo(m.nextDateStr)}`}
+                        </span>
                       </div>
                     </div>
 
-                    <span className="shrink-0 self-center whitespace-nowrap text-[0.76rem] font-semibold text-[#8ab4f8]">
-                      Buat Kolase ➔
+                    <span className="inline-flex shrink-0 items-center gap-1 self-center whitespace-nowrap text-[0.76rem] font-semibold text-[#8ab4f8]">
+                      Buat Kolase <IconArrowRight />
                     </span>
                   </div>
                 );
@@ -381,15 +367,24 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                             : 'text-[#007aff]'
                       }`}
                     >
-                      <span>{task.shift === 'INFO' ? 'STATUS' : `SHIFT ${task.shift}`}</span>
+                      {task.shift === 'INFO' ? (
+                        <span className="inline-flex items-center gap-1">
+                          <IconInfoCircle /> STATUS
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1">
+                          <ShiftWeatherIcon shift={task.shift} />
+                          SHIFT {task.shift}
+                        </span>
+                      )}
                       {shiftRange && (
                         <span className="text-[0.68rem] font-medium normal-case text-[#9a9a9a]">
                           ({shiftRange})
                         </span>
                       )}
                       {isCurrentShift && (
-                        <span className="rounded-[10px] border border-[#34c759]/50 bg-[#34c759]/20 px-1.5 py-[1px] text-[0.66rem] font-bold text-[#4cd964]">
-                          ● SHIFT AKTIF
+                        <span className="inline-flex items-center gap-1 rounded-[10px] border border-[#34c759]/50 bg-[#34c759]/20 px-1.5 py-[1px] text-[0.66rem] font-bold text-[#4cd964]">
+                          <span className="h-1.5 w-1.5 rounded-full bg-[#4cd964]" /> SHIFT AKTIF
                         </span>
                       )}
                       {reported && task.shift !== 'INFO' && (
@@ -406,7 +401,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           }}
                           className="inline-flex cursor-pointer items-center gap-1 rounded-[10px] border border-[#64b5f6]/50 bg-[#64b5f6]/18 px-1.5 py-[1px] text-[0.66rem] font-bold text-[#8cc8ff] transition active:scale-95"
                         >
-                          ✓ DILAPORKAN <span className="opacity-70">×</span>
+                          <IconCheck /> DILAPORKAN <IconClose className="opacity-70" />
                         </button>
                       )}
                     </div>
@@ -416,13 +411,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     </div>
 
                     {task.subtext && (
-                      <div className="text-[0.8rem] text-[#d8b47c]">{task.subtext}</div>
+                      <div className="flex items-center gap-1.5 text-[0.8rem] text-[#d8b47c]">
+                        <IconInfoCircle />
+                        <span>{task.subtext}</span>
+                      </div>
                     )}
                   </div>
 
                   {!task.isOff && (
-                    <span className="shrink-0 self-center whitespace-nowrap text-[0.76rem] font-semibold text-[#8ab4f8]">
-                      Buat Kolase ➔
+                    <span className="inline-flex shrink-0 items-center gap-1 self-center whitespace-nowrap text-[0.76rem] font-semibold text-[#8ab4f8]">
+                      Buat Kolase <IconArrowRight />
                     </span>
                   )}
                 </div>
@@ -441,12 +439,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           }}
         >
           <div className="modal-pop w-full max-w-[390px] rounded-[16px] border border-[#383838] bg-[#1e1e1e] p-5 text-white shadow-[0_10px_30px_rgba(0,0,0,0.65)]">
-            <h3 className="mb-2 text-[1.02rem] font-bold text-[#ffb340]">
-              ↩️ Reset Status Dilaporkan?
+            <h3 className="mb-2 flex items-center gap-1.5 text-[1.02rem] font-bold text-[#ffb340]">
+              <IconUndo /> Reset Status Dilaporkan?
             </h3>
             <p className="mb-3 text-[0.86rem] leading-[1.5] text-[#d4d4d4]">
-              Status <strong className="text-[#8cc8ff]">✓ DILAPORKAN</strong> akan dibatalkan dan
-              tersinkron ke semua perangkat operator.
+              Status{' '}
+              <strong className="inline-flex items-center gap-1 text-[#8cc8ff]">
+                <IconCheck /> DILAPORKAN
+              </strong>{' '}
+              akan dibatalkan dan tersinkron ke semua perangkat operator.
             </p>
             <div className="mb-4 rounded-lg border border-[#343434] bg-[#252525] px-3 py-2 text-[0.82rem]">
               <div className="font-bold text-[#8ab4f8]">

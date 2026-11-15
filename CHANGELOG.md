@@ -2,6 +2,21 @@
 
 Semua perubahan penting pada aplikasi **Dashboard & Kolase Foto TPM Urea 1B** dicatat di file ini mengikuti standar [Semantic Versioning](https://semver.org/).
 
+## [2.6.0] - 2026-11-15
+
+### Ditambahkan
+- **Standardisasi Ikon Vektor `1em` (`Icons.tsx`):** Menambahkan pustaka ikon inline SVG garis bersih (`w-[1em] h-[1em]`) termasuk ikon cuaca shift (`Sun` `text-amber-400`, `CloudSun` `text-orange-400`, `Moon` `text-indigo-300`), pesawat kertas `45°` pada tombol Kirim ke WhatsApp, ikon `Copy` pada Salin Caption, serta bingkai panah tukar pada tombol `Ganti Foto`.
+- **Modal Konfirmasi Pasca-Kirim WA (`KolaseView.tsx`, `App.tsx`):** Menampilkan dialog konfirmasi terkunci (*no backdrop dismiss*) langsung setelah proses share/unduh berjalan (`Ya, Update` untuk mempertahankan status **Terlapor** dan mengosongkan foto + caption sambil menjaga Tag Equipment; `Batal` untuk *rollback* status ke kondisi sebelumnya tanpa menghapus foto/caption).
+
+### Diubah
+- **Optimistic Status Update Pasca-Kirim (`KolaseView.tsx`, `App.tsx`):** Status alat langsung diperbarui menjadi **Terlapor** (lokal & Firestore) seketika saat share WhatsApp berjalan tanpa menunggu `visibilitychange`, dan dibatalkan otomatis bila Share Sheet HP dibatalkan (`AbortError`).
+- **Sinkronisasi Reset Caption Saat Pindah Tab (`KolaseView.tsx`, `tpmData.ts`, `App.tsx`):** Input Caption Baris 1–3 tidak lagi disimpan ke `localStorage` atau `App.tsx` sehingga otomatis ikut kosong saat operator berpindah tab, sementara Tag Equipment tetap dipertahankan.
+- **Peningkatan Visual Modal & Tombol (`PhotoEditorModal.tsx`, `ChangelogModal.tsx`):** Menyesuaikan tombol `Reset` menjadi merah kalem transparan (`rose-500/15`), `Batal` abu-abu gelap (`slate-700`), dan memastikan ikon putar pada tombol bundar hijau Cek Update berputar simetris minimal `600ms`.
+- **Pembaruan Panduan & Sinkronisasi Versi `2.6.0`:** Memperbarui **Tab `2. Grid Kolase`** pada `GuideModal.tsx` serta menyelaraskan `APP_VERSION`, `package.json`, `public/version.json`, dan `vite.config.js` ke `2.6.0`.
+
+### Diperbaiki
+- **Konsistensi UI Bebas Emoji/Simbol Teks Kasar:** Mengganti seluruh simbol teks (`✕`, `↻`, `+`, `✓`, `⚠️`, `ℹ️`) dan emoji UI di komponen antarmuka dengan SVG `1em`, dengan tetap mempertahankan karakter emoji murni pada generator pesan WhatsApp.
+
 ## [2.5.0] - 2026-11-15
 
 ### Ditambahkan

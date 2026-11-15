@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import changelogRaw from '../../CHANGELOG.md?raw';
 import { APP_VERSION } from '../data/tpmData';
+import { IconChevronDown, IconHistory, IconSync } from './Icons';
 
 interface ChangelogModalProps {
   isOpen: boolean;
@@ -122,7 +123,9 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({
       <div className="modal-pop flex max-h-[88dvh] w-full max-w-[460px] flex-col rounded-[16px] border border-[#383838] bg-[#1e1e1e] p-5 text-white shadow-[0_10px_30px_rgba(0,0,0,0.65)]">
         <div className="mb-3.5 flex shrink-0 items-center justify-between border-b border-[#333] pb-2.5">
           <div>
-            <h3 className="text-[1.05rem] font-bold text-[#007aff]">📜 Riwayat Pembaruan</h3>
+            <h3 className="flex items-center gap-1.5 text-[1.05rem] font-bold text-[#007aff]">
+              <IconHistory /> Riwayat Pembaruan
+            </h3>
             <p className="text-[0.74rem] text-[#9a9a9a]">Versi aktif: v{APP_VERSION}</p>
           </div>
           <button
@@ -133,21 +136,9 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({
             title="Cek Update"
             className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-emerald-600 text-white transition hover:bg-emerald-500 active:scale-95 disabled:cursor-wait disabled:opacity-80"
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2.2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              className={`h-5 w-5 ${isCheckingUpdate ? 'animate-spin' : ''}`}
-            >
-              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-              <path d="M3 3v5h5" />
-              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
-              <path d="M16 16h5v5" />
-            </svg>
+            <IconSync
+              className={`h-5 w-5 ${isCheckingUpdate ? 'animate-[spin_0.65s_linear_infinite]' : ''}`}
+            />
           </button>
         </div>
 
@@ -181,20 +172,11 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({
                       </span>
                     )}
                   </div>
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2.3}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                    className={`h-4 w-4 shrink-0 text-[#9a9a9a] transition-transform duration-200 ${
+                  <IconChevronDown
+                    className={`h-4 w-4 text-[#9a9a9a] transition-transform duration-200 ${
                       isExpanded ? 'rotate-180' : ''
                     }`}
-                  >
-                    <path d="M6 9l6 6 6-6" />
-                  </svg>
+                  />
                 </button>
 
                 {isExpanded && (

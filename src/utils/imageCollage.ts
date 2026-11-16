@@ -497,33 +497,37 @@ function drawImageCover(
 }
 
 const CANVAS_PAD = 24;
+const CANVAS_GRID_CARD_PAD = 20; // ~12.7px pada skala kanvas 1080px (1.172cqw)
 const CANVAS_GAP = 18;
-const CANVAS_WIDTH_BASE = COLLAGE_CELL_WIDTH * 2 + CANVAS_GAP + CANVAS_PAD * 2; // 1666
-const CANVAS_CELL_RADIUS = Math.round(CANVAS_WIDTH_BASE * 0.022); // ~37px (~8px on 365px mobile)
+const CANVAS_GRID_INNER_WIDTH = COLLAGE_CELL_WIDTH * 2 + CANVAS_GAP; // 1618
+const CANVAS_WIDTH_BASE = CANVAS_GRID_INNER_WIDTH + (CANVAS_PAD + CANVAS_GRID_CARD_PAD) * 2; // 1706
+const CANVAS_CELL_RADIUS = Math.round(CANVAS_WIDTH_BASE * 0.022); // ~38px (~8px on 365px mobile)
+const CANVAS_GRID_CARD_RADIUS = Math.round(CANVAS_WIDTH_BASE * 0.032); // ~55px harmonis membungkus sel
 const CANVAS_HAIRLINE_WIDTH = 3;
 
-const CANVAS_SUB_HEADER_TOP_GAP = Math.round(CANVAS_WIDTH_BASE * 0.008); // ~13px
-const CANVAS_SUB_HEADER_H = Math.round(CANVAS_WIDTH_BASE * 0.068); // ~113px
-const CANVAS_SUB_HEADER_BOTTOM_GAP = Math.round(CANVAS_WIDTH_BASE * 0.017); // ~28px
-const CANVAS_SUB_HEADER_FONT = Math.round(CANVAS_WIDTH_BASE * 0.044); // ~73px (4.4cqw)
-const CANVAS_HEADER_PILL_PAD_X = Math.round(CANVAS_WIDTH_BASE * 0.032); // ~53px
-const CANVAS_HEADER_PILL_PAD_Y = Math.round(CANVAS_WIDTH_BASE * 0.009); // ~15px
-const CANVAS_HEADER_DOT_DIA = Math.round(CANVAS_WIDTH_BASE * 0.012); // ~20px
-const CANVAS_HEADER_DOT_GAP = Math.round(CANVAS_WIDTH_BASE * 0.011); // ~18px
+const CANVAS_SUB_HEADER_TOP_GAP = Math.round(CANVAS_WIDTH_BASE * 0.008); // ~14px
+const CANVAS_SUB_HEADER_H = Math.round(CANVAS_WIDTH_BASE * 0.075); // ~128px
+const CANVAS_SUB_HEADER_BOTTOM_GAP = Math.round(CANVAS_WIDTH_BASE * 0.0165); // ~28px
+const CANVAS_SUB_HEADER_FONT = Math.round(CANVAS_WIDTH_BASE * 0.051); // ~87px (5.10cqw, ~16% lebih besar)
+const CANVAS_HEADER_PILL_PAD_X = Math.round(CANVAS_WIDTH_BASE * 0.036); // ~61px
+const CANVAS_HEADER_PILL_PAD_Y = Math.round(CANVAS_WIDTH_BASE * 0.011); // ~19px
 
-const CANVAS_FOOTER_TOP_GAP = Math.round(CANVAS_WIDTH_BASE * 0.02); // ~33px
-const CANVAS_FOOTER_H = Math.round(CANVAS_WIDTH_BASE * 0.06); // ~100px
-const CANVAS_FOOTER_FONT = 46; // ~29.8px pada skala kanvas 1080px (2.761cqw)
-const CANVAS_FOOTER_PAD_X = Math.round(CANVAS_WIDTH_BASE * 0.026); // ~43px
-const CANVAS_FOOTER_PAD_Y = Math.round(CANVAS_WIDTH_BASE * 0.011); // ~18px
+const CANVAS_FOOTER_TOP_GAP = CANVAS_SUB_HEADER_BOTTOM_GAP; // ~28px (simetris terhadap kartu grid)
+const CANVAS_FOOTER_BOTTOM_GAP = CANVAS_SUB_HEADER_TOP_GAP; // ~14px (simetris terhadap margin luar atas)
+const CANVAS_FOOTER_H = Math.round(CANVAS_WIDTH_BASE * 0.059); // ~101px
+const CANVAS_FOOTER_FONT = 52; // ~32.9px pada skala kanvas 1080px (3.048cqw, ~10.4% lebih besar)
+const CANVAS_FOOTER_PAD_X = Math.round(CANVAS_WIDTH_BASE * 0.028); // ~48px
+const CANVAS_FOOTER_PAD_Y = Math.round(CANVAS_WIDTH_BASE * 0.0125); // ~21px
 
-const CANVAS_PILL_FONT = Math.round(CANVAS_WIDTH_BASE * 0.044); // ~73px (4.4cqw, ~10% lebih ramping)
-const CANVAS_PILL_PAD_X = Math.round(CANVAS_WIDTH_BASE * 0.03); // ~50px
-const CANVAS_PILL_PAD_Y = Math.round(CANVAS_WIDTH_BASE * 0.011); // ~18px
-const CANVAS_PILL_BOTTOM = Math.round(CANVAS_WIDTH_BASE * 0.026); // ~43px
+const CANVAS_PILL_FONT = Math.round(CANVAS_WIDTH_BASE * 0.043); // ~73px (dipertahankan dari v2.10.2)
+const CANVAS_PILL_PAD_X = Math.round(CANVAS_WIDTH_BASE * 0.029); // ~49px
+const CANVAS_PILL_PAD_Y = Math.round(CANVAS_WIDTH_BASE * 0.011); // ~19px
+const CANVAS_PILL_BOTTOM = Math.round(CANVAS_WIDTH_BASE * 0.025); // ~43px
 
 export const COLLAGE_PREVIEW_SPEC = {
   paddingCqw: `${((CANVAS_PAD / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
+  gridCardPadCqw: `${((CANVAS_GRID_CARD_PAD / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
+  gridCardRadiusCqw: `${((CANVAS_GRID_CARD_RADIUS / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
   gapCqw: `${((CANVAS_GAP / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
   subHeaderTopGapCqw: `${((CANVAS_SUB_HEADER_TOP_GAP / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
   subHeaderHeightCqw: `${((CANVAS_SUB_HEADER_H / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
@@ -531,9 +535,8 @@ export const COLLAGE_PREVIEW_SPEC = {
   subHeaderFontCqw: `${((CANVAS_SUB_HEADER_FONT / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
   headerPillPadXCqw: `${((CANVAS_HEADER_PILL_PAD_X / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
   headerPillPadYCqw: `${((CANVAS_HEADER_PILL_PAD_Y / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
-  headerDotSizeCqw: `${((CANVAS_HEADER_DOT_DIA / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
-  headerDotGapCqw: `${((CANVAS_HEADER_DOT_GAP / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
   footerTopGapCqw: `${((CANVAS_FOOTER_TOP_GAP / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
+  footerBottomGapCqw: `${((CANVAS_FOOTER_BOTTOM_GAP / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
   footerHeightCqw: `${((CANVAS_FOOTER_H / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
   footerFontCqw: `${((CANVAS_FOOTER_FONT / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
   footerPadXCqw: `${((CANVAS_FOOTER_PAD_X / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
@@ -603,7 +606,7 @@ export function computeCaptionPillFontSize(
   ctx?: CanvasRenderingContext2D | null
 ): { fontSize: number; textWidth: number } {
   const measureCtx = ctx ?? getMeasureFooterContext();
-  const maxPillWidth = Math.round(CANVAS_WIDTH_BASE * 0.86);
+  const maxPillWidth = Math.round(CANVAS_GRID_INNER_WIDTH * 0.88);
   const targetTextWidth = Math.max(120, maxPillWidth - CANVAS_PILL_PAD_X * 2);
   const minFontSize = 30;
   let fontSize = CANVAS_PILL_FONT;
@@ -640,7 +643,7 @@ export function computeFooterFontSize(
   ctx?: CanvasRenderingContext2D | null
 ): number {
   const measureCtx = ctx ?? getMeasureFooterContext();
-  const maxFooterTextWidth = Math.round(CANVAS_WIDTH_BASE * 0.86);
+  const maxFooterTextWidth = Math.round(CANVAS_GRID_INNER_WIDTH * 0.96) - CANVAS_FOOTER_PAD_X * 2;
   const minFooterFont = 24;
   let footerFontSize = CANVAS_FOOTER_FONT;
 
@@ -649,20 +652,20 @@ export function computeFooterFontSize(
   }
 
   measureCtx.save();
-  measureCtx.font = `600 ${footerFontSize}px ${FONT_COLLAGE_RAJDHANI}`;
+  measureCtx.font = `700 ${footerFontSize}px ${FONT_COLLAGE_RAJDHANI}`;
   const measuredFooterWidth = measureCtx.measureText(footerText).width;
   if (measuredFooterWidth > maxFooterTextWidth && measuredFooterWidth > 0) {
     footerFontSize = Math.max(
       minFooterFont,
       Math.floor(footerFontSize * (maxFooterTextWidth / measuredFooterWidth))
     );
-    measureCtx.font = `600 ${footerFontSize}px ${FONT_COLLAGE_RAJDHANI}`;
+    measureCtx.font = `700 ${footerFontSize}px ${FONT_COLLAGE_RAJDHANI}`;
     while (
       measureCtx.measureText(footerText).width > maxFooterTextWidth &&
       footerFontSize > minFooterFont
     ) {
       footerFontSize -= 1;
-      measureCtx.font = `600 ${footerFontSize}px ${FONT_COLLAGE_RAJDHANI}`;
+      measureCtx.font = `700 ${footerFontSize}px ${FONT_COLLAGE_RAJDHANI}`;
     }
   }
   measureCtx.restore();
@@ -688,35 +691,41 @@ export function renderCollageToCanvas(
   const cellHeight = COLLAGE_CELL_HEIGHT;
   const gap = CANVAS_GAP;
   const padding = CANVAS_PAD;
+  const gridCardPad = CANVAS_GRID_CARD_PAD;
   const subHeaderTopGap = CANVAS_SUB_HEADER_TOP_GAP;
   const subHeaderHeight = CANVAS_SUB_HEADER_H;
   const subHeaderBottomGap = CANVAS_SUB_HEADER_BOTTOM_GAP;
   const footerTopGap = CANVAS_FOOTER_TOP_GAP;
   const footerHeight = CANVAS_FOOTER_H;
+  const footerBottomGap = CANVAS_FOOTER_BOTTOM_GAP;
 
-  const canvasWidth = cellWidth * 2 + gap + padding * 2;
+  const cardWidth = cellWidth * 2 + gap + gridCardPad * 2;
+  const cardHeight = cellHeight * rows + gap * (rows - 1) + gridCardPad * 2;
+
+  const canvasWidth = cardWidth + padding * 2;
   const canvasHeight =
     padding +
     subHeaderTopGap +
     subHeaderHeight +
     subHeaderBottomGap +
-    cellHeight * rows +
-    gap * (rows - 1) +
+    cardHeight +
     footerTopGap +
     footerHeight +
+    footerBottomGap +
     padding;
 
   canvas.width = canvasWidth;
   canvas.height = canvasHeight;
 
-  // Bingkai luar ekspor sudut tegas 90° berwarna Deep Slate (#0F172A)
-  ctx.fillStyle = '#0F172A';
+  // Latar poster luar gelap (#080C14) agar kartu wadah grid (#0F172A) tampil kontras & rapi
+  ctx.fillStyle = '#080C14';
   ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-  // 1. Header Pil Kolom: BEFORE (Cyan) | AFTER (Emerald Neon) — Rajdhani 700, Dark-Tinted + Hairline Border
+  // 1. Header Pil Kolom: BEFORE (#38BDF8) | AFTER (#34D399) — tanpa simbol titik, Rajdhani 700
   const ctxWithSpacing = ctx as CanvasRenderingContext2D & { letterSpacing?: string };
-  const leftColCenterX = padding + cellWidth / 2;
-  const rightColCenterX = padding + cellWidth + gap + cellWidth / 2;
+  const gridStartX = padding + gridCardPad;
+  const leftColCenterX = gridStartX + cellWidth / 2;
+  const rightColCenterX = gridStartX + cellWidth + gap + cellWidth / 2;
   const subHeaderCenterY = padding + subHeaderTopGap + subHeaderHeight / 2;
 
   const drawHeaderPill = (
@@ -724,7 +733,7 @@ export function renderCollageToCanvas(
     colCenterX: number,
     bgColor: string,
     borderColor: string,
-    dotColor: string
+    textColor: string
   ) => {
     ctx.save();
     ctx.font = `700 ${CANVAS_SUB_HEADER_FONT}px ${FONT_COLLAGE_RAJDHANI}`;
@@ -732,11 +741,10 @@ export function renderCollageToCanvas(
       ctxWithSpacing.letterSpacing = `${Math.max(2, Math.round(CANVAS_SUB_HEADER_FONT * 0.08))}px`;
     }
     const textWidth = ctx.measureText(label).width;
-    const contentWidth = CANVAS_HEADER_DOT_DIA + CANVAS_HEADER_DOT_GAP + textWidth;
-    const pillW = Math.min(cellWidth * 0.9, contentWidth + CANVAS_HEADER_PILL_PAD_X * 2);
+    const pillW = Math.min(cellWidth * 0.9, textWidth + CANVAS_HEADER_PILL_PAD_X * 2);
     const pillH = Math.min(
       subHeaderHeight,
-      Math.round(CANVAS_SUB_HEADER_FONT * 1.1) + CANVAS_HEADER_PILL_PAD_Y * 2
+      Math.round(CANVAS_SUB_HEADER_FONT * 1.0) + CANVAS_HEADER_PILL_PAD_Y * 2
     );
     const pillX = colCenterX - pillW / 2;
     const pillY = subHeaderCenterY - pillH / 2;
@@ -751,49 +759,52 @@ export function renderCollageToCanvas(
     traceRoundedRect(ctx, pillX, pillY, pillW, pillH, radius);
     ctx.stroke();
 
-    const contentStartX = colCenterX - contentWidth / 2;
-    ctx.fillStyle = dotColor;
-    ctx.beginPath();
-    ctx.arc(
-      contentStartX + CANVAS_HEADER_DOT_DIA / 2,
-      subHeaderCenterY,
-      CANVAS_HEADER_DOT_DIA / 2,
-      0,
-      Math.PI * 2
-    );
-    ctx.fill();
-
     const { baseline, y } = getOpticalBaselineY(ctx, label, subHeaderCenterY);
-    ctx.fillStyle = '#F8FAFC';
-    ctx.textAlign = 'left';
+    ctx.fillStyle = textColor;
+    ctx.textAlign = 'center';
     ctx.textBaseline = baseline;
-    ctx.fillText(label, contentStartX + CANVAS_HEADER_DOT_DIA + CANVAS_HEADER_DOT_GAP, y);
+    ctx.fillText(label, colCenterX, y);
     ctx.restore();
   };
 
   drawHeaderPill('BEFORE', leftColCenterX, '#0E293D', 'rgba(56, 189, 248, 0.45)', '#38BDF8');
   drawHeaderPill('AFTER', rightColCenterX, '#0B2E2B', 'rgba(52, 211, 153, 0.45)', '#34D399');
 
-  // 2. Grid Foto Before / After (Sudut melengkung proporsional, dibungkus save/restore)
-  const startY = padding + subHeaderTopGap + subHeaderHeight + subHeaderBottomGap;
+  // 2. Kartu Wadah Gelap Berbingkai Tipis di Sekeliling Grid Foto 2xN (tanpa garis pemisah horizontal)
+  const cardX = padding;
+  const cardY = padding + subHeaderTopGap + subHeaderHeight + subHeaderBottomGap;
+
+  ctx.save();
+  ctx.fillStyle = '#0F172A';
+  traceRoundedRect(ctx, cardX, cardY, cardWidth, cardHeight, CANVAS_GRID_CARD_RADIUS);
+  ctx.fill();
+
+  ctx.strokeStyle = 'rgba(148, 163, 184, 0.22)';
+  ctx.lineWidth = CANVAS_HAIRLINE_WIDTH;
+  traceRoundedRect(ctx, cardX, cardY, cardWidth, cardHeight, CANVAS_GRID_CARD_RADIUS);
+  ctx.stroke();
+  ctx.restore();
+
+  // 3. Grid Foto Before / After di dalam Kartu Wadah
+  const startY = cardY + gridCardPad;
 
   for (let r = 0; r < rows; r++) {
     const y = startY + r * (cellHeight + gap);
 
     const beforeSlot = beforeSlots[r];
     ctx.save();
-    traceRoundedRect(ctx, padding, y, cellWidth, cellHeight, CANVAS_CELL_RADIUS);
+    traceRoundedRect(ctx, gridStartX, y, cellWidth, cellHeight, CANVAS_CELL_RADIUS);
     ctx.clip();
     if (beforeSlot?.canvas) {
-      drawImageCover(ctx, beforeSlot.canvas, padding, y, cellWidth, cellHeight);
+      drawImageCover(ctx, beforeSlot.canvas, gridStartX, y, cellWidth, cellHeight);
     } else {
       ctx.fillStyle = '#1e293b';
-      ctx.fillRect(padding, y, cellWidth, cellHeight);
+      ctx.fillRect(gridStartX, y, cellWidth, cellHeight);
     }
     ctx.restore();
 
     const afterSlot = afterSlots[r];
-    const xRight = padding + cellWidth + gap;
+    const xRight = gridStartX + cellWidth + gap;
     ctx.save();
     traceRoundedRect(ctx, xRight, y, cellWidth, cellHeight, CANVAS_CELL_RADIUS);
     ctx.clip();
@@ -806,8 +817,8 @@ export function renderCollageToCanvas(
     ctx.restore();
   }
 
-  // 3. Pil Caption Tengah Tiap Baris (Rajdhani 700, gelap pekat rgba(11,17,32,0.88), border 1px halus, optical vertical center)
-  const maxPillWidth = Math.round(canvasWidth * 0.86);
+  // 4. Pil Caption Tengah Tiap Baris (dipertahankan 100% dari v2.10.2, penyesuaian lebar otomatis di dalam wadah)
+  const maxPillWidth = Math.round(CANVAS_GRID_INNER_WIDTH * 0.88);
   rowTexts.slice(0, rows).forEach((rawText, r) => {
     const text = rawText ? rawText.trim().slice(0, 30) : '';
     if (!text) return;
@@ -845,7 +856,7 @@ export function renderCollageToCanvas(
     ctx.restore();
   });
 
-  // 4. Pil Footer Kolase: TPM [ALAT] • SHIFT [WAKTU] • [TANGGAL] (Rajdhani 600, #111C2E, border cyan, titik emerald #34D399)
+  // 5. Pil Footer Kolase: TPM [ALAT] • SHIFT [WAKTU] • [TANGGAL] (Rajdhani 700, #0B2E2B, teks #34D399, titik #38BDF8)
   const areaLabel = areaName.trim() || '-';
   const dateLabel = formatDateIndo(dateStr);
   const seg1 = `TPM ${areaLabel}`;
@@ -854,13 +865,12 @@ export function renderCollageToCanvas(
   const seg3 = dateLabel;
   const fullFooterText = `${seg1}${sep}${seg2}${sep}${seg3}`;
 
-  const footerCenterY =
-    startY + rows * cellHeight + (rows - 1) * gap + footerTopGap + footerHeight / 2;
+  const footerCenterY = cardY + cardHeight + footerTopGap + footerHeight / 2;
   const footerFontSize = computeFooterFontSize(fullFooterText, ctx);
-  const maxPillFooterW = Math.round(canvasWidth * 0.94);
+  const maxPillFooterW = Math.round(CANVAS_GRID_INNER_WIDTH * 0.96);
 
   ctx.save();
-  ctx.font = `600 ${footerFontSize}px ${FONT_COLLAGE_RAJDHANI}`;
+  ctx.font = `700 ${footerFontSize}px ${FONT_COLLAGE_RAJDHANI}`;
   const wSeg1 = ctx.measureText(seg1).width;
   const wSep = ctx.measureText(sep).width;
   const wSeg2 = ctx.measureText(seg2).width;
@@ -870,16 +880,16 @@ export function renderCollageToCanvas(
   const pillW = Math.min(totalTextW + CANVAS_FOOTER_PAD_X * 2, maxPillFooterW);
   const pillH = Math.min(
     footerHeight,
-    Math.round(footerFontSize * 1.15) + CANVAS_FOOTER_PAD_Y * 2
+    Math.round(footerFontSize * 1.08) + CANVAS_FOOTER_PAD_Y * 2
   );
   const pillX = canvasWidth / 2 - pillW / 2;
   const pillY = footerCenterY - pillH / 2;
 
-  ctx.fillStyle = '#111C2E';
+  ctx.fillStyle = '#0B2E2B';
   traceRoundedRect(ctx, pillX, pillY, pillW, pillH, pillH / 2);
   ctx.fill();
 
-  ctx.strokeStyle = 'rgba(56, 189, 248, 0.32)';
+  ctx.strokeStyle = 'rgba(52, 211, 153, 0.45)';
   ctx.lineWidth = CANVAS_HAIRLINE_WIDTH;
   traceRoundedRect(ctx, pillX, pillY, pillW, pillH, pillH / 2);
   ctx.stroke();
@@ -895,11 +905,11 @@ export function renderCollageToCanvas(
   ctx.textBaseline = baseline;
 
   const segments: Array<{ text: string; width: number; color: string }> = [
-    { text: seg1, width: wSeg1, color: '#F8FAFC' },
-    { text: sep, width: wSep, color: '#34D399' },
-    { text: seg2, width: wSeg2, color: '#F8FAFC' },
-    { text: sep, width: wSep, color: '#34D399' },
-    { text: seg3, width: wSeg3, color: '#F8FAFC' },
+    { text: seg1, width: wSeg1, color: '#34D399' },
+    { text: sep, width: wSep, color: '#38BDF8' },
+    { text: seg2, width: wSeg2, color: '#34D399' },
+    { text: sep, width: wSep, color: '#38BDF8' },
+    { text: seg3, width: wSeg3, color: '#34D399' },
   ];
 
   segments.forEach((seg) => {

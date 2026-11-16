@@ -1,5 +1,5 @@
-export const APP_VERSION = '2.10.2';
-export const STORAGE_VERSION = '2.10.2';
+export const APP_VERSION = '2.10.3';
+export const STORAGE_VERSION = '2.10.3';
 
 export type ShiftName = 'PAGI' | 'SORE' | 'MALAM';
 export type GridType = '2x1' | '2x2' | '2x3';

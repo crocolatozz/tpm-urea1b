@@ -1420,253 +1420,247 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
             </div>
           </div>
 
-          {/* Frame Kolase Live Preview 1:1 (Deep Slate #0F172A, Rajdhani, Dark-Tinted Pills) */}
+          {/* Frame Kolase Live Preview 1:1 (#080C14 poster + #0F172A kartu grid + pil dark-tinted) */}
           <div
-            className="w-full max-w-full overflow-hidden rounded-xl border border-slate-700/80 bg-[#0F172A] [container-type:inline-size]"
+            className="w-full max-w-full overflow-hidden rounded-xl border border-slate-700/80 bg-[#080C14] [container-type:inline-size]"
             style={{ padding: COLLAGE_PREVIEW_SPEC.paddingCqw }}
           >
-            {/* 1. Header Pil Kolom: BEFORE (Cyan) | AFTER (Emerald Neon) */}
+            {/* 1. Header Pil Kolom: BEFORE (#38BDF8) | AFTER (#34D399) — tanpa simbol titik */}
             <div
               className="grid w-full grid-cols-2 items-center justify-items-center text-center"
               style={{
                 marginTop: COLLAGE_PREVIEW_SPEC.subHeaderTopGapCqw,
                 height: COLLAGE_PREVIEW_SPEC.subHeaderHeightCqw,
                 marginBottom: COLLAGE_PREVIEW_SPEC.subHeaderBottomGapCqw,
+                paddingLeft: COLLAGE_PREVIEW_SPEC.gridCardPadCqw,
+                paddingRight: COLLAGE_PREVIEW_SPEC.gridCardPadCqw,
                 gap: COLLAGE_PREVIEW_SPEC.gapCqw,
               }}
             >
               <div
-                className="font-equipment inline-flex max-w-[90%] items-center justify-center rounded-full border border-[#38BDF8]/45 bg-[#0E293D] font-bold leading-none tracking-[0.08em] text-[#F8FAFC]"
+                className="font-equipment inline-flex max-w-[90%] items-center justify-center rounded-full border border-[#38BDF8]/45 bg-[#0E293D] font-bold leading-none tracking-[0.08em] text-[#38BDF8]"
                 style={{
                   fontSize: COLLAGE_PREVIEW_SPEC.subHeaderFontCqw,
                   paddingLeft: COLLAGE_PREVIEW_SPEC.headerPillPadXCqw,
                   paddingRight: COLLAGE_PREVIEW_SPEC.headerPillPadXCqw,
                   paddingTop: COLLAGE_PREVIEW_SPEC.headerPillPadYCqw,
                   paddingBottom: COLLAGE_PREVIEW_SPEC.headerPillPadYCqw,
-                  gap: COLLAGE_PREVIEW_SPEC.headerDotGapCqw,
                 }}
               >
-                <span
-                  aria-hidden="true"
-                  className="shrink-0 rounded-full bg-[#38BDF8]"
-                  style={{
-                    width: COLLAGE_PREVIEW_SPEC.headerDotSizeCqw,
-                    height: COLLAGE_PREVIEW_SPEC.headerDotSizeCqw,
-                  }}
-                />
                 <span>BEFORE</span>
               </div>
               <div
-                className="font-equipment inline-flex max-w-[90%] items-center justify-center rounded-full border border-[#34D399]/45 bg-[#0B2E2B] font-bold leading-none tracking-[0.08em] text-[#F8FAFC]"
+                className="font-equipment inline-flex max-w-[90%] items-center justify-center rounded-full border border-[#34D399]/45 bg-[#0B2E2B] font-bold leading-none tracking-[0.08em] text-[#34D399]"
                 style={{
                   fontSize: COLLAGE_PREVIEW_SPEC.subHeaderFontCqw,
                   paddingLeft: COLLAGE_PREVIEW_SPEC.headerPillPadXCqw,
                   paddingRight: COLLAGE_PREVIEW_SPEC.headerPillPadXCqw,
                   paddingTop: COLLAGE_PREVIEW_SPEC.headerPillPadYCqw,
                   paddingBottom: COLLAGE_PREVIEW_SPEC.headerPillPadYCqw,
-                  gap: COLLAGE_PREVIEW_SPEC.headerDotGapCqw,
                 }}
               >
-                <span
-                  aria-hidden="true"
-                  className="shrink-0 rounded-full bg-[#34D399]"
-                  style={{
-                    width: COLLAGE_PREVIEW_SPEC.headerDotSizeCqw,
-                    height: COLLAGE_PREVIEW_SPEC.headerDotSizeCqw,
-                  }}
-                />
                 <span>AFTER</span>
               </div>
             </div>
 
-            {/* 2. Grid Baris 1..N (Sudut 8px, Kapsul bawah-tengah, Drag-and-Drop antar-slot) */}
-            <div className="flex w-full flex-col" style={{ gap: COLLAGE_PREVIEW_SPEC.gapCqw }}>
-              {Array.from({ length: rows }).map((_, r) => {
-                const rowOverlayText = rowCaptions[r]?.trim();
-                const cells = [
-                  {
-                    side: 'before' as const,
-                    label: `Before ${r + 1}`,
-                    slot: beforeSlots[r] || null,
-                  },
-                  {
-                    side: 'after' as const,
-                    label: `After ${r + 1}`,
-                    slot: afterSlots[r] || null,
-                  },
-                ];
+            {/* 2. Kartu Wadah Gelap Berbingkai Tipis di Sekeliling Grid Foto 2xN (tanpa garis pemisah horizontal) */}
+            <div
+              className="w-full border border-[rgba(148,163,184,0.22)] bg-[#0F172A]"
+              style={{
+                padding: COLLAGE_PREVIEW_SPEC.gridCardPadCqw,
+                borderRadius: COLLAGE_PREVIEW_SPEC.gridCardRadiusCqw,
+              }}
+            >
+              {/* Grid Baris 1..N (Sudut 8px, Kapsul bawah-tengah, Drag-and-Drop antar-slot) */}
+              <div className="flex w-full flex-col" style={{ gap: COLLAGE_PREVIEW_SPEC.gapCqw }}>
+                {Array.from({ length: rows }).map((_, r) => {
+                  const rowOverlayText = rowCaptions[r]?.trim();
+                  const cells = [
+                    {
+                      side: 'before' as const,
+                      label: `Before ${r + 1}`,
+                      slot: beforeSlots[r] || null,
+                    },
+                    {
+                      side: 'after' as const,
+                      label: `After ${r + 1}`,
+                      slot: afterSlots[r] || null,
+                    },
+                  ];
 
-                return (
-                  <div
-                    key={r}
-                    className="relative grid w-full min-w-0 grid-cols-2"
-                    style={{ gap: COLLAGE_PREVIEW_SPEC.gapCqw }}
-                  >
-                    {cells.map((cell) => {
-                      const slotNumber = r * 2 + (cell.side === 'before' ? 1 : 2);
-                      const cellKey = `${cell.side}-${r}`;
-                      const isSlotLoading = loadingSlotKeys.has(cellKey);
-                      const isDragSource =
-                        activeDrag?.source.side === cell.side && activeDrag.source.index === r;
-                      const isDropTarget =
-                        dragTarget?.side === cell.side && dragTarget.index === r;
+                  return (
+                    <div
+                      key={r}
+                      className="relative grid w-full min-w-0 grid-cols-2"
+                      style={{ gap: COLLAGE_PREVIEW_SPEC.gapCqw }}
+                    >
+                      {cells.map((cell) => {
+                        const slotNumber = r * 2 + (cell.side === 'before' ? 1 : 2);
+                        const cellKey = `${cell.side}-${r}`;
+                        const isSlotLoading = loadingSlotKeys.has(cellKey);
+                        const isDragSource =
+                          activeDrag?.source.side === cell.side && activeDrag.source.index === r;
+                        const isDropTarget =
+                          dragTarget?.side === cell.side && dragTarget.index === r;
 
-                      return (
-                        <div
-                          key={cell.side}
-                          ref={(el) => {
-                            if (el) {
-                              slotElementsRef.current.set(cellKey, el);
-                            } else {
-                              slotElementsRef.current.delete(cellKey);
+                        return (
+                          <div
+                            key={cell.side}
+                            ref={(el) => {
+                              if (el) {
+                                slotElementsRef.current.set(cellKey, el);
+                              } else {
+                                slotElementsRef.current.delete(cellKey);
+                              }
+                            }}
+                            onPointerDown={(e) =>
+                              handleSlotPointerDown(cell.side, r, cell.label, cell.slot, e)
                             }
-                          }}
-                          onPointerDown={(e) =>
-                            handleSlotPointerDown(cell.side, r, cell.label, cell.slot, e)
-                          }
-                          onContextMenu={(e) => {
-                            if (cell.slot) e.preventDefault();
-                          }}
-                          className={`@container relative aspect-square w-full min-w-0 select-none overflow-hidden rounded-[8px] bg-slate-800 transition-all duration-150 ${
-                            isDragSource
-                              ? 'scale-[0.96] opacity-35 ring-2 ring-dashed ring-sky-400/50'
-                              : isDropTarget
-                                ? 'z-20 scale-[1.02] ring-2 ring-cyan-400 shadow-[0_0_18px_rgba(34,211,238,0.45)]'
-                                : ''
-                          }`}
-                        >
-                          {cell.slot ? (
-                            <div className="relative h-full w-full overflow-hidden rounded-[8px] [-webkit-touch-callout:none]">
-                              {cell.slot.previewUrl ? (
-                                <img
-                                  src={cell.slot.previewUrl}
-                                  alt={cell.label}
-                                  draggable={false}
-                                  onDragStart={(e) => e.preventDefault()}
-                                  onContextMenu={(e) => e.preventDefault()}
-                                  onClick={() => {
-                                    if (
-                                      suppressNextClickRef.current ||
-                                      dragSessionRef.current.phase === 'dragging'
-                                    ) {
-                                      return;
-                                    }
-                                    setEditingTarget({ side: cell.side, index: r });
+                            onContextMenu={(e) => {
+                              if (cell.slot) e.preventDefault();
+                            }}
+                            className={`@container relative aspect-square w-full min-w-0 select-none overflow-hidden rounded-[8px] bg-slate-800 transition-all duration-150 ${
+                              isDragSource
+                                ? 'scale-[0.96] opacity-35 ring-2 ring-dashed ring-sky-400/50'
+                                : isDropTarget
+                                  ? 'z-20 scale-[1.02] ring-2 ring-cyan-400 shadow-[0_0_18px_rgba(34,211,238,0.45)]'
+                                  : ''
+                            }`}
+                          >
+                            {cell.slot ? (
+                              <div className="relative h-full w-full overflow-hidden rounded-[8px] [-webkit-touch-callout:none]">
+                                {cell.slot.previewUrl ? (
+                                  <img
+                                    src={cell.slot.previewUrl}
+                                    alt={cell.label}
+                                    draggable={false}
+                                    onDragStart={(e) => e.preventDefault()}
+                                    onContextMenu={(e) => e.preventDefault()}
+                                    onClick={() => {
+                                      if (
+                                        suppressNextClickRef.current ||
+                                        dragSessionRef.current.phase === 'dragging'
+                                      ) {
+                                        return;
+                                      }
+                                      setEditingTarget({ side: cell.side, index: r });
+                                    }}
+                                    className="h-full w-full cursor-pointer select-none object-cover [-webkit-touch-callout:none]"
+                                  />
+                                ) : (
+                                  <div
+                                    onClick={() => {
+                                      if (
+                                        suppressNextClickRef.current ||
+                                        dragSessionRef.current.phase === 'dragging'
+                                      ) {
+                                        return;
+                                      }
+                                      setEditingTarget({ side: cell.side, index: r });
+                                    }}
+                                    className="flex h-full w-full cursor-pointer items-center justify-center bg-slate-800 text-xs font-semibold text-slate-300"
+                                  >
+                                    {cell.label}
+                                  </div>
+                                )}
+
+                                {isDropTarget && (
+                                  <div className="pointer-events-none absolute inset-0 z-10 bg-cyan-400/15" />
+                                )}
+
+                                {isSlotLoading && (
+                                  <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/65 backdrop-blur-[1px]">
+                                    <span className="spinner h-6 w-6 border-sky-400/30! border-t-sky-400!" />
+                                  </div>
+                                )}
+
+                                {/* Tombol Hapus Bulat Frosted Deep Slate dengan Ikon Tempat Sampah Mini */}
+                                <button
+                                  type="button"
+                                  aria-label={`Hapus ${cell.label}`}
+                                  onPointerDown={(e) => e.stopPropagation()}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    removeSingleSlot(cell.side, r);
                                   }}
-                                  className="h-full w-full cursor-pointer select-none object-cover [-webkit-touch-callout:none]"
-                                />
-                              ) : (
-                                <div
-                                  onClick={() => {
-                                    if (
-                                      suppressNextClickRef.current ||
-                                      dragSessionRef.current.phase === 'dragging'
-                                    ) {
-                                      return;
-                                    }
-                                    setEditingTarget({ side: cell.side, index: r });
-                                  }}
-                                  className="flex h-full w-full cursor-pointer items-center justify-center bg-slate-800 text-xs font-semibold text-slate-300"
+                                  className="absolute top-1.5 right-1.5 z-10 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-slate-600/80 bg-slate-900/85 backdrop-blur-sm transition hover:border-rose-400/70 hover:bg-rose-950/90 active:scale-90"
                                 >
-                                  {cell.label}
-                                </div>
-                              )}
-
-                              {isDropTarget && (
-                                <div className="pointer-events-none absolute inset-0 z-10 bg-cyan-400/15" />
-                              )}
-
-                              {isSlotLoading && (
-                                <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/65 backdrop-blur-[1px]">
-                                  <span className="spinner h-6 w-6 border-sky-400/30! border-t-sky-400!" />
-                                </div>
-                              )}
-
-                              {/* Tombol Hapus Bulat Frosted Deep Slate dengan Ikon Tempat Sampah Mini */}
+                                  <IconTrash className="h-3.5 w-3.5 text-rose-300" />
+                                </button>
+                              </div>
+                            ) : (
                               <button
                                 type="button"
-                                aria-label={`Hapus ${cell.label}`}
-                                onPointerDown={(e) => e.stopPropagation()}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  removeSingleSlot(cell.side, r);
+                                disabled={isSlotLoading}
+                                aria-label={`Tambah foto ${cell.label} (Slot ${slotNumber})`}
+                                onClick={() => {
+                                  if (
+                                    suppressNextClickRef.current ||
+                                    dragSessionRef.current.phase === 'dragging'
+                                  ) {
+                                    return;
+                                  }
+                                  triggerSlotPicker(cell.side, r, 'multi');
                                 }}
-                                className="absolute top-1.5 right-1.5 z-10 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-slate-600/80 bg-slate-900/85 backdrop-blur-sm transition hover:border-rose-400/70 hover:bg-rose-950/90 active:scale-90"
+                                className={`relative flex h-full w-full cursor-pointer items-center justify-center overflow-hidden rounded-[8px] border border-dashed p-2 transition hover:border-sky-500/60 active:border-sky-400 active:bg-sky-950/50 disabled:cursor-wait ${
+                                  isDropTarget
+                                    ? 'border-cyan-400 bg-sky-950/55'
+                                    : 'border-slate-700/80 bg-slate-900/90'
+                                }`}
                               >
-                                <IconTrash className="h-3.5 w-3.5 text-rose-300" />
+                                {isSlotLoading ? (
+                                  <span className="spinner relative z-10 h-6 w-6 border-sky-400/30! border-t-sky-400!" />
+                                ) : (
+                                  <>
+                                    <span
+                                      aria-hidden="true"
+                                      className="font-equipment pointer-events-none absolute inset-0 flex select-none items-center justify-center text-[62cqw] font-bold leading-none text-white/[0.06]"
+                                    >
+                                      {slotNumber}
+                                    </span>
+                                    <IconPlus className="relative z-10 h-6 w-6 text-sky-400" />
+                                  </>
+                                )}
                               </button>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              disabled={isSlotLoading}
-                              aria-label={`Tambah foto ${cell.label} (Slot ${slotNumber})`}
-                              onClick={() => {
-                                if (
-                                  suppressNextClickRef.current ||
-                                  dragSessionRef.current.phase === 'dragging'
-                                ) {
-                                  return;
-                                }
-                                triggerSlotPicker(cell.side, r, 'multi');
-                              }}
-                              className={`relative flex h-full w-full cursor-pointer items-center justify-center overflow-hidden rounded-[8px] border border-dashed p-2 transition hover:border-sky-500/60 active:border-sky-400 active:bg-sky-950/50 disabled:cursor-wait ${
-                                isDropTarget
-                                  ? 'border-cyan-400 bg-sky-950/55'
-                                  : 'border-slate-700/80 bg-slate-900/90'
-                              }`}
-                            >
-                              {isSlotLoading ? (
-                                <span className="spinner relative z-10 h-6 w-6 border-sky-400/30! border-t-sky-400!" />
-                              ) : (
-                                <>
-                                  <span
-                                    aria-hidden="true"
-                                    className="font-equipment pointer-events-none absolute inset-0 flex select-none items-center justify-center text-[62cqw] font-bold leading-none text-white/[0.06]"
-                                  >
-                                    {slotNumber}
-                                  </span>
-                                  <IconPlus className="relative z-10 h-6 w-6 text-sky-400" />
-                                </>
-                              )}
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
+                            )}
+                          </div>
+                        );
+                      })}
 
-                    {/* Pil Caption Tengah Tiap Baris (Rajdhani 700, gelap pekat rgba(11,17,32,0.88), border 1px, optical center) */}
-                    {rowOverlayText && (
-                      <div className="pointer-events-none absolute bottom-2.5 left-1/2 z-10 flex max-w-[86%] -translate-x-1/2 justify-center">
-                        <span
-                          className="font-equipment inline-flex items-center justify-center whitespace-nowrap rounded-full border border-slate-400/35 bg-[#0B1120]/88 font-bold leading-none text-white shadow-sm"
-                          style={{
-                            fontSize: computeCaptionPillFontCqw(rowOverlayText),
-                            paddingLeft: COLLAGE_PREVIEW_SPEC.pillPadXCqw,
-                            paddingRight: COLLAGE_PREVIEW_SPEC.pillPadXCqw,
-                            paddingTop: COLLAGE_PREVIEW_SPEC.pillPadYCqw,
-                            paddingBottom: COLLAGE_PREVIEW_SPEC.pillPadYCqw,
-                          }}
-                        >
-                          {rowOverlayText}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                      {/* Pil Caption Tengah Tiap Baris (dipertahankan 100% dari v2.10.2, penyesuaian lebar otomatis di dalam wadah) */}
+                      {rowOverlayText && (
+                        <div className="pointer-events-none absolute bottom-2.5 left-1/2 z-10 flex max-w-[88%] -translate-x-1/2 justify-center">
+                          <span
+                            className="font-equipment inline-flex items-center justify-center whitespace-nowrap rounded-full border border-slate-400/35 bg-[#0B1120]/88 font-bold leading-none text-white shadow-sm"
+                            style={{
+                              fontSize: computeCaptionPillFontCqw(rowOverlayText),
+                              paddingLeft: COLLAGE_PREVIEW_SPEC.pillPadXCqw,
+                              paddingRight: COLLAGE_PREVIEW_SPEC.pillPadXCqw,
+                              paddingTop: COLLAGE_PREVIEW_SPEC.pillPadYCqw,
+                              paddingBottom: COLLAGE_PREVIEW_SPEC.pillPadYCqw,
+                            }}
+                          >
+                            {rowOverlayText}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* 3. Pil Footer Terpusat: TPM [ALAT] • SHIFT [WAKTU] • [TANGGAL] (Rajdhani 600, #111C2E, border cyan, titik emerald #34D399) */}
+            {/* 3. Pil Footer Terpusat: TPM [ALAT] • SHIFT [WAKTU] • [TANGGAL] (Rajdhani 700, #0B2E2B, teks #34D399, titik #38BDF8) */}
             <div
               className="flex w-full items-center justify-center text-center"
               style={{
                 marginTop: COLLAGE_PREVIEW_SPEC.footerTopGapCqw,
                 height: COLLAGE_PREVIEW_SPEC.footerHeightCqw,
+                marginBottom: COLLAGE_PREVIEW_SPEC.footerBottomGapCqw,
               }}
             >
               <div
-                className="font-equipment inline-flex max-w-[94%] items-center justify-center whitespace-nowrap rounded-full border border-[#38BDF8]/32 bg-[#111C2E] font-semibold leading-none text-[#F8FAFC]"
+                className="font-equipment inline-flex max-w-[96%] items-center justify-center whitespace-nowrap rounded-full border border-[#34D399]/45 bg-[#0B2E2B] font-bold leading-none text-[#34D399]"
                 style={{
                   fontSize: footerFontCqw,
                   paddingLeft: COLLAGE_PREVIEW_SPEC.footerPadXCqw,
@@ -1676,9 +1670,9 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
                 }}
               >
                 <span>TPM {displayAreaStamp}</span>
-                <span className="whitespace-pre text-[#34D399]">  •  </span>
+                <span className="whitespace-pre text-[#38BDF8]">  •  </span>
                 <span>SHIFT {tpmShift}</span>
-                <span className="whitespace-pre text-[#34D399]">  •  </span>
+                <span className="whitespace-pre text-[#38BDF8]">  •  </span>
                 <span>{formattedFooterDate}</span>
               </div>
             </div>

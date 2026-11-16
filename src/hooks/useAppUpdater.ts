@@ -318,7 +318,7 @@ export function useAppUpdater(options: UseAppUpdaterOptions = {}) {
     setUpdatePhase('idle');
     setModalState({
       mode: 'prompt',
-      remoteVersion: '2.10.2',
+      remoteVersion: '2.10.3',
       releaseNotes: [
         'Simulasi pratinjau pop-up pembaruan PWA (mode uji lokal, tidak memuat ulang aplikasi).',
         'Memastikan tata letak modal update, badge versi, dan tombol aksi tampil presisi di layar mobile.',

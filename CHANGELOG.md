@@ -2,6 +2,16 @@
 
 Semua perubahan penting pada aplikasi **Dashboard & Kolase Foto TPM Urea 1B** dicatat di file ini mengikuti standar [Semantic Versioning](https://semver.org/).
 
+## [2.10.3] - 2026-11-17
+
+### Ditambahkan
+- **Kartu Wadah Grid Foto Kolase (`KolaseView.tsx`, `imageCollage.ts`):** Membungkus seluruh grid foto *Before & After* ke dalam kartu wadah gelap (`#0F172A`) berbingkai tipis dengan padding dalam ramping di atas latar poster `#080C14` agar terpisah rapi dari header dan footer tanpa perlu garis pemisah horizontal, sekaligus mengkalibrasi ulang batas lebar otomatis pil caption agar teks panjang tetap pas di dalam sel foto.
+
+### Diubah
+- **Penyempurnaan Header `BEFORE` & `AFTER` (`KolaseView.tsx`, `imageCollage.ts`):** Menghapus simbol titik pada pil header, memperbesar ukuran font `Rajdhani` Bold secara proporsional dengan padding atas-bawah yang seimbang, serta menampilkan aksen teks biru cyan (`#38BDF8`) untuk `BEFORE` dan hijau emerald neon (`#34D399`) untuk `AFTER`.
+- **Pembaruan Pil Footer Kolase & Proporsi Jarak (`KolaseView.tsx`, `imageCollage.ts`):** Membalik skema warna pil footer menjadi latar *dark emerald* (`#0B2E2B`) dengan teks **Hijau Emerald Neon (`#34D399`)** dan titik pemisah biru cyan (`#38BDF8`), menaikkan tipis ukuran font serta padding pil agar lebih tegas dan proporsional, serta menyeimbangkan margin luar atas dan bawah poster.
+- **Sinkronisasi Versi Patch `2.10.3` (`package.json`, `tpmData.ts`, `version.json`, `vite.config.js`, `GuideModal.tsx`):** Menyelaraskan versi aplikasi, badge Panduan Aplikasi, metadata `version.json`, serta `cacheId` Service Worker ke `v2.10.3`.
+
 ## [2.10.2] - 2026-11-17
 
 ### Diubah

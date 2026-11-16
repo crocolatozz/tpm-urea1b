@@ -1,8 +1,8 @@
 {
-  "version": "2.10.2",
+  "version": "2.10.3",
   "notes": [
-    "Penyeragaman seluruh tipografi kolase (BEFORE, AFTER, pil caption, dan pil footer) menggunakan font Rajdhani yang selaras dengan aplikasi",
-    "Pembaruan desain pil kolase bergaya dark-tinted + garis tepi 1px bernuansa cyan dan emerald neon beserta perataan vertikal presisi",
-    "Penyeragaman format SHIFT, ikon, jarak vertikal, dan gaya badge pada kartu ringkasan pop-up laporan"
+    "Pembaruan header BEFORE dan AFTER dengan ukuran teks lebih tegas tanpa simbol titik dan jarak atas-bawah yang seimbang",
+    "Penambahan kartu wadah gelap berbingkai tipis di sekeliling grid foto kolase agar tampilan terpisah rapi tanpa garis pemisah",
+    "Pembaruan pil footer kolase berwarna dark emerald dengan teks hijau emerald neon yang lebih jelas dan proporsional"
   ]
 }

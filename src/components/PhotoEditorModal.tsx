@@ -84,30 +84,29 @@ export const PhotoEditorModal: React.FC<PhotoEditorModalProps> = ({
   };
 
   return (
-    // Backdrop sengaja tidak memiliki onClick dismiss agar geseran jari tidak menutup editor
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="photo-editor-title"
-      className="fixed inset-0 z-[9999] flex touch-none items-center justify-center overscroll-contain bg-black/88 p-3.5 backdrop-blur-[4px]"
+      className="fixed inset-0 z-[9999] flex touch-none items-center justify-center overscroll-contain bg-slate-950/88 p-3.5 backdrop-blur-[4px]"
     >
-      <div className="modal-pop flex max-h-[92dvh] w-full max-w-[440px] flex-col gap-3.5 overscroll-contain rounded-[16px] border border-[#383838] bg-[#1e1e1e] p-4 text-white shadow-[0_12px_36px_rgba(0,0,0,0.75)]">
-        {/* Zona 1: Header Atas (Judul di kiri, tombol pil 🖼️ Ganti Foto di kanan — tanpa tombol ✕) */}
-        <div className="flex items-center justify-between gap-2 border-b border-[#303030] pb-2.5">
-          <h3 id="photo-editor-title" className="truncate text-[0.98rem] font-bold text-white">
+      <div className="modal-pop flex max-h-[92dvh] w-full max-w-[440px] flex-col gap-3.5 overscroll-contain rounded-2xl border border-slate-700/80 bg-slate-900 p-4 text-white shadow-[0_12px_36px_rgba(2,6,23,0.85)]">
+        {/* Header Atas */}
+        <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+          <h3 id="photo-editor-title" className="truncate text-[15px] font-bold text-white sm:text-base">
             Atur Foto ({slotLabel})
           </h3>
           <button
             type="button"
             onClick={onReplacePhoto}
-            className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-[#3a4f66] bg-[#1b2938] px-3 py-1.5 text-[0.76rem] font-bold text-[#8ab4f8] transition hover:bg-[#23364b] active:scale-95"
+            className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-sky-500/40 bg-sky-500/15 px-3 py-1.5 text-xs font-bold text-sky-300 transition hover:bg-sky-500/25 active:scale-95"
           >
-            <IconImageSwap /> Ganti Foto
+            <IconImageSwap className="h-4 w-4" /> Ganti Foto
           </button>
         </div>
 
-        {/* Zona 2: Kanvas Tengah react-easy-crop (aspek rasio sinkron dari imageCollage.ts 1:1) */}
-        <div className="relative h-[290px] w-full overflow-hidden rounded-xl border border-[#2f2f2f] bg-black sm:h-[330px]">
+        {/* Kanvas Tengah react-easy-crop */}
+        <div className="relative h-[290px] w-full overflow-hidden rounded-xl border border-slate-800 bg-slate-950 sm:h-[330px]">
           <Cropper
             image={slot.sourceUrl || slot.previewUrl}
             crop={crop}
@@ -123,12 +122,11 @@ export const PhotoEditorModal: React.FC<PhotoEditorModalProps> = ({
           />
         </div>
 
-        {/* Zona 3: Kontrol Bawah */}
+        {/* Kontrol Bawah */}
         <div className="flex flex-col gap-3">
-          {/* Baris Alat: Slider Zoom tipis (kiri) + Rotate 90° & Reset (kanan) */}
           <div className="flex items-center gap-2">
-            <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-[#323232] bg-[#252525] px-2.5 py-2">
-              <span className="shrink-0 text-[0.72rem] font-semibold text-[#aaa]">Zoom</span>
+            <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-2">
+              <span className="shrink-0 text-xs font-semibold text-slate-300">Zoom</span>
               <input
                 type="range"
                 aria-label="Zoom foto"
@@ -137,9 +135,9 @@ export const PhotoEditorModal: React.FC<PhotoEditorModalProps> = ({
                 step={0.05}
                 value={zoom}
                 onChange={(e) => setZoom(parseFloat(e.target.value))}
-                className="h-1.5 w-full min-w-0 cursor-pointer accent-[#007aff]"
+                className="h-1.5 w-full min-w-0 cursor-pointer accent-sky-400"
               />
-              <span className="w-8 shrink-0 text-right font-mono text-[0.7rem] font-semibold text-[#8ab4f8]">
+              <span className="w-8 shrink-0 text-right font-mono text-xs font-semibold tabular-nums text-sky-300">
                 {zoom.toFixed(1)}x
               </span>
             </div>
@@ -147,33 +145,32 @@ export const PhotoEditorModal: React.FC<PhotoEditorModalProps> = ({
             <button
               type="button"
               onClick={handleRotate90}
-              className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-lg border border-[#3a3a3a] bg-[#282828] px-2.5 py-2 text-[0.78rem] font-bold text-white transition hover:bg-[#323232] active:scale-95"
+              className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-2 text-[13px] font-bold text-white transition hover:bg-slate-700 active:scale-95"
             >
-              <IconRotateCw /> 90°
+              <IconRotateCw className="h-4 w-4 text-sky-400" /> 90°
             </button>
 
             <button
               type="button"
               onClick={handleReset}
-              className="shrink-0 cursor-pointer rounded-lg border border-rose-500/30 bg-rose-500/15 px-2.5 py-2 text-[0.78rem] font-semibold text-rose-400 transition hover:bg-rose-500/25 active:scale-95"
+              className="shrink-0 cursor-pointer rounded-lg border border-rose-500/35 bg-rose-500/15 px-2.5 py-2 text-[13px] font-semibold text-rose-300 transition hover:bg-rose-500/25 active:scale-95"
             >
               Reset
             </button>
           </div>
 
-          {/* Baris Aksi: Batal (abu-abu gelap, kiri) & Simpan (biru solid, kanan) */}
           <div className="grid grid-cols-2 gap-2.5">
             <button
               type="button"
               onClick={onCancel}
-              className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-lg border border-slate-600/50 bg-slate-700 px-4 py-2.5 text-[0.9rem] font-semibold text-slate-200 transition hover:bg-slate-600 active:scale-[0.98]"
+              className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-lg border border-slate-600 bg-slate-800 px-4 py-2.5 text-[14px] font-semibold text-slate-200 transition hover:bg-slate-700 active:scale-[0.98]"
             >
               Batal
             </button>
             <button
               type="button"
               onClick={handleSave}
-              className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-lg border-0 bg-[#007aff] px-4 py-2.5 text-[0.9rem] font-bold text-white transition hover:opacity-92 active:scale-[0.98]"
+              className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-lg border-0 bg-sky-600 px-4 py-2.5 text-[14px] font-bold text-white transition hover:bg-sky-500 active:scale-[0.98]"
             >
               Simpan
             </button>

@@ -19,6 +19,7 @@ import { useModalScrollLock } from '../hooks/useModalScrollLock';
 import {
   IconCalendar,
   IconCheck,
+  IconCheckCircle,
   IconChevronLeft,
   IconChevronRight,
   IconClose,
@@ -42,10 +43,23 @@ interface SearchMatch {
   nextDateStr: string;
 }
 
-interface UndoTarget {
+interface ReportedStatusTarget {
   date: string;
   shift: ShiftName;
   area: string;
+  entry: ReportedLogEntry | null;
+}
+
+function formatReportedTime(ts?: number): string {
+  if (!ts || !Number.isFinite(ts)) return '-';
+  try {
+    const d = new Date(ts);
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${hh}:${mm}`;
+  } catch {
+    return '-';
+  }
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -66,10 +80,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   const [selectedDate, setSelectedDate] = useState<string>(operationalInfo.dateStr);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [undoTarget, setUndoTarget] = useState<UndoTarget | null>(null);
+  const [statusTarget, setStatusTarget] = useState<ReportedStatusTarget | null>(null);
+  const [cycleInfoOpen, setCycleInfoOpen] = useState(false);
   const [isUndoing, setIsUndoing] = useState(false);
 
-  useModalScrollLock(undoTarget !== null);
+  useModalScrollLock(statusTarget !== null || cycleInfoOpen);
 
   // Auto-refresh active shift (07:00, 15:00, 23:00) & operational day rollover
   useEffect(() => {
@@ -125,7 +140,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       });
     }
     return matches;
-  }, [trimmedQuery, todayStr]);
+  }, [trimmedQuery]);
 
   const handleStepDate = (offset: number) => {
     const nextDate = getOffsetDateStr(offset, selectedDate);
@@ -144,11 +159,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   };
 
   const handleConfirmUndo = async () => {
-    if (!undoTarget || isUndoing) return;
+    if (!statusTarget || isUndoing) return;
     setIsUndoing(true);
     try {
-      await onUndoReport(undoTarget.date, undoTarget.shift);
-      setUndoTarget(null);
+      await onUndoReport(statusTarget.date, statusTarget.shift);
+      setStatusTarget(null);
     } finally {
       setIsUndoing(false);
     }
@@ -156,28 +171,28 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   return (
     <>
-      <div className="w-full overflow-hidden rounded-xl bg-[#1e1e1e] p-4 shadow-[0_4px_12px_rgba(0,0,0,0.3)] sm:p-5">
+      <div className="w-full overflow-hidden rounded-xl border border-slate-800 bg-slate-900 p-4 shadow-[0_4px_16px_rgba(2,6,23,0.5)] sm:p-5">
         {/* Kontrol Atas Responsif: Tanggal Jadwal & Cari Alat / Area */}
         <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
           {/* Tanggal Jadwal */}
           <div className="flex w-full min-w-0 flex-col gap-2">
             <label
               htmlFor="tpmDate"
-              className="inline-flex items-center gap-2 text-[17px] font-semibold text-sky-200 sm:text-[18px]"
+              className="inline-flex items-center gap-2 text-[15px] font-bold text-white sm:text-base"
             >
-              <IconCalendar className="text-sky-400" /> Tanggal Jadwal
+              <IconCalendar className="h-5 w-5 text-sky-400" /> Tanggal Jadwal
             </label>
             <div className="flex w-full min-w-0 items-center gap-2">
               <button
                 type="button"
                 onClick={() => handleStepDate(-1)}
                 aria-label="Tanggal sebelumnya"
-                className="flex h-[46px] w-[46px] shrink-0 cursor-pointer items-center justify-center rounded-lg border border-[#3c3c3c] bg-[#262626] text-xl text-white transition active:scale-[0.95] active:bg-[#333]"
+                className="flex h-[46px] w-[46px] shrink-0 cursor-pointer items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-slate-200 transition hover:border-slate-600 active:scale-[0.95]"
               >
-                <IconChevronLeft />
+                <IconChevronLeft className="h-5 w-5" />
               </button>
-              <div className="relative flex h-[46px] min-w-0 flex-1 items-center justify-center rounded-lg border border-[#3a3a3a] bg-[#2a2a2a] px-3">
-                <span className="pointer-events-none whitespace-nowrap text-[16px] font-semibold text-white">
+              <div className="relative flex h-[46px] min-w-0 flex-1 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 px-3">
+                <span className="pointer-events-none whitespace-nowrap text-[16px] font-semibold tabular-nums text-white">
                   {formatDateIndoFull(selectedDate)}
                 </span>
                 <input
@@ -199,9 +214,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 type="button"
                 onClick={() => handleStepDate(1)}
                 aria-label="Tanggal berikutnya"
-                className="flex h-[46px] w-[46px] shrink-0 cursor-pointer items-center justify-center rounded-lg border border-[#3c3c3c] bg-[#262626] text-xl text-white transition active:scale-[0.95] active:bg-[#333]"
+                className="flex h-[46px] w-[46px] shrink-0 cursor-pointer items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-slate-200 transition hover:border-slate-600 active:scale-[0.95]"
               >
-                <IconChevronRight />
+                <IconChevronRight className="h-5 w-5" />
               </button>
             </div>
           </div>
@@ -210,9 +225,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="flex w-full min-w-0 flex-col gap-2">
             <label
               htmlFor="equipmentSearchInput"
-              className="inline-flex items-center gap-2 text-[17px] font-semibold text-sky-200 sm:text-[18px]"
+              className="inline-flex items-center gap-2 text-[15px] font-bold text-white sm:text-base"
             >
-              <IconSearch className="text-sky-400" /> Cari Alat / Area
+              <IconSearch className="h-5 w-5 text-sky-400" /> Cari Alat / Area
             </label>
             <div className="relative flex items-center">
               <input
@@ -226,16 +241,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Misal: GA101, FLARE..."
-                className="tpm-input pr-10!"
+                className="tpm-input pr-10! font-semibold text-white placeholder:font-normal placeholder:text-slate-400 placeholder:normal-case"
               />
               {searchQuery.trim() && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
                   aria-label="Hapus pencarian"
-                  className="absolute right-2.5 flex h-[28px] w-[28px] cursor-pointer items-center justify-center rounded-full border-0 bg-[#3d3d3d] text-[13px] text-white"
+                  className="absolute right-2.5 flex h-[28px] w-[28px] cursor-pointer items-center justify-center rounded-full border border-slate-600 bg-slate-700 text-[13px] text-white transition hover:bg-slate-600"
                 >
-                  <IconClose />
+                  <IconClose className="h-4 w-4" />
                 </button>
               )}
             </div>
@@ -243,16 +258,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Header Daftar Jadwal */}
-        <div className="mt-4 mb-3.5 flex items-center justify-between gap-2 border-b border-[#333] pb-2.5">
-          <h2 className="inline-flex min-w-0 items-center gap-2 truncate text-[17px] font-semibold text-sky-200 sm:text-[18px]">
+        <div className="mt-4 mb-3.5 flex items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+          <h2 className="inline-flex min-w-0 items-center gap-2 truncate text-[15px] font-bold text-white sm:text-base">
             {isSearching ? (
               <>
-                <IconSearch className="text-sky-400" />
+                <IconSearch className="h-5 w-5 text-sky-400" />
                 <span className="truncate">Hasil Pencarian: &quot;{trimmedQuery}&quot;</span>
               </>
             ) : (
               <>
-                <IconFileText className="text-sky-400" />
+                <IconFileText className="h-5 w-5 text-sky-400" />
                 <span className="truncate">
                   {isToday ? 'Jadwal TPM Hari Ini' : 'Daftar Jadwal TPM'}
                 </span>
@@ -260,9 +275,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             )}
           </h2>
           {!isSearching && cycleDay !== null && (
-            <span className="shrink-0 whitespace-nowrap rounded-xl border border-[#2b4c70] bg-[#1a2736] px-2.5 py-0.5 text-[12px] font-bold text-[#8ab4f8]">
-              Siklus {cycleDay}/15
-            </span>
+            <button
+              type="button"
+              onClick={() => setCycleInfoOpen(true)}
+              aria-label={`Info siklus rotasi ${cycleDay} dari 15`}
+              className="inline-flex shrink-0 cursor-pointer items-center gap-1 whitespace-nowrap rounded-full border border-sky-500/40 bg-sky-500/15 px-2.5 py-0.5 text-xs font-bold tabular-nums text-sky-300 transition hover:border-sky-400/70 hover:bg-sky-500/25 active:scale-95"
+            >
+              <span>Siklus {cycleDay}/15</span>
+              <IconInfoCircle className="h-3.5 w-3.5 text-sky-400" />
+            </button>
           )}
         </div>
 
@@ -270,14 +291,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="flex flex-col gap-2.5">
           {isSearching ? (
             searchMatches.length === 0 ? (
-              <p className="py-5 text-center text-[16px] text-[#888]">
+              <p className="py-5 text-center text-[15px] text-slate-300">
                 Alat &quot;{trimmedQuery}&quot; tidak ditemukan.
               </p>
             ) : (
               searchMatches.map((m) => {
                 const isTodayMatch = m.nextDateStr === todayStr;
-                const reported = Boolean(reportedLog[`${m.nextDateStr}_${m.shift}`]);
+                const entry = reportedLog[`${m.nextDateStr}_${m.shift}`] ?? null;
+                const reported = Boolean(entry);
                 const shiftRange = SHIFT_TIME_RANGES[m.shift];
+
                 return (
                   <div
                     key={`${m.cycleDay}-${m.shift}-${m.areaName}`}
@@ -288,59 +311,66 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         area: m.areaName,
                       })
                     }
-                    className={`relative flex cursor-pointer items-stretch overflow-hidden rounded-[10px] border border-l-4 transition active:scale-[0.98] active:bg-[#2c3540] ${
+                    className={`relative flex cursor-pointer items-stretch overflow-hidden rounded-[10px] border border-l-4 transition active:scale-[0.98] ${
                       isTodayMatch
-                        ? 'border-[#34c759]/45 border-l-[#34c759] bg-[#1b2a22]'
-                        : 'border-[#303030] border-l-[#007aff] bg-[#252525]'
+                        ? 'border-emerald-500/45 border-l-emerald-400 bg-emerald-950/35 hover:bg-emerald-950/50'
+                        : 'border-slate-700/80 border-l-sky-400 bg-slate-800/70 hover:bg-slate-800'
                     }`}
                   >
                     <div className="flex min-w-0 flex-1 flex-col justify-center gap-2 py-3.5 pr-10 pl-3.5 sm:pr-12">
-                      {/* Baris 1: Ikon + Nama Shift (Jam) di kiri, Pil Hari Ini di kanan */}
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span
-                          className={`inline-flex items-center gap-1.5 text-[13px] font-bold uppercase ${
-                            isTodayMatch ? 'text-[#34c759]' : 'text-[#007aff]'
-                          }`}
-                        >
-                          <ShiftWeatherIcon shift={m.shift} />
-                          <span>{m.shift}</span>
-                          <span className="text-[12px] font-medium normal-case text-[#9a9a9a]">
-                            ({shiftRange})
+                      {/* Baris 1: Judul SHIFT 15px + Jam 12px di bawahnya | Pil HARI INI di kanan */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="inline-flex items-center gap-1.5 text-[15px] font-extrabold uppercase leading-tight text-white">
+                            <ShiftWeatherIcon
+                              shift={m.shift}
+                              tone={isTodayMatch ? 'semantic-active' : 'semantic-default'}
+                              className="h-4 w-4"
+                            />
+                            <span>SHIFT {m.shift}</span>
                           </span>
-                        </span>
+                          <span
+                            className={`text-xs font-medium tabular-nums ${
+                              isTodayMatch ? 'text-emerald-100' : 'text-slate-300'
+                            }`}
+                          >
+                            {shiftRange}
+                          </span>
+                        </div>
                         {isTodayMatch && (
-                          <span className="inline-flex items-center gap-1 rounded-[10px] border border-[#34c759]/50 bg-[#34c759]/20 px-2 py-[2px] text-[12px] font-bold text-[#4cd964]">
-                            <span className="h-1.5 w-1.5 rounded-full bg-[#4cd964]" /> HARI INI
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-400/50 bg-emerald-500/20 px-2.5 py-0.5 text-xs font-bold text-emerald-300">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> HARI INI
                           </span>
                         )}
                       </div>
 
-                      {/* Baris 2: Tag Equipment di kiri, Pil DILAPORKAN di kanan */}
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0 break-words text-[20px] font-bold leading-tight text-white sm:text-[21px]">
+                      {/* Baris 2: Tag Equipment (Rajdhani) + Ikon Centang Bulat [✓] menempel di sebelah kanan */}
+                      <div className="inline-flex flex-wrap items-center gap-2">
+                        <div className="font-equipment min-w-0 break-words text-[21px] font-bold leading-tight tracking-wide text-white sm:text-[22px]">
                           {m.areaName}
                         </div>
                         {reported && (
                           <button
                             type="button"
-                            aria-label={`Batalkan status dilaporkan ${m.shift}`}
+                            aria-label={`Lihat status dilaporkan SHIFT ${m.shift}`}
                             onClick={(e) => {
                               e.stopPropagation();
-                              setUndoTarget({
+                              setStatusTarget({
                                 date: m.nextDateStr,
                                 shift: m.shift,
                                 area: m.areaName,
+                                entry,
                               });
                             }}
-                            className="relative z-20 inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-[10px] border border-[#64b5f6]/50 bg-[#64b5f6]/18 px-2 py-[2px] text-[12px] font-bold text-[#8cc8ff] transition active:scale-95"
+                            className="relative z-20 flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full border border-sky-500/40 bg-sky-500/15 text-sky-400 transition hover:bg-sky-500/30 active:scale-90"
                           >
-                            <IconCheck /> DILAPORKAN <IconClose className="opacity-70" />
+                            <IconCheck className="h-4 w-4" />
                           </button>
                         )}
                       </div>
 
-                      <div className="flex items-center gap-1.5 text-[13px] text-[#d8b47c]">
-                        <IconCalendar />
+                      <div className="flex items-center gap-1.5 text-xs font-medium tabular-nums text-amber-200">
+                        <IconCalendar className="h-3.5 w-3.5 text-amber-400" />
                         <span>
                           {isTodayMatch
                             ? `Hari Ini (${formatDateIndo(m.nextDateStr)})`
@@ -349,25 +379,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       </div>
                     </div>
 
-                    {/* Panah Sudut Lebar Penuh (Top-to-Bottom) */}
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex w-8 items-stretch sm:w-10">
+                    {/* Ikon Panah Kanan w-5 h-5 (strokeWidth={4}) */}
+                    <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center justify-center">
                       <svg
-                        viewBox="0 0 24 100"
-                        preserveAspectRatio="none"
+                        viewBox="0 0 24 24"
+                        width="20"
+                        height="20"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={4}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
                         aria-hidden="true"
-                        className={`h-full w-full ${
+                        className={`h-5 w-5 ${
                           isTodayMatch ? 'text-emerald-400/80' : 'text-sky-400/75'
                         }`}
                       >
-                        <polyline
-                          points="7,8 19,50 7,92"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth={2.5}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          vectorEffect="non-scaling-stroke"
-                        />
+                        <path d="m9 18 6-6-6-6" />
                       </svg>
                     </div>
                   </div>
@@ -375,16 +403,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               })
             )
           ) : dailyTasks.length === 0 ? (
-            <p className="py-5 text-center text-[16px] text-[#888]">
+            <p className="py-5 text-center text-[15px] text-slate-300">
               Belum ada jadwal di tanggal ini.
             </p>
           ) : (
             dailyTasks.map((task) => {
               const isCurrentShift = isOperationalDay && !task.isOff && task.shift === activeShift;
-              const reported =
-                !task.isOff &&
-                task.shift !== 'INFO' &&
-                Boolean(reportedLog[`${selectedDate}_${task.shift}`]);
+              const entry =
+                !task.isOff && task.shift !== 'INFO'
+                  ? (reportedLog[`${selectedDate}_${task.shift}`] ?? null)
+                  : null;
+              const reported = Boolean(entry);
               const shiftRange =
                 !task.isOff && task.shift !== 'INFO' ? SHIFT_TIME_RANGES[task.shift] : null;
 
@@ -402,10 +431,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   }}
                   className={`relative flex items-stretch overflow-hidden rounded-[10px] border border-l-4 transition ${
                     task.isOff
-                      ? 'border-[#303030] border-l-[#ff9500] bg-[#2a2419]'
+                      ? 'border-amber-500/35 border-l-amber-400 bg-amber-950/30'
                       : isCurrentShift
-                        ? 'cursor-pointer border-[#34c759]/45 border-l-[#34c759] bg-[#1b2a22] active:scale-[0.98] active:bg-[#2c3540]'
-                        : 'cursor-pointer border-[#303030] border-l-[#007aff] bg-[#252525] active:scale-[0.98] active:bg-[#2c3540]'
+                        ? 'cursor-pointer border-emerald-500/45 border-l-emerald-400 bg-emerald-950/35 hover:bg-emerald-950/50 active:scale-[0.98]'
+                        : 'cursor-pointer border-slate-700/80 border-l-sky-400 bg-slate-800/70 hover:bg-slate-800 active:scale-[0.98]'
                   }`}
                 >
                   <div
@@ -413,88 +442,93 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       task.isOff ? 'pr-3.5' : 'pr-10 sm:pr-12'
                     }`}
                   >
-                    {/* Baris 1: [Ikon] PAGI/SORE/MALAM (jam) di kiri sejajar dengan pil SHIFT AKTIF di kanan */}
-                    <div className="flex flex-wrap items-center justify-between gap-2">
+                    {/* Baris 1: Judul SHIFT 15px + Jam 12px di bawahnya | Pil ● AKTIF di kanan */}
+                    <div className="flex items-start justify-between gap-2">
                       {task.shift === 'INFO' ? (
-                        <span className="inline-flex items-center gap-1.5 text-[13px] font-bold uppercase text-[#ff9500]">
-                          <IconInfoCircle /> STATUS
+                        <span className="inline-flex items-center gap-1.5 text-[15px] font-extrabold uppercase text-amber-300">
+                          <IconInfoCircle className="h-4 w-4 text-amber-400" /> STATUS
                         </span>
                       ) : (
-                        <span
-                          className={`inline-flex items-center gap-1.5 text-[13px] font-bold uppercase ${
-                            isCurrentShift ? 'text-[#34c759]' : 'text-[#007aff]'
-                          }`}
-                        >
-                          <ShiftWeatherIcon shift={task.shift} />
-                          <span>{task.shift}</span>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="inline-flex items-center gap-1.5 text-[15px] font-extrabold uppercase leading-tight text-white">
+                            <ShiftWeatherIcon
+                              shift={task.shift}
+                              tone={isCurrentShift ? 'semantic-active' : 'semantic-default'}
+                              className="h-4 w-4"
+                            />
+                            <span>SHIFT {task.shift}</span>
+                          </span>
                           {shiftRange && (
-                            <span className="text-[12px] font-medium normal-case text-[#9a9a9a]">
-                              ({shiftRange})
+                            <span
+                              className={`text-xs font-medium tabular-nums ${
+                                isCurrentShift ? 'text-emerald-100' : 'text-slate-300'
+                              }`}
+                            >
+                              {shiftRange}
                             </span>
                           )}
-                        </span>
+                        </div>
                       )}
 
                       {isCurrentShift && (
-                        <span className="inline-flex items-center gap-1 rounded-[10px] border border-[#34c759]/50 bg-[#34c759]/20 px-2 py-[2px] text-[12px] font-bold text-[#4cd964]">
-                          <span className="h-1.5 w-1.5 rounded-full bg-[#4cd964]" /> SHIFT AKTIF
+                        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-400/50 bg-emerald-500/20 px-2.5 py-0.5 text-xs font-bold text-emerald-300">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> AKTIF
                         </span>
                       )}
                     </div>
 
-                    {/* Baris 2: Tag Equipment di kiri sejajar dengan pil DILAPORKAN di kanan */}
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="min-w-0 break-words text-[20px] font-bold leading-tight text-white sm:text-[21px]">
+                    {/* Baris 2: Tag Equipment (Rajdhani) + Ikon Centang Bulat [✓] menempel di sebelah kanan */}
+                    <div className="inline-flex flex-wrap items-center gap-2">
+                      <div className="font-equipment min-w-0 break-words text-[21px] font-bold leading-tight tracking-wide text-white sm:text-[22px]">
                         {task.text}
                       </div>
 
                       {reported && task.shift !== 'INFO' && (
                         <button
                           type="button"
-                          aria-label={`Batalkan status dilaporkan ${task.shift}`}
+                          aria-label={`Lihat status dilaporkan SHIFT ${task.shift}`}
                           onClick={(e) => {
                             e.stopPropagation();
-                            setUndoTarget({
+                            setStatusTarget({
                               date: selectedDate,
                               shift: task.shift as ShiftName,
                               area: task.text,
+                              entry,
                             });
                           }}
-                          className="relative z-20 inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-[10px] border border-[#64b5f6]/50 bg-[#64b5f6]/18 px-2 py-[2px] text-[12px] font-bold text-[#8cc8ff] transition active:scale-95"
+                          className="relative z-20 flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full border border-sky-500/40 bg-sky-500/15 text-sky-400 transition hover:bg-sky-500/30 active:scale-90"
                         >
-                          <IconCheck /> DILAPORKAN <IconClose className="opacity-70" />
+                          <IconCheck className="h-4 w-4" />
                         </button>
                       )}
                     </div>
 
                     {task.subtext && (
-                      <div className="flex items-center gap-1.5 text-[13px] text-[#d8b47c]">
-                        <IconInfoCircle />
+                      <div className="flex items-center gap-1.5 text-xs font-medium text-amber-200">
+                        <IconInfoCircle className="h-3.5 w-3.5 text-amber-400" />
                         <span>{task.subtext}</span>
                       </div>
                     )}
                   </div>
 
-                  {/* Panah Sudut Lebar Penuh (Top-to-Bottom) */}
+                  {/* Ikon Panah Kanan w-5 h-5 (strokeWidth={4}) */}
                   {!task.isOff && (
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex w-8 items-stretch sm:w-10">
+                    <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center justify-center">
                       <svg
-                        viewBox="0 0 24 100"
-                        preserveAspectRatio="none"
+                        viewBox="0 0 24 24"
+                        width="20"
+                        height="20"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={4}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
                         aria-hidden="true"
-                        className={`h-full w-full ${
+                        className={`h-5 w-5 ${
                           isCurrentShift ? 'text-emerald-400/80' : 'text-sky-400/75'
                         }`}
                       >
-                        <polyline
-                          points="7,8 19,50 7,92"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth={2.5}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          vectorEffect="non-scaling-stroke"
-                        />
+                        <path d="m9 18 6-6-6-6" />
                       </svg>
                     </div>
                   )}
@@ -505,52 +539,127 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* Dialog Konfirmasi Undo / Reset Status Dilaporkan */}
-      {undoTarget && (
+      {/* Pop-up Info Sistem Rotasi Siklus 15 Hari */}
+      {cycleInfoOpen && (
         <div
-          className="fixed inset-0 z-[9999] flex touch-none items-center justify-center overscroll-contain bg-black/82 p-4 backdrop-blur-[4px]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="cycle-info-title"
+          className="fixed inset-0 z-[9999] flex touch-none items-center justify-center overscroll-contain bg-slate-950/82 p-4 backdrop-blur-[4px]"
           onClick={(e) => {
-            if (e.target === e.currentTarget && !isUndoing) setUndoTarget(null);
+            if (e.target === e.currentTarget) setCycleInfoOpen(false);
           }}
         >
-          <div className="modal-pop w-full max-w-[390px] overscroll-contain rounded-[16px] border border-[#383838] bg-[#1e1e1e] p-5 text-white shadow-[0_10px_30px_rgba(0,0,0,0.65)]">
-            <h3 className="mb-2 flex items-center gap-1.5 text-[17px] font-bold text-[#ffb340]">
-              <IconUndo /> Reset Status Dilaporkan?
+          <div className="modal-pop w-full max-w-[390px] overscroll-contain rounded-2xl border border-slate-700/80 bg-slate-900 p-5 text-white shadow-[0_10px_30px_rgba(2,6,23,0.75)]">
+            <div className="mb-3 flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <h3
+                id="cycle-info-title"
+                className="flex items-center gap-2 text-base font-bold text-white"
+              >
+                <IconInfoCircle className="h-5 w-5 text-sky-400" /> Sistem Rotasi Siklus 15 Hari
+              </h3>
+              <button
+                type="button"
+                onClick={() => setCycleInfoOpen(false)}
+                aria-label="Tutup informasi siklus"
+                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-slate-700 bg-slate-800 text-slate-300 transition hover:bg-slate-700"
+              >
+                <IconClose className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="space-y-2.5 text-[14px] leading-relaxed text-slate-300">
+              <p>
+                Jadwal TPM Urea 1B berputar otomatis mengikuti{' '}
+                <strong className="text-white">siklus 15 hari</strong> berdasarkan tanggal kalender
+                setiap bulan:
+              </p>
+              <ul className="list-disc space-y-1.5 pl-4 text-[13px] text-slate-300">
+                <li>
+                  Tanggal <strong className="tabular-nums text-sky-300">1–15</strong> menjalankan
+                  Siklus <strong className="tabular-nums text-white">1/15 – 15/15</strong>.
+                </li>
+                <li>
+                  Tanggal <strong className="tabular-nums text-sky-300">16–30</strong> mengulang
+                  Siklus <strong className="tabular-nums text-white">1/15 – 15/15</strong>.
+                </li>
+                <li>
+                  Tanggal <strong className="tabular-nums text-amber-300">31</strong> otomatis libur
+                  rutin TPM.
+                </li>
+              </ul>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCycleInfoOpen(false)}
+              className="mt-4 inline-flex min-h-[42px] w-full cursor-pointer items-center justify-center rounded-lg bg-sky-600 px-4 py-2.5 text-[14px] font-bold text-white transition hover:bg-sky-500 active:scale-[0.98]"
+            >
+              Mengerti
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Pop-up Status Sinkronisasi & Reset Dilaporkan [✓] */}
+      {statusTarget && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="status-sync-title"
+          className="fixed inset-0 z-[9999] flex touch-none items-center justify-center overscroll-contain bg-slate-950/82 p-4 backdrop-blur-[4px]"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isUndoing) setStatusTarget(null);
+          }}
+        >
+          <div className="modal-pop w-full max-w-[390px] overscroll-contain rounded-2xl border border-slate-700/80 bg-slate-900 p-5 text-white shadow-[0_10px_30px_rgba(2,6,23,0.75)]">
+            <h3
+              id="status-sync-title"
+              className="mb-2 flex items-center gap-2 text-base font-bold text-white"
+            >
+              <IconCheckCircle className="h-5 w-5 text-sky-400" /> Status Dilaporkan
             </h3>
-            <p className="mb-3 text-[14px] leading-[1.5] text-[#d4d4d4]">
-              Status{' '}
-              <strong className="inline-flex items-center gap-1 text-[#8cc8ff]">
-                <IconCheck /> DILAPORKAN
-              </strong>{' '}
-              akan dibatalkan dan tersinkron ke semua perangkat operator.
+            <p className="mb-3 text-[14px] leading-[1.5] text-slate-300">
+              {statusTarget.entry?.pendingOffline
+                ? 'Laporan tersimpan di perangkat (menunggu sinkronisasi saat koneksi internet kembali stabil).'
+                : 'Laporan ini sudah tercatat & tersinkronisasi real-time ke semua HP operator lain.'}
             </p>
-            <div className="mb-4 rounded-lg border border-[#343434] bg-[#252525] px-3 py-2 text-[13px]">
-              <div className="font-bold text-[#8ab4f8]">
-                {undoTarget.shift} • {formatDateIndo(undoTarget.date)}
+            <div className="mb-4 rounded-lg border border-slate-700/80 bg-slate-800/80 px-3 py-2.5 text-xs">
+              <div className="flex items-center justify-between gap-2 font-bold tabular-nums text-sky-300">
+                <span>
+                  {statusTarget.shift} • {formatDateIndo(statusTarget.date)}
+                </span>
+                {statusTarget.entry?.ts && (
+                  <span className="text-slate-300">
+                    Pukul {formatReportedTime(statusTarget.entry.ts)}
+                  </span>
+                )}
               </div>
-              <div className="truncate font-semibold text-white">{undoTarget.area}</div>
+              <div className="font-equipment mt-1 truncate text-[16px] font-bold text-white">
+                {statusTarget.area}
+              </div>
             </div>
             <div className="flex gap-2.5">
               <button
                 type="button"
                 disabled={isUndoing}
-                onClick={() => setUndoTarget(null)}
-                className="flex-1 cursor-pointer rounded-lg border border-[#444] bg-[#2c2c2c] px-3 py-2.5 text-[14px] font-semibold text-white transition active:scale-[0.97] disabled:opacity-50"
+                onClick={() => setStatusTarget(null)}
+                className="flex-1 cursor-pointer rounded-lg border border-slate-600 bg-slate-800 px-3 py-2.5 text-[14px] font-semibold text-slate-200 transition hover:bg-slate-700 active:scale-[0.97] disabled:opacity-50"
               >
-                Batal
+                Tutup
               </button>
               <button
                 type="button"
                 disabled={isUndoing}
                 onClick={handleConfirmUndo}
-                className="inline-flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 bg-[#ff453a] px-3 py-2.5 text-[14px] font-bold text-white transition active:scale-[0.97] disabled:opacity-60"
+                className="inline-flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-rose-500/40 bg-rose-600 px-3 py-2.5 text-[14px] font-bold text-white transition hover:bg-rose-500 active:scale-[0.97] disabled:opacity-60"
               >
                 {isUndoing ? (
                   <>
                     <span className="spinner" /> Mereset...
                   </>
                 ) : (
-                  'Ya, Reset Status'
+                  <>
+                    <IconUndo className="h-4 w-4" /> Reset Status
+                  </>
                 )}
               </button>
             </div>

@@ -2,6 +2,39 @@
 
 Semua perubahan penting pada aplikasi **Dashboard & Kolase Foto TPM Urea 1B** dicatat di file ini mengikuti standar [Semantic Versioning](https://semver.org/).
 
+## [2.8.2] - 2026-11-16
+
+### Diperbaiki
+- **Ukuran Global Seluruh Ikon SVG (`Icons.tsx`, `App.tsx`, `DashboardView.tsx`, `KolaseView.tsx`, semua Modal):** Menambahkan atribut default `width="20" height="20"` dan fallback `w-5 h-5` di seluruh ikon SVG, serta mengunci ukuran presisi per lokasi (`w-6 h-6` ikon `+` slot foto, `w-5 h-5` ikon header kartu/navigasi/gembok `Locked`/`Unlocked` dan panah kanan jadwal `>` `strokeWidth={4}`, `w-3.5 h-3.5` ikon sampah mini di dalam tombol `w-7 h-7`, `w-[22px] h-[22px]` ikon toast warning, serta `w-4 h-4` ikon close `X`).
+
+### Diubah
+- **Footer Kolase Lebih Besar & Lega (`KolaseView.tsx`, `imageCollage.ts`):** Mempertahankan latar bingkai `#0F172A`, menaikkan ukuran teks footer menjadi `4.5cqw` (`Barlow Condensed` `700`, putih `#FFFFFF`), melebarkan spasi pemisah `•` (3 spasi), menambah ruang napas vertikal di atas dan bawah footer, serta menambahkan pengaman `ctx.measureText()` agar skala font otomatis mengecil bila melebihi `90%` lebar kanvas.
+- **Sinkronisasi Versi & Pembersihan Dead Code (`package.json`, `tpmData.ts`, `version.json`, `vite.config.js`, `index.css`):** Menaikkan versi & `cacheId` Service Worker ke `v2.8.2`, menghapus aturan CSS `.tpm-select` dan variabel `:root` yang tidak terpakai, serta membersihkan ekspor internal yang tidak dipanggil sambil menjaga mekanisme `URL.revokeObjectURL()` tetap utuh.
+
+## [2.8.1] - 2026-11-15
+
+### Diubah
+- **Font `Rajdhani` & Kolase Monokrom Putih `Barlow Condensed` (`index.html`, `index.css`, `imageCollage.ts`, `DashboardView.tsx`, `KolaseView.tsx`):** Mengganti `Space Grotesk` dengan `Rajdhani` (`700`) khusus tag equipment pada kartu jadwal dan kotak input alat, serta menerapkan `Barlow Condensed` (`700`) berwarna putih solid (`#FFFFFF`) secara seragam untuk seluruh teks kolase Preview & Export JPEG (`6.2cqw` header `BEFORE`/`AFTER`, `4.9cqw` kapsul keterangan, dan `3.8cqw` footer 1 baris).
+- **Sinkronisasi Cache Offline & Versi `2.8.1` (`package.json`, `tpmData.ts`, `version.json`, `vite.config.js`):** Menaikkan versi aplikasi serta `cacheId` Service Worker ke `v2.8.1` dan meng-cache font `Rajdhani` & `Barlow Condensed` untuk akses offline di area pabrik.
+- **Label `SHIFT` & Posisi Ikon Centang Bulat `[✓]` (`DashboardView.tsx`, `GuideModal.tsx`):** Mengembalikan label lengkap **`SHIFT PAGI`**, **`SHIFT SORE`**, dan **`SHIFT MALAM`** pada kartu jadwal, menempelkan ikon centang bulat `[✓]` (`bg-sky-500/15 border-sky-500/40 text-sky-400`) langsung di sebelah kanan nama equipment (`inline-flex`), dan menyelaraskan ilustrasi serta keterangan di `GuideModal.tsx`.
+- **Konsistensi Header Utama & Kontrol `Locked`/`Unlocked` (`App.tsx`, `KolaseView.tsx`):** Menyeragamkan judul header **`Dashboard TPM Urea 1B`** dan subjudul **`Monitoring Jadwal & Pembuatan Kolase Foto`** di semua tab, mengubah label gembok menjadi **`Locked`** / **`Unlocked`**, serta memindahkan penjelasan mode input manual ke pop-up konfirmasi buka kunci agar header kartu tetap lega.
+- **Standarisasi Toast Warning & Ikon SVG Hapus/Close (`App.tsx`, `KolaseView.tsx`, `Icons.tsx`):** Menyeragamkan toast peringatan rata kiri dengan ikon `22px` (`z-[10050]`), mengganti tombol hapus per-slot foto menjadi ikon SVG tempat sampah mini (`w-3.5 h-3.5`, `text-rose-300`), dan menyeragamkan seluruh ikon tutup/clear dengan SVG close (`strokeWidth={2.5}`).
+
+## [2.8.0] - 2026-11-15
+
+### Ditambahkan
+- **Tipografi Industrial & Cache Offline Google Fonts (`index.html`, `index.css`, `vite.config.js`):** Memuat font utama global `Plus Jakarta Sans` (`400–800`), `Space Grotesk` (`700`) khusus tag equipment, `tabular-nums` pada jam/tanggal/counter, serta caching offline `fonts.googleapis.com` & `fonts.gstatic.com` di Service Worker (`v2.8.0`).
+- **Tombol Tukar Cepat Per Baris (`⇄`) & Pop-up Interaktif (`KolaseView.tsx`, `DashboardView.tsx`):** Menambahkan tombol bulat `⇄` di tengah garis pemisah pasangan *Before – After* untuk menukar foto kiri-kanan pada baris terkait (tidak ikut ter-render saat ekspor), pop-up informasi rotasi saat pil `Siklus` di-tap, serta pop-up info sinkronisasi & reset saat ikon centang bulat `[✓]` di-tap.
+- **Pengaman Konfirmasi & Auto-Tandai `[✓]` (`KolaseView.tsx`):** Menambahkan modal konfirmasi sebelum mengosongkan keterangan (`Bersihkan`) dan menghapus grid (`Reset Semua Foto`), serta pencocokan otomatis tag equipment & shift saat `Kirim ke WhatsApp` ditekan untuk menandai jadwal hari aktif (`[✓]`) dengan notifikasi *"Jadwal otomatis ditandai ✓"*.
+
+### Diubah
+- **Harmonisasi Palet Industrial Slate & Subjudul Putih (`App.tsx`, `DashboardView.tsx`, `KolaseView.tsx`, `ChangelogModal.tsx`, semua Modal):** Menyeragamkan seluruh kartu, modal, dan kontrol form ke palet `slate`/`sky`/`emerald`/`amber`/`rose`, mengubah subjudul section menjadi putih bersih (`text-white font-bold`) berikon `text-sky-400`, menyematkan gaya *Soft Emerald Glass* pada tombol **Cek Update**, serta menstandarkan label (`13px`), teks pendukung (`≥12px`), dan kontras placeholder (`text-slate-400`).
+- **Redesain Kartu Jadwal & Tab Modal Panduan (`DashboardView.tsx`, `GuideModal.tsx`):** Mempertebal ikon panah kanan menjadi `strokeWidth={4}`, memindahkan jam shift (`12px`) ke bawah judul shift (`15px`), meringkas pil `● SHIFT AKTIF` menjadi `● AKTIF`, mengganti pil teks dilaporkan menjadi ikon centang bulat `[✓]`, dan menata tab `GuideModal` secara horizontal dengan ikon `24px` + teks 2 baris tanpa penomoran.
+- **Kolase 1:1 Bingkai Deep Slate 90° & Batas 25 Karakter (`imageCollage.ts`, `KolaseView.tsx`):** Mengubah bingkai luar ekspor JPEG menjadi sudut tegas `90°` warna `#0F172A`, sudut slot `8px` proporsional dengan `save()`/`restore()` per sel, proporsi `cqw` (`6.0cqw` header, `4.9cqw` kapsul Deep Slate, `3.6cqw` footer 1 baris `TPM [TAG] • SHIFT • TANGGAL`), menunggu kesiapan font sebelum ekspor, auto-kompresi `1200px` kualitas `0.85` dengan pembersihan `URL.revokeObjectURL` di `finally`, baris keterangan dinamis sesuai grid (`1/2/3` baris, max `25` karakter + counter warna bertingkat), tombol bulat `Bersihkan` & `Salin Caption`, serta tombol gembok ringkas `Terkunci` / `Ubah`.
+
+### Diperbaiki
+- **Pengaman Scroll Lock Per-Instance (`useModalScrollLock.ts`):** Mengganti counter angka dengan pelacakan `Set<symbol>` per instance dan pembersihan otomatis saat unmount agar scroll halaman utama tidak pernah macet saat membuka atau menutup modal bertumpuk.
+
 ## [2.7.0] - 2026-11-15
 
 ### Ditambahkan

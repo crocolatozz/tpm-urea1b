@@ -1,7 +1,7 @@
 import { formatDateIndo } from '../data/tpmData';
 
 export const COLLAGE_CELL_WIDTH = 800;
-export const COLLAGE_CELL_HEIGHT = 800;
+const COLLAGE_CELL_HEIGHT = 800;
 export const COLLAGE_CELL_ASPECT = COLLAGE_CELL_WIDTH / COLLAGE_CELL_HEIGHT;
 
 export interface CropAreaPixels {
@@ -121,7 +121,7 @@ function resizeSourceToOffscreenCanvas(
   const previewUrl = createThumbnailDataUrl(offCanvas);
   let sourceUrl = '';
   try {
-    sourceUrl = offCanvas.toDataURL('image/jpeg', 0.92);
+    sourceUrl = offCanvas.toDataURL('image/jpeg', 0.85);
   } catch {
     sourceUrl = previewUrl;
   }
@@ -163,7 +163,7 @@ export function renderEditedSlot(
   const rotCtx = rotCanvas.getContext('2d');
   if (!rotCtx) return null;
 
-  rotCtx.fillStyle = '#000000';
+  rotCtx.fillStyle = '#0f172a';
   rotCtx.fillRect(0, 0, rotW, rotH);
   rotCtx.translate(rotW / 2, rotH / 2);
   rotCtx.rotate(rad);
@@ -197,7 +197,7 @@ export function renderEditedSlot(
     return null;
   }
 
-  outCtx.fillStyle = '#000000';
+  outCtx.fillStyle = '#0f172a';
   outCtx.fillRect(0, 0, outW, outH);
   outCtx.drawImage(rotCanvas, safeX, safeY, safeW, safeH, 0, 0, outW, outH);
 
@@ -277,7 +277,7 @@ function loadViaObjectUrl(file: File): Promise<LoadedPhotoSlot | null> {
     }
 
     const img = new Image();
-    const cleanup = () => {
+    const revokeAndCleanup = () => {
       img.onload = null;
       img.onerror = null;
       img.src = '';
@@ -288,25 +288,31 @@ function loadViaObjectUrl(file: File): Promise<LoadedPhotoSlot | null> {
     };
 
     img.onload = async () => {
+      let processed: LoadedPhotoSlot | null = null;
       try {
         if (typeof img.decode === 'function') {
           await img.decode().catch(() => {});
         }
-        const processed = resizeImageToOffscreenCanvas(img);
-        cleanup();
-        if (processed) {
-          resolve(processed);
-        } else {
-          loadViaFileReader(file).then(resolve);
-        }
+        processed = resizeImageToOffscreenCanvas(img);
       } catch {
-        cleanup();
+        processed = null;
+      } finally {
+        revokeAndCleanup();
+      }
+
+      if (processed) {
+        resolve(processed);
+      } else {
         loadViaFileReader(file).then(resolve);
       }
     };
 
     img.onerror = () => {
-      cleanup();
+      try {
+        // Fallback via FileReader below
+      } finally {
+        revokeAndCleanup();
+      }
       loadViaFileReader(file).then(resolve);
     };
 
@@ -396,35 +402,31 @@ function drawImageCover(
   ctx.drawImage(imgCanvas, sx, sy, sw, sh, x, y, w, h);
 }
 
-const CANVAS_PAD = 20;
-const CANVAS_GAP = 14;
-const CANVAS_CELL_RADIUS = 20;
-const CANVAS_TOP_HEADER_H = 88;
-const CANVAS_TOP_HEADER_FONT = 60;
-const CANVAS_SUB_HEADER_H = 56;
-const CANVAS_SUB_HEADER_FONT = 46;
-const CANVAS_FOOTER_H = 84;
-const CANVAS_FOOTER_FONT = 46;
-const CANVAS_PILL_FONT = 50;
-const CANVAS_PILL_PAD_X = 28;
-const CANVAS_PILL_PAD_Y = 14;
-const CANVAS_PILL_BOTTOM = 18;
-const CANVAS_WIDTH_BASE = COLLAGE_CELL_WIDTH * 2 + CANVAS_GAP + CANVAS_PAD * 2;
+const CANVAS_PAD = 24;
+const CANVAS_GAP = 18;
+const CANVAS_WIDTH_BASE = COLLAGE_CELL_WIDTH * 2 + CANVAS_GAP + CANVAS_PAD * 2; // 1666
+const CANVAS_CELL_RADIUS = Math.round(CANVAS_WIDTH_BASE * 0.022); // ~37px (~8px on 365px mobile)
+const CANVAS_SUB_HEADER_H = Math.round(CANVAS_WIDTH_BASE * 0.09); // ~150px
+const CANVAS_SUB_HEADER_FONT = Math.round(CANVAS_WIDTH_BASE * 0.062); // 6.2cqw
+const CANVAS_FOOTER_TOP_GAP = Math.round(CANVAS_WIDTH_BASE * 0.014); // ~23px ruang napas atas
+const CANVAS_FOOTER_H = Math.round(CANVAS_WIDTH_BASE * 0.1); // ~167px ruang napas atas-bawah footer
+const CANVAS_FOOTER_FONT = Math.round(CANVAS_WIDTH_BASE * 0.045); // 4.5cqw (~75px)
+const CANVAS_PILL_FONT = Math.round(CANVAS_WIDTH_BASE * 0.049); // 4.9cqw
+const CANVAS_PILL_PAD_X = Math.round(CANVAS_WIDTH_BASE * 0.032);
+const CANVAS_PILL_PAD_Y = Math.round(CANVAS_WIDTH_BASE * 0.012);
+const CANVAS_PILL_BOTTOM = Math.round(CANVAS_WIDTH_BASE * 0.027); // ~bottom-2.5
 
 export const COLLAGE_PREVIEW_SPEC = {
   paddingCqw: `${((CANVAS_PAD / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
   gapCqw: `${((CANVAS_GAP / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
-  cellRadiusCqw: `${((CANVAS_CELL_RADIUS / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
-  topHeaderHeightCqw: `${((CANVAS_TOP_HEADER_H / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
-  topHeaderFontCqw: `${((CANVAS_TOP_HEADER_FONT / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
   subHeaderHeightCqw: `${((CANVAS_SUB_HEADER_H / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
-  subHeaderFontCqw: `${((CANVAS_SUB_HEADER_FONT / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
+  subHeaderFontCqw: '6.200cqw',
+  footerTopGapCqw: `${((CANVAS_FOOTER_TOP_GAP / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
   footerHeightCqw: `${((CANVAS_FOOTER_H / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
-  footerFontCqw: `${((CANVAS_FOOTER_FONT / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
-  pillFontCqw: `${((CANVAS_PILL_FONT / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
+  footerFontCqw: '4.500cqw',
+  pillFontCqw: '4.900cqw',
   pillPadXCqw: `${((CANVAS_PILL_PAD_X / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
   pillPadYCqw: `${((CANVAS_PILL_PAD_Y / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
-  pillBottomCqw: `${((CANVAS_PILL_BOTTOM / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
 } as const;
 
 function traceRoundedRect(
@@ -447,6 +449,9 @@ function traceRoundedRect(
   drawRoundedRect(ctx, x, y, width, height, radius);
 }
 
+const FONT_COLLAGE_BARLOW =
+  '"Barlow Condensed", "Plus Jakarta Sans", system-ui, -apple-system, sans-serif';
+
 export function renderCollageToCanvas(
   canvas: HTMLCanvasElement,
   opts: CollageExportOptions
@@ -457,69 +462,51 @@ export function renderCollageToCanvas(
   const { rows, beforeSlots, afterSlots, rowTexts, areaName, shiftName, dateStr } = opts;
 
   const cellWidth = COLLAGE_CELL_WIDTH;
-  const cellHeight = COLLAGE_CELL_HEIGHT; // 1:1 square Instagram-style grid
+  const cellHeight = COLLAGE_CELL_HEIGHT;
   const gap = CANVAS_GAP;
   const padding = CANVAS_PAD;
-  const topHeaderHeight = CANVAS_TOP_HEADER_H;
   const subHeaderHeight = CANVAS_SUB_HEADER_H;
+  const footerTopGap = CANVAS_FOOTER_TOP_GAP;
   const footerHeight = CANVAS_FOOTER_H;
 
   const canvasWidth = cellWidth * 2 + gap + padding * 2;
   const canvasHeight =
     padding +
-    topHeaderHeight +
     subHeaderHeight +
     cellHeight * rows +
     gap * (rows - 1) +
+    footerTopGap +
     footerHeight +
     padding;
 
   canvas.width = canvasWidth;
   canvas.height = canvasHeight;
 
-  // Frame Background
-  ctx.fillStyle = '#000000';
+  // Bingkai luar ekspor wajib sudut tegas 90° berwarna Deep Slate (#0F172A)
+  ctx.fillStyle = '#0F172A';
   ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-  // 1. Header Paling Atas (Tengah): TPM [TAG EQUIPMENT]
-  const areaLabel = areaName.trim() || '-';
-  const topHeaderText = `TPM ${areaLabel}`;
-  const maxTopHeaderWidth = Math.round(canvasWidth * 0.92);
-  let topFontSize = CANVAS_TOP_HEADER_FONT;
-
-  ctx.save();
-  ctx.font = `800 ${topFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
-  while (ctx.measureText(topHeaderText).width > maxTopHeaderWidth && topFontSize > 26) {
-    topFontSize -= 2;
-    ctx.font = `800 ${topFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
-  }
-  ctx.fillStyle = '#ffffff';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(topHeaderText, canvasWidth / 2, padding + topHeaderHeight / 2, maxTopHeaderWidth);
-  ctx.restore();
-
-  // 2. Sub-Header Kolom (BEFORE | AFTER)
+  // 1. Header Kolom: BEFORE | AFTER (Barlow Condensed 700, Monokrom Putih #FFFFFF, 6.2cqw)
   const ctxWithSpacing = ctx as CanvasRenderingContext2D & { letterSpacing?: string };
   ctx.save();
-  ctx.fillStyle = '#e5e7eb';
-  ctx.font = `800 ${CANVAS_SUB_HEADER_FONT}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+  ctx.font = `700 ${CANVAS_SUB_HEADER_FONT}px ${FONT_COLLAGE_BARLOW}`;
   if ('letterSpacing' in ctxWithSpacing) {
-    ctxWithSpacing.letterSpacing = `${Math.max(1, Math.round(CANVAS_SUB_HEADER_FONT * 0.06))}px`;
+    ctxWithSpacing.letterSpacing = `${Math.max(2, Math.round(CANVAS_SUB_HEADER_FONT * 0.05))}px`;
   }
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#FFFFFF';
 
   const leftColCenterX = padding + cellWidth / 2;
   const rightColCenterX = padding + cellWidth + gap + cellWidth / 2;
-  const subHeaderCenterY = padding + topHeaderHeight + subHeaderHeight / 2;
+  const subHeaderCenterY = padding + subHeaderHeight / 2;
 
-  ctx.fillText('BEFORE', leftColCenterX, subHeaderCenterY);
-  ctx.fillText('AFTER', rightColCenterX, subHeaderCenterY);
+  ctx.fillText('BEFORE', leftColCenterX, subHeaderCenterY, cellWidth * 0.9);
+  ctx.fillText('AFTER', rightColCenterX, subHeaderCenterY, cellWidth * 0.9);
   ctx.restore();
 
-  // 3. Area Tengah (Grid Foto dengan Sudut Membulat roundRect)
-  const startY = padding + topHeaderHeight + subHeaderHeight;
+  // 2. Grid Foto Before / After (Sudut melengkung proporsional, dibungkus save/restore)
+  const startY = padding + subHeaderHeight;
 
   for (let r = 0; r < rows; r++) {
     const y = startY + r * (cellHeight + gap);
@@ -531,7 +518,7 @@ export function renderCollageToCanvas(
     if (beforeSlot?.canvas) {
       drawImageCover(ctx, beforeSlot.canvas, padding, y, cellWidth, cellHeight);
     } else {
-      ctx.fillStyle = '#141414';
+      ctx.fillStyle = '#1e293b';
       ctx.fillRect(padding, y, cellWidth, cellHeight);
     }
     ctx.restore();
@@ -544,16 +531,16 @@ export function renderCollageToCanvas(
     if (afterSlot?.canvas) {
       drawImageCover(ctx, afterSlot.canvas, xRight, y, cellWidth, cellHeight);
     } else {
-      ctx.fillStyle = '#141414';
+      ctx.fillStyle = '#1e293b';
       ctx.fillRect(xRight, y, cellWidth, cellHeight);
     }
     ctx.restore();
   }
 
-  // Kapsul Keterangan Melayang di Tepi Bawah-Tengah Setiap Baris Foto
+  // 3. Kapsul Keterangan Tengah Tiap Baris (Barlow Condensed 700, Monokrom Putih #FFFFFF, 4.9cqw)
   const maxPillWidth = canvasWidth - padding * 2 - 48;
   rowTexts.slice(0, rows).forEach((rawText, r) => {
-    const text = rawText ? rawText.trim() : '';
+    const text = rawText ? rawText.trim().slice(0, 25) : '';
     if (!text) return;
 
     const centerX = canvasWidth / 2;
@@ -561,53 +548,72 @@ export function renderCollageToCanvas(
 
     ctx.save();
     let fontSize = CANVAS_PILL_FONT;
-    const minFontSize = 22;
+    const minFontSize = 32;
     const padX = CANVAS_PILL_PAD_X;
     const padY = CANVAS_PILL_PAD_Y;
 
-    ctx.font = `700 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+    ctx.font = `700 ${fontSize}px ${FONT_COLLAGE_BARLOW}`;
     let metrics = ctx.measureText(text);
 
     while (metrics.width + padX * 2 > maxPillWidth && fontSize > minFontSize) {
       fontSize -= 2;
-      ctx.font = `700 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+      ctx.font = `700 ${fontSize}px ${FONT_COLLAGE_BARLOW}`;
       metrics = ctx.measureText(text);
     }
 
     const bgW = Math.min(metrics.width + padX * 2, maxPillWidth);
-    const bgH = Math.round(fontSize * 1.15) + padY * 2;
+    const bgH = Math.round(fontSize * 1.18) + padY * 2;
     const textY = rowBottomY - bgH / 2 - CANVAS_PILL_BOTTOM;
-    const cornerRadius = Math.min(20, Math.round(bgH / 3));
+    const cornerRadius = Math.round(bgH / 2);
 
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.82)';
+    ctx.fillStyle = '#0F172A';
     traceRoundedRect(ctx, centerX - bgW / 2, textY - bgH / 2, bgW, bgH, cornerRadius);
     ctx.fill();
 
-    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = 'rgba(148, 163, 184, 0.45)';
+    ctx.lineWidth = 3;
+    traceRoundedRect(ctx, centerX - bgW / 2, textY - bgH / 2, bgW, bgH, cornerRadius);
+    ctx.stroke();
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
     ctx.fillText(text, centerX, textY, maxPillWidth - padX * 2);
     ctx.restore();
   });
 
-  // 4. Footer Paling Bawah (Tengah): SHIFT [PAGI/SORE/MALAM] • [DD/MM/YYYY]
+  // 4. Footer 1 Baris Terpusat: TPM [TAG]   •   SHIFT   •   TANGGAL (Barlow Condensed 700, Monokrom Putih #FFFFFF, 4.5cqw)
+  const areaLabel = areaName.trim() || '-';
   const dateLabel = formatDateIndo(dateStr);
-  const stampText = `SHIFT ${shiftName} • ${dateLabel}`;
+  const footerText = `TPM ${areaLabel}   •   SHIFT ${shiftName}   •   ${dateLabel}`;
 
-  const footerCenterY = startY + rows * cellHeight + (rows - 1) * gap + footerHeight / 2;
+  const footerCenterY =
+    startY + rows * cellHeight + (rows - 1) * gap + footerTopGap + footerHeight / 2;
+  const maxFooterWidth = Math.round(canvasWidth * 0.9);
+
   ctx.save();
-  let stampFontSize = CANVAS_FOOTER_FONT;
-  const maxStampWidth = Math.round(canvasWidth * 0.92);
-  ctx.font = `700 ${stampFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
-  while (ctx.measureText(stampText).width > maxStampWidth && stampFontSize > 20) {
-    stampFontSize -= 1;
-    ctx.font = `700 ${stampFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+  let footerFontSize = CANVAS_FOOTER_FONT;
+  const minFooterFont = 24;
+
+  ctx.font = `700 ${footerFontSize}px ${FONT_COLLAGE_BARLOW}`;
+  const measuredFooterWidth = ctx.measureText(footerText).width;
+  if (measuredFooterWidth > maxFooterWidth && measuredFooterWidth > 0) {
+    footerFontSize = Math.max(
+      minFooterFont,
+      Math.floor(footerFontSize * (maxFooterWidth / measuredFooterWidth))
+    );
+    ctx.font = `700 ${footerFontSize}px ${FONT_COLLAGE_BARLOW}`;
+    while (ctx.measureText(footerText).width > maxFooterWidth && footerFontSize > minFooterFont) {
+      footerFontSize -= 1;
+      ctx.font = `700 ${footerFontSize}px ${FONT_COLLAGE_BARLOW}`;
+    }
   }
-  ctx.fillStyle = '#d1d5db';
-  ctx.textAlign = 'center';
+
+  ctx.fillStyle = '#FFFFFF';
   ctx.textBaseline = 'middle';
-  ctx.fillText(stampText, canvasWidth / 2, footerCenterY, maxStampWidth);
+  ctx.textAlign = 'center';
+  ctx.fillText(footerText, canvasWidth / 2, footerCenterY, maxFooterWidth);
+
   ctx.restore();
 
   return true;

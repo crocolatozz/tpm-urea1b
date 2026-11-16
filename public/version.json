@@ -1,9 +1,8 @@
 {
-  "version": "2.7.0",
+  "version": "2.8.2",
   "notes": [
-    "Restrukturisasi tata letak kolase split atas–bawah (TPM [TAG] di atas, BEFORE/AFTER, & SHIFT/tanggal di bawah) dengan sinkronisasi proporsi 1:1 antara Preview dan Canvas",
-    "Penyimpanan permanen 6 slot foto saat berganti mode grid, batas 30 karakter + penghitung di Keterangan Kegiatan, serta fitur Gembok Pengunci Data Laporan",
-    "Redesain Dashboard 2-baris simetris dengan panah lebar penuh, subjudul biru sky-200 + ikon sky-400, serta feedback tombol Salin & Bersihkan 2 detik",
-    "Peningkatan stabilitas sistem: hierarki tipografi 4-tingkat anti-zoom iOS, anti-autofill Android, Global Modal Scroll Lock, dan Storage Version Guard"
+    "Perbaikan ukuran global seluruh ikon SVG dengan atribut default 20x20 dan ukuran presisi per lokasi (ikon + 24px, header 20px, tombol sampah mini 14px, toast 22px, close 16px, panah jadwal 20px)",
+    "Footer kolase kini memakai Barlow Condensed 4.5cqw monokrom putih dengan jarak pemisah dot (•) lebih lega, ruang napas vertikal lebih luas, dan auto-scale agar tag panjang tidak terpotong (maks 90% lebar kanvas)",
+    "Pembersihan dead code (CSS tidak terpakai dan referensi usang) tanpa mengubah alur kerja"
   ]
 }

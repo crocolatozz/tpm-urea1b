@@ -76,7 +76,7 @@ function renderFormattedText(text: string): React.ReactNode[] {
       return (
         <code
           key={idx}
-          className="rounded bg-[#2c2c2c] px-1 py-0.5 font-mono text-[0.76rem] text-[#8ab4f8]"
+          className="rounded bg-slate-800 px-1 py-0.5 font-mono text-xs text-sky-300"
         >
           {part.slice(1, -1)}
         </code>
@@ -118,18 +118,21 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex touch-none items-center justify-center overscroll-contain bg-black/82 p-4 backdrop-blur-[4px]"
+      className="fixed inset-0 z-[9999] flex touch-none items-center justify-center overscroll-contain bg-slate-950/82 p-4 backdrop-blur-[4px]"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="modal-pop flex max-h-[88dvh] w-full max-w-[460px] flex-col overscroll-contain rounded-[16px] border border-[#383838] bg-[#1e1e1e] p-5 text-white shadow-[0_10px_30px_rgba(0,0,0,0.65)]">
-        <div className="mb-3.5 flex shrink-0 items-center justify-between border-b border-[#333] pb-2.5">
+      <div className="modal-pop flex max-h-[88dvh] w-full max-w-[460px] flex-col overscroll-contain rounded-2xl border border-slate-700/80 bg-slate-900 p-5 text-white shadow-[0_10px_30px_rgba(2,6,23,0.75)]">
+        <div className="mb-3.5 flex shrink-0 items-center justify-between border-b border-slate-800 pb-2.5">
           <div>
-            <h3 className="flex items-center gap-1.5 text-[1.05rem] font-bold text-[#007aff]">
-              <IconHistory /> Riwayat Pembaruan
+            <h3 className="flex items-center gap-2 text-[17px] font-bold text-white">
+              <IconHistory className="h-5 w-5 text-sky-400" /> Riwayat Pembaruan
             </h3>
-            <p className="text-[0.74rem] text-[#9a9a9a]">Versi aktif: v{APP_VERSION}</p>
+            <p className="mt-0.5 text-xs text-slate-300">
+              Versi aktif:{' '}
+              <span className="font-mono font-semibold text-sky-300">v{APP_VERSION}</span>
+            </p>
           </div>
           <button
             type="button"
@@ -137,7 +140,7 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({
             onClick={onCheckUpdate}
             aria-label="Cek Update"
             title="Cek Update"
-            className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-emerald-600 text-white transition hover:bg-emerald-500 active:scale-95 disabled:cursor-wait disabled:opacity-80"
+            className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-emerald-400/35 bg-emerald-500/15 text-emerald-300 backdrop-blur-sm transition hover:bg-emerald-500/25 active:scale-95 disabled:cursor-wait disabled:opacity-80"
           >
             <IconSync
               className={`h-5 w-5 ${isCheckingUpdate ? 'animate-[spin_0.65s_linear_infinite]' : ''}`}
@@ -155,8 +158,8 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({
                 key={rel.versionLine}
                 className={`overflow-hidden rounded-xl border transition-colors ${
                   isLatest
-                    ? 'border-[#007aff]/45 bg-[#172230]'
-                    : 'border-[#303030] bg-[#242424]'
+                    ? 'border-sky-500/45 bg-sky-950/35'
+                    : 'border-slate-700/80 bg-slate-800/70'
                 }`}
               >
                 <button
@@ -166,30 +169,30 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({
                   className="flex w-full cursor-pointer items-center justify-between gap-2 px-3.5 py-3 text-left transition active:bg-white/5"
                 >
                   <div className="flex min-w-0 items-center gap-2">
-                    <span className="truncate text-[0.88rem] font-bold text-white">
+                    <span className="truncate font-mono text-[14px] font-bold text-white">
                       v{rel.versionLine}
                     </span>
                     {isLatest && (
-                      <span className="shrink-0 rounded-full bg-[#34c759]/20 px-2 py-0.5 text-[0.65rem] font-bold text-[#4cd964]">
+                      <span className="shrink-0 rounded-full border border-emerald-400/40 bg-emerald-500/20 px-2 py-0.5 text-xs font-bold text-emerald-300">
                         TERBARU
                       </span>
                     )}
                   </div>
                   <IconChevronDown
-                    className={`h-4 w-4 text-[#9a9a9a] transition-transform duration-200 ${
+                    className={`h-4 w-4 text-slate-300 transition-transform duration-200 ${
                       isExpanded ? 'rotate-180' : ''
                     }`}
                   />
                 </button>
 
                 {isExpanded && (
-                  <div className="space-y-2.5 border-t border-white/10 px-3.5 pt-2.5 pb-3.5">
+                  <div className="space-y-2.5 border-t border-slate-700/60 px-3.5 pt-2.5 pb-3.5">
                     {rel.sections.map((sec) => (
                       <div key={sec.heading}>
-                        <h4 className="mb-1 text-[0.76rem] font-bold uppercase tracking-wide text-[#8ab4f8]">
+                        <h4 className="mb-1 text-xs font-bold uppercase tracking-wide text-sky-300">
                           {sec.heading}
                         </h4>
-                        <ul className="flex list-disc flex-col gap-1.5 pl-4 text-[0.8rem] leading-[1.45] text-[#d6d6d6]">
+                        <ul className="flex list-disc flex-col gap-1.5 pl-4 text-[13px] leading-[1.5] text-slate-200">
                           {sec.items.map((item, i) => (
                             <li key={i}>{renderFormattedText(item)}</li>
                           ))}
@@ -206,7 +209,7 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({
         <button
           type="button"
           onClick={onClose}
-          className="mt-4 inline-flex w-full shrink-0 cursor-pointer items-center justify-center rounded-lg border-0 bg-[#007aff] px-4 py-2.5 text-[0.9rem] font-bold text-white transition hover:opacity-92 active:scale-[0.98]"
+          className="mt-4 inline-flex w-full shrink-0 cursor-pointer items-center justify-center rounded-lg border-0 bg-sky-600 px-4 py-2.5 text-[14px] font-bold text-white transition hover:bg-sky-500 active:scale-[0.98]"
         >
           Tutup
         </button>

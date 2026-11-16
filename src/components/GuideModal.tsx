@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { APP_VERSION } from '../data/tpmData';
 import { useModalScrollLock } from '../hooks/useModalScrollLock';
 import {
+  IconArrowLeft,
+  IconArrowRight,
   IconBookOpen,
   IconCalendar,
   IconCheck,
@@ -17,8 +19,7 @@ import {
   IconSend,
   IconShareIos,
   IconSmartphone,
-  IconArrowLeft,
-  IconArrowRight,
+  IconSwapHorizontal,
 } from './Icons';
 
 interface GuideModalProps {
@@ -50,43 +51,50 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex touch-none items-center justify-center overscroll-contain bg-black/82 p-4 backdrop-blur-[4px]"
+      className="fixed inset-0 z-[9999] flex touch-none items-center justify-center overscroll-contain bg-slate-950/82 p-4 backdrop-blur-[4px]"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="modal-pop flex max-h-[90dvh] w-full max-w-[440px] flex-col overscroll-contain rounded-[16px] border border-[#383838] bg-[#1e1e1e] p-5 text-white shadow-[0_10px_30px_rgba(0,0,0,0.65)]">
-        <div className="mb-3.5 flex shrink-0 items-center justify-between border-b border-[#333] pb-2.5">
-          <h3 className="flex items-center gap-1.5 text-[18px] font-bold text-sky-200">
-            <IconBookOpen className="text-sky-400" /> Panduan Aplikasi (v{APP_VERSION})
+      <div className="modal-pop flex max-h-[90dvh] w-full max-w-[440px] flex-col overscroll-contain rounded-2xl border border-slate-700/80 bg-slate-900 p-5 text-white shadow-[0_10px_30px_rgba(2,6,23,0.75)]">
+        <div className="mb-3.5 flex shrink-0 items-center justify-between border-b border-slate-800 pb-2.5">
+          <h3 className="flex items-center gap-2 text-[17px] font-bold text-white">
+            <IconBookOpen className="h-5 w-5 text-sky-400" />
+            <span>Panduan Aplikasi</span>
+            <span className="rounded-md border border-slate-700 bg-slate-800 px-1.5 py-0.5 font-mono text-xs font-semibold text-sky-300">
+              v{APP_VERSION}
+            </span>
           </h3>
           <button
             type="button"
             onClick={onClose}
             aria-label="Tutup panduan"
-            className="flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-full border border-[#444] bg-[#2c2c2c] text-base text-[#ccc]"
+            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-slate-700 bg-slate-800 text-slate-300 transition hover:bg-slate-700"
           >
-            <IconClose />
+            <IconClose className="h-4 w-4" />
           </button>
         </div>
 
-        {/* Tab Navigasi dengan Ikon 20px di Atas Label */}
+        {/* Tab Navigasi Horizontal: Ikon 24px di kiri + Teks 2 baris rata kiri di kanan (tanpa penomoran) */}
         <div className="mb-4 grid shrink-0 grid-cols-3 gap-1.5">
           {[
             {
               step: 1,
-              label: '1. Cek Jadwal',
-              icon: <IconCalendar className="h-5 w-5" />,
+              line1: 'Cek',
+              line2: 'Jadwal',
+              icon: <IconCalendar className="h-6 w-6" />,
             },
             {
               step: 2,
-              label: '2. Grid Kolase',
-              icon: <IconLayoutGrid className="h-5 w-5" />,
+              line1: 'Grid',
+              line2: 'Kolase',
+              icon: <IconLayoutGrid className="h-6 w-6" />,
             },
             {
               step: 3,
-              label: '3. Install App',
-              icon: <IconSmartphone className="h-5 w-5" />,
+              line1: 'Install',
+              line2: 'App',
+              icon: <IconSmartphone className="h-6 w-6" />,
             },
           ].map((tab) => {
             const active = currentStep === tab.step;
@@ -95,14 +103,19 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
                 key={tab.step}
                 type="button"
                 onClick={() => setCurrentStep(tab.step)}
-                className={`flex cursor-pointer flex-col items-center justify-center gap-1 whitespace-nowrap rounded-lg border px-1.5 py-2 text-center text-[12px] font-bold transition ${
+                className={`flex cursor-pointer items-center justify-center gap-2 rounded-lg border px-2 py-2 text-left transition ${
                   active
-                    ? 'border-[#007aff] bg-[#1a2736] text-white'
-                    : 'border-[#3a3a3a] bg-[#282828] text-[#aaa]'
+                    ? 'border-sky-500/70 bg-sky-950/60 text-white'
+                    : 'border-slate-700/80 bg-slate-800/70 text-slate-300 hover:bg-slate-800'
                 }`}
               >
-                <span className={active ? 'text-sky-400' : 'text-[#888]'}>{tab.icon}</span>
-                <span>{tab.label}</span>
+                <span className={`shrink-0 ${active ? 'text-sky-400' : 'text-slate-400'}`}>
+                  {tab.icon}
+                </span>
+                <span className="flex flex-col text-left text-xs font-bold leading-tight">
+                  <span>{tab.line1}</span>
+                  <span>{tab.line2}</span>
+                </span>
               </button>
             );
           })}
@@ -110,12 +123,12 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
 
         <div
           ref={contentRef}
-          className="h-[275px] overflow-y-auto overscroll-contain pr-0.5 text-[14px] leading-[1.55] text-[#e0e0e0]"
+          className="h-[275px] overflow-y-auto overscroll-contain pr-0.5 text-[14px] leading-[1.55] text-slate-200"
         >
           {currentStep === 1 && (
             <div>
-              <h4 className="mb-2 flex items-center gap-1.5 text-[17px] font-semibold text-sky-200">
-                <IconCalendar className="text-sky-400" /> Cek Jadwal &amp; Cari Alat
+              <h4 className="mb-2 flex items-center gap-2 text-[15px] font-bold text-white sm:text-base">
+                <IconCalendar className="h-5 w-5 text-sky-400" /> Cek Jadwal &amp; Cari Alat
               </h4>
               <ul className="flex list-disc flex-col gap-2 pl-[18px]">
                 <li>
@@ -131,17 +144,17 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
                   jadwal alat tertentu.
                 </li>
                 <li>
-                  Badge <strong className="text-emerald-400">SHIFT AKTIF</strong> menandakan shift
-                  yang sedang berjalan (termasuk pergantian shift malam lintas hari).
+                  Badge <strong className="text-emerald-400">● AKTIF</strong> menandakan shift yang
+                  sedang berjalan (termasuk pergantian shift malam lintas hari). Tap pil{' '}
+                  <strong className="text-sky-300">Siklus</strong> untuk melihat info rotasi 15 hari.
                 </li>
                 <li>
-                  Status{' '}
-                  <strong className="inline-flex items-center gap-1 text-sky-400">
-                    <IconCheck className="inline-block h-[1em] w-[1em] align-[-0.125em]" />{' '}
-                    DILAPORKAN
+                  Ikon centang bulat{' '}
+                  <strong className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-sky-500/40 bg-sky-500/15 text-sky-400 align-[-0.125em]">
+                    <IconCheck className="h-3 w-3" />
                   </strong>{' '}
-                  otomatis tersinkron ke semua HP operator lain dan bisa di-tap untuk reset bila
-                  perlu.
+                  di sebelah nama equipment otomatis tersinkron ke semua HP operator lain dan bisa
+                  di-tap untuk melihat info sinkronisasi atau membatalkan/reset tanda.
                 </li>
                 <li>
                   Tap kartu jadwal untuk langsung mengisi tanggal, shift, dan nama equipment ke
@@ -153,22 +166,25 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
 
           {currentStep === 2 && (
             <div>
-              <h4 className="mb-2 flex items-center gap-1.5 text-[17px] font-semibold text-sky-200">
-                <IconLayoutGrid className="text-sky-400" /> Susun Grid Kolase
+              <h4 className="mb-2 flex items-center gap-2 text-[15px] font-bold text-white sm:text-base">
+                <IconLayoutGrid className="h-5 w-5 text-sky-400" /> Susun Grid Kolase
               </h4>
               <ul className="flex list-disc flex-col gap-2 pl-[18px]">
                 <li>
-                  <strong>Data Laporan</strong> terkunci otomatis agar sesuai jadwal; ketuk ikon{' '}
-                  <strong className="inline-flex items-center gap-1 text-sky-400">
-                    <IconLock className="inline-block h-[1em] w-[1em] align-[-0.125em]" /> Gembok
+                  <strong>Data Laporan</strong> terkunci otomatis agar sesuai jadwal; ketuk tombol{' '}
+                  <strong className="inline-flex items-center gap-1 text-sky-300">
+                    <IconLock className="inline-block h-[1em] w-[1em] align-[-0.125em]" /> Locked
                   </strong>{' '}
-                  di pojok kanan atas bila perlu membuka kunci untuk edit manual.
+                  di pojok kanan atas bila perlu mengubah ke mode input manual.
                 </li>
                 <li>
-                  Pilih ukuran grid (<strong>2x1</strong>, <strong>2x2</strong>, atau{' '}
-                  <strong>2x3</strong>) lalu <strong>tap kotak slot (+)</strong> untuk memasukkan
-                  foto. Tap foto terpasang untuk membuka <strong>Atur Foto</strong> (crop 1:1,
-                  pinch-zoom, putar{' '}
+                  Pilih layout (<strong>2x1</strong>, <strong>2x2</strong>, atau <strong>2x3</strong>
+                  ) lalu <strong>tap kotak slot (+)</strong> untuk memasukkan foto. Gunakan tombol{' '}
+                  <strong className="inline-flex items-center gap-1 text-sky-300">
+                    <IconSwapHorizontal className="inline-block h-[1em] w-[1em] align-[-0.125em]" />
+                  </strong>{' '}
+                  di tengah baris untuk menukar foto Before–After, atau tap foto untuk membuka{' '}
+                  <strong>Atur Foto</strong> (crop 1:1, putar{' '}
                   <strong className="inline-flex items-center gap-1">
                     <IconRotateCw className="inline-block h-[1em] w-[1em] align-[-0.125em]" /> 90°
                   </strong>
@@ -177,30 +193,23 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
                     <IconImageSwap className="inline-block h-[1em] w-[1em] align-[-0.125em]" />{' '}
                     Ganti Foto
                   </strong>
-                  ). Tap{' '}
-                  <strong className="inline-flex items-center">
-                    <IconClose className="inline-block h-[1em] w-[1em] align-[-0.125em]" />
-                  </strong>{' '}
-                  di pojok foto untuk menghapusnya.
+                  ).
                 </li>
                 <li>
-                  Isi keterangan kegiatan di <strong>Baris 1–3</strong> (maksimal 30 karakter per
-                  baris), lalu tekan tombol hijau{' '}
+                  Isi keterangan kegiatan sesuai jumlah baris layout (maksimal 25 karakter per
+                  baris), lalu tekan{' '}
                   <strong className="inline-flex items-center gap-1 text-emerald-400">
                     <IconSend className="inline-block h-[1em] w-[1em] align-[-0.125em]" /> Kirim ke
                     WhatsApp
                   </strong>{' '}
-                  dan pilih grup WA tujuan.
+                  untuk otomatis menandai jadwal terkait dengan{' '}
+                  <strong className="text-sky-300">[✓]</strong>.
                 </li>
                 <li>
-                  Setelah kirim ke WhatsApp, pop-up konfirmasi akan muncul otomatis: pilih{' '}
+                  Setelah share selesai, konfirmasi akan muncul: pilih{' '}
                   <strong className="text-emerald-400">Ya, Update</strong> untuk menjaga status{' '}
-                  <strong className="inline-flex items-center gap-1 text-sky-400">
-                    <IconCheck className="inline-block h-[1em] w-[1em] align-[-0.125em]" />{' '}
-                    DILAPORKAN
-                  </strong>{' '}
-                  serta membersihkan foto &amp; caption, atau pilih <strong>Batal</strong> jika
-                  pengiriman gagal untuk mengirim ulang tanpa mengisi dari awal.
+                  <strong className="text-sky-300">[✓]</strong> dan membersihkan foto &amp; caption,
+                  atau pilih <strong>Batal</strong> jika pengiriman gagal.
                 </li>
               </ul>
             </div>
@@ -208,8 +217,8 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
 
           {currentStep === 3 && (
             <div>
-              <h4 className="mb-2 flex items-center gap-1.5 text-[17px] font-semibold text-sky-200">
-                <IconSmartphone className="text-sky-400" /> Install App &amp; Sinkronisasi
+              <h4 className="mb-2 flex items-center gap-2 text-[15px] font-bold text-white sm:text-base">
+                <IconSmartphone className="h-5 w-5 text-sky-400" /> Install App &amp; Sinkronisasi
               </h4>
               <ul className="flex list-disc flex-col gap-2 pl-[18px]">
                 <li>
@@ -219,7 +228,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
                     Install Aplikasi
                   </strong>{' '}
                   atau buka menu browser{' '}
-                  <IconArrowRight className="inline-block h-[1em] w-[1em] align-[-0.125em] text-[#8ab4f8]" />{' '}
+                  <IconArrowRight className="inline-block h-[1em] w-[1em] align-[-0.125em] text-sky-400" />{' '}
                   pilih <strong>Install app / Tambahkan ke layar utama</strong>. Jika muncul
                   peringatan Play Protect di Samsung Browser, pilih{' '}
                   <strong>Install anyway / Tetap install</strong>.
@@ -230,7 +239,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
                     Share{' '}
                     <IconShareIos className="inline-block h-[1em] w-[1em] align-[-0.125em]" />
                   </strong>{' '}
-                  <IconArrowRight className="inline-block h-[1em] w-[1em] align-[-0.125em] text-[#8ab4f8]" />{' '}
+                  <IconArrowRight className="inline-block h-[1em] w-[1em] align-[-0.125em] text-sky-400" />{' '}
                   pilih{' '}
                   <strong className="inline-flex items-center gap-1 text-sky-400">
                     Tambah ke Layar Utama{' '}
@@ -241,9 +250,8 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
                 <li>
                   <strong>Koneksi Internet &amp; Sinkronisasi:</strong> Pastikan perangkat terhubung
                   ke internet agar status{' '}
-                  <strong className="inline-flex items-center gap-1 text-sky-400">
-                    <IconCheck className="inline-block h-[1em] w-[1em] align-[-0.125em]" />{' '}
-                    DILAPORKAN
+                  <strong className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-sky-500/40 bg-sky-500/15 text-sky-400 align-[-0.125em]">
+                    <IconCheck className="h-3 w-3" />
                   </strong>{' '}
                   tersinkron secara <em>real-time</em> ke semua HP operator lain.
                 </li>
@@ -252,17 +260,17 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
           )}
         </div>
 
-        <div className="mt-4 flex shrink-0 gap-2.5 border-t border-[#333] pt-3">
+        <div className="mt-4 flex shrink-0 gap-2.5 border-t border-slate-800 pt-3">
           <button
             type="button"
             onClick={() => {
               if (currentStep > 1) setCurrentStep(currentStep - 1);
             }}
-            className={`inline-flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-[#444] bg-[#2e2e2e] px-3 py-2.5 text-[14px] font-semibold text-white transition active:scale-[0.97] active:bg-[#3a3a3a] ${
+            className={`inline-flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-slate-600 bg-slate-800 px-3 py-2.5 text-[14px] font-semibold text-slate-200 transition hover:bg-slate-700 active:scale-[0.97] ${
               currentStep === 1 ? 'invisible' : 'visible'
             }`}
           >
-            <IconArrowLeft /> Sebelumnya
+            <IconArrowLeft className="h-4 w-4" /> Sebelumnya
           </button>
 
           <button
@@ -274,15 +282,15 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
                 onClose();
               }
             }}
-            className="inline-flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 bg-[#007aff] px-3.5 py-2.5 text-[14px] font-bold text-white transition hover:opacity-92 active:scale-[0.97]"
+            className="inline-flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 bg-sky-600 px-3.5 py-2.5 text-[14px] font-bold text-white transition hover:bg-sky-500 active:scale-[0.97]"
           >
             {currentStep === TOTAL_STEPS ? (
               <>
-                Selesai <IconCheck />
+                Selesai <IconCheck className="h-4 w-4" />
               </>
             ) : (
               <>
-                Lanjut <IconArrowRight />
+                Lanjut <IconArrowRight className="h-4 w-4" />
               </>
             )}
           </button>

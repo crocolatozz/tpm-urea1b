@@ -95,12 +95,12 @@ export default defineConfig(({ command }) => {
           name: 'Dashboard TPM Urea 1B',
           short_name: 'TPM Urea 1B',
           description:
-            'Monitoring jadwal inspeksi mesin dan kolase foto dokumentasi Before & After TPM Urea 1B (v2.7.0).',
+            'Monitoring jadwal inspeksi mesin dan kolase foto dokumentasi Before & After TPM Urea 1B (v2.8.2).',
           start_url: basePath,
           scope: basePath,
           display: 'standalone',
-          background_color: '#121212',
-          theme_color: '#121212',
+          background_color: '#0f172a',
+          theme_color: '#0f172a',
           icons: [
             {
               src: 'favicon.png',
@@ -123,6 +123,7 @@ export default defineConfig(({ command }) => {
           ],
         },
         workbox: {
+          cacheId: 'tpm-urea1b-v2.8.2',
           skipWaiting: false,
           clientsClaim: false,
           cleanupOutdatedCaches: true,
@@ -133,6 +134,34 @@ export default defineConfig(({ command }) => {
             {
               urlPattern: /version\.json/i,
               handler: 'NetworkOnly',
+            },
+            {
+              urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+              handler: 'StaleWhileRevalidate',
+              options: {
+                cacheName: 'google-fonts-stylesheets-v2.8.2',
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+                expiration: {
+                  maxEntries: 20,
+                  maxAgeSeconds: 60 * 60 * 24 * 365,
+                },
+              },
+            },
+            {
+              urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'google-fonts-webfonts-v2.8.2',
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+                expiration: {
+                  maxEntries: 30,
+                  maxAgeSeconds: 60 * 60 * 24 * 365,
+                },
+              },
             },
           ],
         },

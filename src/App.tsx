@@ -29,7 +29,6 @@ import {
   IconCheck,
   IconDownload,
   IconHelpCircle,
-  IconImage,
   IconSettings,
 } from './components/Icons';
 
@@ -304,28 +303,16 @@ export const App: React.FC = () => {
   return (
     <div className="flex w-full max-w-[800px] flex-1 flex-col gap-4">
       <header className="flex flex-col items-center text-center">
-        <h1 className="mb-1 flex items-center justify-center gap-2 text-[21px] font-bold text-white sm:text-[22px]">
-          {route === 'kolase' ? (
-            <>
-              <IconImage className="text-sky-400" /> Kolase Foto TPM
-            </>
-          ) : (
-            <>
-              <IconSettings className="text-sky-400" /> Dashboard TPM Urea 1B
-            </>
-          )}
+        <h1 className="mb-1 flex items-center justify-center gap-2 text-[21px] font-bold tracking-tight text-white sm:text-[22px]">
+          <IconSettings className="h-5 w-5 text-sky-400" /> Dashboard TPM Urea 1B
         </h1>
-        <p className="text-[14px] text-[#aaaaaa]">
-          {route === 'kolase'
-            ? 'Susun Dokumentasi Before & After'
-            : 'Monitoring & Jadwal Inspeksi Mesin'}
-        </p>
+        <p className="text-sm text-slate-300">Monitoring Jadwal &amp; Pembuatan Kolase Foto</p>
         <button
           type="button"
           onClick={() => setGuideOpen(true)}
-          className="mt-2.5 inline-flex cursor-pointer items-center gap-1.5 rounded-[20px] border border-[#2b4c70] bg-[#1a2736] px-[18px] py-[7px] text-[13px] font-semibold text-[#64b5f6] transition active:scale-[0.96] active:bg-[#23364b]"
+          className="mt-2.5 inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-sky-500/40 bg-sky-500/15 px-[18px] py-[7px] text-[13px] font-semibold text-sky-300 transition hover:bg-sky-500/25 active:scale-[0.96]"
         >
-          <IconHelpCircle /> Panduan
+          <IconHelpCircle className="h-4 w-4" /> Panduan
         </button>
       </header>
 
@@ -339,16 +326,14 @@ export const App: React.FC = () => {
           }}
           className={`flex min-w-0 items-center justify-center gap-2.5 rounded-xl border p-3 text-white no-underline transition sm:gap-3 sm:p-3.5 ${
             route === 'jadwal'
-              ? 'border-[#007aff] bg-[#1a2736]'
-              : 'border-[#333] bg-[#1e1e1e]'
+              ? 'border-sky-500/70 bg-sky-950/60 shadow-[0_0_0_1px_rgba(56,189,248,0.2)]'
+              : 'border-slate-800 bg-slate-900 hover:border-slate-700'
           }`}
         >
-          <span className="shrink-0 text-[1.3rem] text-sky-400 sm:text-[1.4rem]">
-            <IconCalendar />
-          </span>
+          <IconCalendar className="h-5 w-5 shrink-0 text-sky-400" />
           <div className="min-w-0 text-left">
-            <h3 className="truncate text-[16px] font-bold">Jadwal TPM</h3>
-            <p className="truncate text-[12px] text-[#aaaaaa]">Monitoring Rutin</p>
+            <h3 className="truncate text-[16px] font-bold text-white">Jadwal TPM</h3>
+            <p className="truncate text-xs text-slate-300">Monitoring Rutin</p>
           </div>
         </a>
 
@@ -360,16 +345,14 @@ export const App: React.FC = () => {
           }}
           className={`flex min-w-0 items-center justify-center gap-2.5 rounded-xl border p-3 text-white no-underline transition sm:gap-3 sm:p-3.5 ${
             route === 'kolase'
-              ? 'border-[#007aff] bg-[#1a2736]'
-              : 'border-[#333] bg-[#1e1e1e]'
+              ? 'border-sky-500/70 bg-sky-950/60 shadow-[0_0_0_1px_rgba(56,189,248,0.2)]'
+              : 'border-slate-800 bg-slate-900 hover:border-slate-700'
           }`}
         >
-          <span className="shrink-0 text-[1.3rem] text-sky-400 sm:text-[1.4rem]">
-            <IconCamera />
-          </span>
+          <IconCamera className="h-5 w-5 shrink-0 text-sky-400" />
           <div className="min-w-0 text-left">
-            <h3 className="truncate text-[16px] font-bold">Kolase Foto</h3>
-            <p className="truncate text-[12px] text-[#aaaaaa]">Before &amp; After</p>
+            <h3 className="truncate text-[16px] font-bold text-white">Kolase Foto</h3>
+            <p className="truncate text-xs text-slate-300">Before &amp; After</p>
           </div>
         </a>
       </nav>
@@ -405,26 +388,24 @@ export const App: React.FC = () => {
           <button
             type="button"
             onClick={handleInstallClick}
-            className="flex cursor-pointer items-center gap-2 rounded-[25px] border-0 bg-gradient-to-br from-[#007aff] to-[#0056b3] px-6 py-3 text-[0.95rem] font-bold text-white shadow-[0_4px_14px_rgba(0,122,255,0.4)] transition active:scale-[0.96]"
+            className="flex cursor-pointer items-center gap-2 rounded-full border border-sky-400/40 bg-gradient-to-br from-sky-500 to-sky-700 px-6 py-3 text-[15px] font-bold text-white shadow-[0_4px_14px_rgba(14,165,233,0.35)] transition active:scale-[0.96]"
           >
-            <IconDownload /> Install Aplikasi
+            <IconDownload className="h-5 w-5" /> Install Aplikasi
           </button>
         )}
 
-        <p className="text-[0.76rem] leading-[1.55] tracking-[0.2px] text-[#888888]">
-          Dibuat untuk mempermudah laporan TPM Urea 1B
-          <span className="mt-0.5 block font-medium text-[#777777]">
-            © 2026 — Developed by FIKRI
-          </span>
+        <div className="text-xs leading-[1.6] tracking-[0.2px] text-slate-300">
+          <p>Dibuat untuk mempermudah laporan TPM Urea 1B</p>
+          <p className="mt-0.5 font-medium text-slate-400">© 2026 — Developed by FIKRI</p>
           <button
             type="button"
             onClick={() => setChangelogOpen(true)}
             aria-label={`Lihat riwayat pembaruan Versi ${APP_VERSION}`}
-            className="mt-1.5 inline-flex cursor-pointer items-center gap-1 rounded-xl border border-[#303030] bg-[#1c1c1c] px-2.5 py-0.5 text-[0.7rem] font-semibold tracking-[0.3px] text-[#8ab4f8] transition hover:border-[#007aff]/60 active:scale-95"
+            className="mt-1.5 inline-flex cursor-pointer items-center gap-1 rounded-xl border border-slate-700/80 bg-slate-900 px-2.5 py-0.5 font-mono text-xs font-semibold tracking-tight text-sky-300 transition hover:border-sky-400/60 active:scale-95"
           >
-            Versi {APP_VERSION}
+            v{APP_VERSION}
           </button>
-        </p>
+        </div>
       </footer>
 
       <GuideModal isOpen={guideOpen} onClose={() => setGuideOpen(false)} />
@@ -447,13 +428,17 @@ export const App: React.FC = () => {
       {updateToast && (
         <div
           role={updateToast.tone === 'success' ? 'status' : 'alert'}
-          className={`modal-pop fixed bottom-6 left-1/2 z-[10001] flex w-[calc(100%-2rem)] max-w-[420px] -translate-x-1/2 items-center justify-center gap-2 rounded-xl border px-4 py-3 text-center text-[0.84rem] font-semibold shadow-[0_8px_24px_rgba(0,0,0,0.65)] backdrop-blur-md ${
+          className={`modal-pop fixed bottom-6 left-1/2 z-[10050] flex w-[calc(100%-2rem)] max-w-[420px] -translate-x-1/2 items-center gap-3 rounded-xl border px-4 py-3 text-left text-[13px] font-semibold leading-snug shadow-[0_8px_24px_rgba(2,6,23,0.75)] backdrop-blur-md ${
             updateToast.tone === 'success'
-              ? 'border-[#34c759]/60 bg-[#18281e]/95 text-[#86efac]'
-              : 'border-[#ff9500]/60 bg-[#2a2216]/95 text-[#ffd180]'
+              ? 'border-emerald-400/50 bg-emerald-950/95 text-emerald-200'
+              : 'border-amber-400/50 bg-amber-950/95 text-amber-200'
           }`}
         >
-          {updateToast.tone === 'success' ? <IconCheck /> : <IconAlertTriangle />}
+          {updateToast.tone === 'success' ? (
+            <IconCheck className="h-[22px] w-[22px] shrink-0 text-emerald-400" />
+          ) : (
+            <IconAlertTriangle className="h-[22px] w-[22px] shrink-0 text-amber-400" />
+          )}
           <span>{updateToast.message}</span>
         </div>
       )}

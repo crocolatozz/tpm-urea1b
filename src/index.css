@@ -1,23 +1,34 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, sans-serif;
+  --font-equipment: "Rajdhani", "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-collage: "Barlow Condensed", "Plus Jakarta Sans", system-ui, sans-serif;
+}
+
 :root {
-  --bg-color: #121212;
-  --card-bg: #1e1e1e;
-  --accent-color: #007aff;
-  --success-color: #34c759;
-  --danger-color: #ff453a;
-  --text-color: #ffffff;
-  --text-muted: #aaaaaa;
+  --bg-color: #020617;
+  --text-color: #f8fafc;
 }
 
 @layer base {
   * {
     box-sizing: border-box;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     -webkit-tap-highlight-color: transparent;
     -webkit-user-select: none;
     user-select: none;
     -webkit-touch-callout: none;
+  }
+
+  html,
+  body,
+  input,
+  textarea,
+  select,
+  button {
+    font-family: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+      Roboto, sans-serif;
   }
 
   input[type="text"],
@@ -51,6 +62,16 @@
   }
 }
 
+@layer utilities {
+  .font-equipment {
+    font-family: "Rajdhani", "Plus Jakarta Sans", system-ui, sans-serif;
+  }
+
+  .font-collage {
+    font-family: "Barlow Condensed", "Plus Jakarta Sans", system-ui, sans-serif;
+  }
+}
+
 #root {
   width: 100%;
   display: flex;
@@ -59,15 +80,14 @@
   flex: 1;
 }
 
-/* Native Dark Form Controls + Anti-iOS-Auto-Zoom (16px) */
-.tpm-input,
-.tpm-select {
+/* Native Dark Form Controls (Industrial Slate) + Anti-iOS-Auto-Zoom (16px) */
+.tpm-input {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
   color-scheme: dark;
-  background-color: #2a2a2a;
-  border: 1px solid #3a3a3a;
+  background-color: #1e293b;
+  border: 1px solid #334155;
   color: #ffffff;
   padding: 11px 12px;
   border-radius: 8px;
@@ -77,21 +97,19 @@
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
+  transition: border-color 150ms ease, background-color 150ms ease;
 }
 
-
-select.tpm-select {
-  background-image: url("data:image/svg+xml;utf8,<svg fill='white' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  padding-right: 34px;
+.tpm-input:focus {
+  outline: none;
+  border-color: #38bdf8;
 }
 
-select.tpm-select.tpm-select-centered {
-  text-align: center;
-  text-align-last: center;
-  padding-left: 2rem;
-  padding-right: 2rem;
+.tpm-input::placeholder {
+  font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  font-weight: 400;
+  color: #94a3b8;
+  text-transform: none;
 }
 
 /* Pure CSS Spinner & Modal Animation */

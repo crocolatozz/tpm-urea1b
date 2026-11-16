@@ -37,6 +37,23 @@ export interface CollageExportOptions {
   dateStr: string;
 }
 
+function revokeSlotUrl(url: string | undefined, delayMs = 150): void {
+  if (url && url.startsWith('blob:')) {
+    const doRevoke = () => {
+      try {
+        URL.revokeObjectURL(url);
+      } catch {
+        // Ignore revoke errors
+      }
+    };
+    if (delayMs > 0 && typeof window !== 'undefined') {
+      window.setTimeout(doRevoke, delayMs);
+    } else {
+      doRevoke();
+    }
+  }
+}
+
 export function freeSingleSlot(slot: LoadedPhotoSlot | null | undefined): void {
   if (!slot) return;
   if (slot.canvas) {
@@ -47,18 +64,48 @@ export function freeSingleSlot(slot: LoadedPhotoSlot | null | undefined): void {
     slot.sourceCanvas.width = 0;
     slot.sourceCanvas.height = 0;
   }
+  const preview = slot.previewUrl;
+  const source = slot.sourceUrl;
   slot.previewUrl = '';
   slot.sourceUrl = '';
   slot.fileSize = undefined;
   slot.lastModified = undefined;
   slot.editParams = undefined;
+  revokeSlotUrl(preview, 150);
+  if (source && source !== preview) {
+    revokeSlotUrl(source, 150);
+  }
 }
 
 export function freeSlotArray(slots: Array<LoadedPhotoSlot | null | undefined>): void {
   slots.forEach(freeSingleSlot);
 }
 
-function createThumbnailDataUrl(sourceCanvas: HTMLCanvasElement): string {
+function canvasToObjectUrl(canvas: HTMLCanvasElement, quality: number): Promise<string> {
+  return new Promise((resolve) => {
+    try {
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            resolve('');
+            return;
+          }
+          try {
+            resolve(URL.createObjectURL(blob));
+          } catch {
+            resolve('');
+          }
+        },
+        'image/jpeg',
+        quality
+      );
+    } catch {
+      resolve('');
+    }
+  });
+}
+
+async function createThumbnailObjectUrl(sourceCanvas: HTMLCanvasElement): Promise<string> {
   try {
     const thumbMax = 480;
     let thumbW = sourceCanvas.width;
@@ -78,22 +125,22 @@ function createThumbnailDataUrl(sourceCanvas: HTMLCanvasElement): string {
     const thumbCtx = thumbCanvas.getContext('2d');
     if (thumbCtx) {
       thumbCtx.drawImage(sourceCanvas, 0, 0, thumbCanvas.width, thumbCanvas.height);
-      const url = thumbCanvas.toDataURL('image/jpeg', 0.72);
+      const url = await canvasToObjectUrl(thumbCanvas, 0.72);
       thumbCanvas.width = 0;
       thumbCanvas.height = 0;
       return url;
     }
-    return sourceCanvas.toDataURL('image/jpeg', 0.65);
+    return await canvasToObjectUrl(sourceCanvas, 0.65);
   } catch {
     return '';
   }
 }
 
-function resizeSourceToOffscreenCanvas(
+async function resizeSourceToOffscreenCanvas(
   source: CanvasImageSource,
   srcW: number,
   srcH: number
-): LoadedPhotoSlot | null {
+): Promise<LoadedPhotoSlot | null> {
   if (!srcW || !srcH) return null;
 
   const MAX_DIM = 1200;
@@ -118,28 +165,25 @@ function resizeSourceToOffscreenCanvas(
 
   offCtx.drawImage(source, 0, 0, targetW, targetH);
 
-  const previewUrl = createThumbnailDataUrl(offCanvas);
-  let sourceUrl = '';
-  try {
-    sourceUrl = offCanvas.toDataURL('image/jpeg', 0.85);
-  } catch {
-    sourceUrl = previewUrl;
-  }
+  const [previewUrl, sourceUrl] = await Promise.all([
+    createThumbnailObjectUrl(offCanvas),
+    canvasToObjectUrl(offCanvas, 0.85),
+  ]);
 
   return {
     canvas: offCanvas,
     sourceCanvas: offCanvas,
-    sourceUrl,
-    previewUrl,
+    sourceUrl: sourceUrl || previewUrl,
+    previewUrl: previewUrl || sourceUrl,
   };
 }
 
-export function renderEditedSlot(
+export async function renderEditedSlot(
   slot: LoadedPhotoSlot,
   croppedAreaPixels: CropAreaPixels,
   rotationDeg: number,
   editParams: PhotoEditParams
-): LoadedPhotoSlot | null {
+): Promise<LoadedPhotoSlot | null> {
   const srcCanvas = slot.sourceCanvas;
   if (!srcCanvas || !srcCanvas.width || !srcCanvas.height) return null;
 
@@ -209,20 +253,20 @@ export function renderEditedSlot(
     slot.canvas.height = 0;
   }
 
-  const previewUrl = createThumbnailDataUrl(outCanvas);
+  const previewUrl = await createThumbnailObjectUrl(outCanvas);
 
   return {
     canvas: outCanvas,
     sourceCanvas: slot.sourceCanvas,
     sourceUrl: slot.sourceUrl,
-    previewUrl,
+    previewUrl: previewUrl || slot.sourceUrl,
     fileSize: slot.fileSize,
     lastModified: slot.lastModified,
     editParams,
   };
 }
 
-function resizeImageToOffscreenCanvas(img: HTMLImageElement): LoadedPhotoSlot | null {
+function resizeImageToOffscreenCanvas(img: HTMLImageElement): Promise<LoadedPhotoSlot | null> {
   const srcW = img.naturalWidth || img.width;
   const srcH = img.naturalHeight || img.height;
   return resizeSourceToOffscreenCanvas(img, srcW, srcH);
@@ -248,7 +292,8 @@ function loadViaFileReader(file: File): Promise<LoadedPhotoSlot | null> {
           if (typeof img.decode === 'function') {
             await img.decode().catch(() => {});
           }
-          resolve(resizeImageToOffscreenCanvas(img));
+          const resized = await resizeImageToOffscreenCanvas(img);
+          resolve(resized);
         } catch {
           resolve(null);
         } finally {
@@ -293,7 +338,7 @@ function loadViaObjectUrl(file: File): Promise<LoadedPhotoSlot | null> {
         if (typeof img.decode === 'function') {
           await img.decode().catch(() => {});
         }
-        processed = resizeImageToOffscreenCanvas(img);
+        processed = await resizeImageToOffscreenCanvas(img);
       } catch {
         processed = null;
       } finally {
@@ -330,7 +375,7 @@ export async function processAndResizeFile(file: File): Promise<LoadedPhotoSlot 
         resizeWidth: 1200,
         resizeQuality: 'high',
       });
-      result = resizeSourceToOffscreenCanvas(bitmap, bitmap.width, bitmap.height);
+      result = await resizeSourceToOffscreenCanvas(bitmap, bitmap.width, bitmap.height);
     } catch {
       // Fallback to new Image() pipeline on browsers without resizeWidth support
     } finally {
@@ -406,8 +451,10 @@ const CANVAS_PAD = 24;
 const CANVAS_GAP = 18;
 const CANVAS_WIDTH_BASE = COLLAGE_CELL_WIDTH * 2 + CANVAS_GAP + CANVAS_PAD * 2; // 1666
 const CANVAS_CELL_RADIUS = Math.round(CANVAS_WIDTH_BASE * 0.022); // ~37px (~8px on 365px mobile)
-const CANVAS_SUB_HEADER_H = Math.round(CANVAS_WIDTH_BASE * 0.09); // ~150px
-const CANVAS_SUB_HEADER_FONT = Math.round(CANVAS_WIDTH_BASE * 0.062); // 6.2cqw
+const CANVAS_SUB_HEADER_TOP_GAP = Math.round(CANVAS_WIDTH_BASE * 0.01); // ~17px ruang napas atas header
+const CANVAS_SUB_HEADER_H = Math.round(CANVAS_WIDTH_BASE * 0.105); // ~175px
+const CANVAS_SUB_HEADER_BOTTOM_GAP = Math.round(CANVAS_WIDTH_BASE * 0.018); // ~30px ruang napas bawah header
+const CANVAS_SUB_HEADER_FONT = Math.round(CANVAS_WIDTH_BASE * 0.074); // 7.4cqw
 const CANVAS_FOOTER_TOP_GAP = Math.round(CANVAS_WIDTH_BASE * 0.014); // ~23px ruang napas atas
 const CANVAS_FOOTER_H = Math.round(CANVAS_WIDTH_BASE * 0.1); // ~167px ruang napas atas-bawah footer
 const CANVAS_FOOTER_FONT = Math.round(CANVAS_WIDTH_BASE * 0.045); // 4.5cqw (~75px)
@@ -419,8 +466,10 @@ const CANVAS_PILL_BOTTOM = Math.round(CANVAS_WIDTH_BASE * 0.027); // ~bottom-2.5
 export const COLLAGE_PREVIEW_SPEC = {
   paddingCqw: `${((CANVAS_PAD / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
   gapCqw: `${((CANVAS_GAP / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
+  subHeaderTopGapCqw: `${((CANVAS_SUB_HEADER_TOP_GAP / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
   subHeaderHeightCqw: `${((CANVAS_SUB_HEADER_H / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
-  subHeaderFontCqw: '6.200cqw',
+  subHeaderBottomGapCqw: `${((CANVAS_SUB_HEADER_BOTTOM_GAP / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
+  subHeaderFontCqw: '7.400cqw',
   footerTopGapCqw: `${((CANVAS_FOOTER_TOP_GAP / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
   footerHeightCqw: `${((CANVAS_FOOTER_H / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`,
   footerFontCqw: '4.500cqw',
@@ -452,6 +501,59 @@ function traceRoundedRect(
 const FONT_COLLAGE_BARLOW =
   '"Barlow Condensed", "Plus Jakarta Sans", system-ui, -apple-system, sans-serif';
 
+let measureFooterCtx: CanvasRenderingContext2D | null | undefined;
+
+function getMeasureFooterContext(): CanvasRenderingContext2D | null {
+  if (measureFooterCtx !== undefined) return measureFooterCtx;
+  if (typeof document === 'undefined') {
+    measureFooterCtx = null;
+    return null;
+  }
+  const c = document.createElement('canvas');
+  measureFooterCtx = c.getContext('2d');
+  return measureFooterCtx;
+}
+
+export function computeFooterFontSize(
+  footerText: string,
+  ctx?: CanvasRenderingContext2D | null
+): number {
+  const measureCtx = ctx ?? getMeasureFooterContext();
+  const maxFooterWidth = Math.round(CANVAS_WIDTH_BASE * 0.9);
+  const minFooterFont = 24;
+  let footerFontSize = CANVAS_FOOTER_FONT;
+
+  if (!measureCtx || !footerText) {
+    return footerFontSize;
+  }
+
+  measureCtx.save();
+  measureCtx.font = `700 ${footerFontSize}px ${FONT_COLLAGE_BARLOW}`;
+  const measuredFooterWidth = measureCtx.measureText(footerText).width;
+  if (measuredFooterWidth > maxFooterWidth && measuredFooterWidth > 0) {
+    footerFontSize = Math.max(
+      minFooterFont,
+      Math.floor(footerFontSize * (maxFooterWidth / measuredFooterWidth))
+    );
+    measureCtx.font = `700 ${footerFontSize}px ${FONT_COLLAGE_BARLOW}`;
+    while (
+      measureCtx.measureText(footerText).width > maxFooterWidth &&
+      footerFontSize > minFooterFont
+    ) {
+      footerFontSize -= 1;
+      measureCtx.font = `700 ${footerFontSize}px ${FONT_COLLAGE_BARLOW}`;
+    }
+  }
+  measureCtx.restore();
+
+  return footerFontSize;
+}
+
+export function computeFooterFontCqw(footerText: string): string {
+  const px = computeFooterFontSize(footerText);
+  return `${((px / CANVAS_WIDTH_BASE) * 100).toFixed(3)}cqw`;
+}
+
 export function renderCollageToCanvas(
   canvas: HTMLCanvasElement,
   opts: CollageExportOptions
@@ -465,14 +567,18 @@ export function renderCollageToCanvas(
   const cellHeight = COLLAGE_CELL_HEIGHT;
   const gap = CANVAS_GAP;
   const padding = CANVAS_PAD;
+  const subHeaderTopGap = CANVAS_SUB_HEADER_TOP_GAP;
   const subHeaderHeight = CANVAS_SUB_HEADER_H;
+  const subHeaderBottomGap = CANVAS_SUB_HEADER_BOTTOM_GAP;
   const footerTopGap = CANVAS_FOOTER_TOP_GAP;
   const footerHeight = CANVAS_FOOTER_H;
 
   const canvasWidth = cellWidth * 2 + gap + padding * 2;
   const canvasHeight =
     padding +
+    subHeaderTopGap +
     subHeaderHeight +
+    subHeaderBottomGap +
     cellHeight * rows +
     gap * (rows - 1) +
     footerTopGap +
@@ -486,7 +592,7 @@ export function renderCollageToCanvas(
   ctx.fillStyle = '#0F172A';
   ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-  // 1. Header Kolom: BEFORE | AFTER (Barlow Condensed 700, Monokrom Putih #FFFFFF, 6.2cqw)
+  // 1. Header Kolom: BEFORE | AFTER (Barlow Condensed 700, Monokrom Putih #FFFFFF, 7.4cqw)
   const ctxWithSpacing = ctx as CanvasRenderingContext2D & { letterSpacing?: string };
   ctx.save();
   ctx.font = `700 ${CANVAS_SUB_HEADER_FONT}px ${FONT_COLLAGE_BARLOW}`;
@@ -499,14 +605,14 @@ export function renderCollageToCanvas(
 
   const leftColCenterX = padding + cellWidth / 2;
   const rightColCenterX = padding + cellWidth + gap + cellWidth / 2;
-  const subHeaderCenterY = padding + subHeaderHeight / 2;
+  const subHeaderCenterY = padding + subHeaderTopGap + subHeaderHeight / 2;
 
   ctx.fillText('BEFORE', leftColCenterX, subHeaderCenterY, cellWidth * 0.9);
   ctx.fillText('AFTER', rightColCenterX, subHeaderCenterY, cellWidth * 0.9);
   ctx.restore();
 
   // 2. Grid Foto Before / After (Sudut melengkung proporsional, dibungkus save/restore)
-  const startY = padding + subHeaderHeight;
+  const startY = padding + subHeaderTopGap + subHeaderHeight + subHeaderBottomGap;
 
   for (let r = 0; r < rows; r++) {
     const y = startY + r * (cellHeight + gap);
@@ -537,10 +643,10 @@ export function renderCollageToCanvas(
     ctx.restore();
   }
 
-  // 3. Kapsul Keterangan Tengah Tiap Baris (Barlow Condensed 700, Monokrom Putih #FFFFFF, 4.9cqw)
-  const maxPillWidth = canvasWidth - padding * 2 - 48;
+  // 3. Kapsul Keterangan Tengah Tiap Baris (Barlow Condensed 700, Monokrom Putih #FFFFFF, 4.9cqw, maks 30 kar, 85% lebar kanvas)
+  const maxPillWidth = Math.round(canvasWidth * 0.85);
   rowTexts.slice(0, rows).forEach((rawText, r) => {
-    const text = rawText ? rawText.trim().slice(0, 25) : '';
+    const text = rawText ? rawText.trim().slice(0, 30) : '';
     if (!text) return;
 
     const centerX = canvasWidth / 2;
@@ -548,17 +654,23 @@ export function renderCollageToCanvas(
 
     ctx.save();
     let fontSize = CANVAS_PILL_FONT;
-    const minFontSize = 32;
+    const minFontSize = 30;
     const padX = CANVAS_PILL_PAD_X;
     const padY = CANVAS_PILL_PAD_Y;
 
     ctx.font = `700 ${fontSize}px ${FONT_COLLAGE_BARLOW}`;
     let metrics = ctx.measureText(text);
 
-    while (metrics.width + padX * 2 > maxPillWidth && fontSize > minFontSize) {
-      fontSize -= 2;
+    if (metrics.width + padX * 2 > maxPillWidth && metrics.width > 0) {
+      const targetTextWidth = Math.max(100, maxPillWidth - padX * 2);
+      fontSize = Math.max(minFontSize, Math.floor(fontSize * (targetTextWidth / metrics.width)));
       ctx.font = `700 ${fontSize}px ${FONT_COLLAGE_BARLOW}`;
       metrics = ctx.measureText(text);
+      while (metrics.width + padX * 2 > maxPillWidth && fontSize > minFontSize) {
+        fontSize -= 1;
+        ctx.font = `700 ${fontSize}px ${FONT_COLLAGE_BARLOW}`;
+        metrics = ctx.measureText(text);
+      }
     }
 
     const bgW = Math.min(metrics.width + padX * 2, maxPillWidth);
@@ -590,25 +702,10 @@ export function renderCollageToCanvas(
   const footerCenterY =
     startY + rows * cellHeight + (rows - 1) * gap + footerTopGap + footerHeight / 2;
   const maxFooterWidth = Math.round(canvasWidth * 0.9);
+  const footerFontSize = computeFooterFontSize(footerText, ctx);
 
   ctx.save();
-  let footerFontSize = CANVAS_FOOTER_FONT;
-  const minFooterFont = 24;
-
   ctx.font = `700 ${footerFontSize}px ${FONT_COLLAGE_BARLOW}`;
-  const measuredFooterWidth = ctx.measureText(footerText).width;
-  if (measuredFooterWidth > maxFooterWidth && measuredFooterWidth > 0) {
-    footerFontSize = Math.max(
-      minFooterFont,
-      Math.floor(footerFontSize * (maxFooterWidth / measuredFooterWidth))
-    );
-    ctx.font = `700 ${footerFontSize}px ${FONT_COLLAGE_BARLOW}`;
-    while (ctx.measureText(footerText).width > maxFooterWidth && footerFontSize > minFooterFont) {
-      footerFontSize -= 1;
-      ctx.font = `700 ${footerFontSize}px ${FONT_COLLAGE_BARLOW}`;
-    }
-  }
-
   ctx.fillStyle = '#FFFFFF';
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'center';
@@ -649,3 +746,75 @@ export async function copyTextToClipboard(text: string): Promise<boolean> {
   }
   return fallbackCopyText(text);
 }
+
+export function collectSlotBlobUrls(slots: Array<LoadedPhotoSlot | null>): string[] {
+  const urls: string[] = [];
+  slots.forEach((slot) => {
+    if (!slot) return;
+    if (slot.previewUrl && slot.previewUrl.startsWith('blob:')) {
+      urls.push(slot.previewUrl);
+    }
+    if (slot.sourceUrl && slot.sourceUrl.startsWith('blob:')) {
+      urls.push(slot.sourceUrl);
+    }
+  });
+  return urls;
+}
+
+export function disposeSlotCanvases(slot: LoadedPhotoSlot | null | undefined): void {
+  if (!slot) return;
+  if (slot.canvas) {
+    slot.canvas.width = 0;
+    slot.canvas.height = 0;
+  }
+  if (slot.sourceCanvas && slot.sourceCanvas !== slot.canvas) {
+    slot.sourceCanvas.width = 0;
+    slot.sourceCanvas.height = 0;
+  }
+}
+
+export function formatFileSizeCompact(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 KB';
+  if (bytes < 1024) return `${Math.round(bytes)} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${Math.max(1, Math.round(kb))} KB`;
+  return `${(kb / 1024).toFixed(1)} MB`;
+}
+
+export async function createSyntheticContrastFile(
+  slotIdx: number,
+  color: string,
+  striped = false
+): Promise<File | null> {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1080;
+  canvas.height = 1080;
+  try {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    if (striped) {
+      const stripeW = 90;
+      for (let x = 0; x < 1080; x += stripeW) {
+        ctx.fillStyle = Math.floor(x / stripeW) % 2 === 0 ? '#0F172A' : '#F8FAFC';
+        ctx.fillRect(x, 0, stripeW, 1080);
+      }
+    } else {
+      ctx.fillStyle = color;
+      ctx.fillRect(0, 0, 1080, 1080);
+    }
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.9);
+    });
+    if (!blob) return null;
+    return new File([blob], `synthetic_slot_${slotIdx + 1}.jpg`, {
+      type: 'image/jpeg',
+      lastModified: Date.now() + slotIdx,
+    });
+  } finally {
+    canvas.width = 0;
+    canvas.height = 0;
+  }
+}
+

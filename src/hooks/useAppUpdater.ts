@@ -10,6 +10,7 @@ export type UpdateModalState =
       releaseNotes: string[];
       swDriven: boolean;
       manualTriggered: boolean;
+      simulated?: boolean;
     };
 
 export type ManualCheckResult = 'update-available' | 'up-to-date' | 'offline';
@@ -23,6 +24,10 @@ interface VersionJsonPayload {
 const DEFAULT_RELEASE_NOTES: string[] = [
   'Versi baru aplikasi TPM Urea 1B sudah siap. Perbarui sekarang agar fitur dan jadwal selalu akurat.',
 ];
+
+const INITIAL_CHECK_DELAY_MS = 2000;
+const STABILIZE_RELOAD_DELAY_MS = 500;
+const FALLBACK_RELOAD_TIMEOUT_MS = 3000;
 
 export function normalizeReleaseNotes(rawNotes: unknown): string[] {
   if (Array.isArray(rawNotes)) {
@@ -54,6 +59,10 @@ async function fetchRemoteVersionJson(): Promise<VersionJsonPayload | null> {
   try {
     const res = await fetch(`${import.meta.env.BASE_URL}version.json?t=${Date.now()}`, {
       cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+      },
       signal: controller.signal,
     });
     if (!res.ok) return null;
@@ -89,6 +98,7 @@ export function useAppUpdater(suppressPrompt = false) {
   // Pure in-memory postpone state for the current app session only (resets on cold start)
   const isDismissedRef = useRef(false);
   const coldStartCheckedRef = useRef(false);
+  const reloadTriggeredRef = useRef(false);
 
   const {
     needRefresh: [needRefresh],
@@ -109,7 +119,29 @@ export function useAppUpdater(suppressPrompt = false) {
   const needRefreshRef = useRef(needRefresh);
   needRefreshRef.current = needRefresh;
 
-  // Kondisi (a): Cek otomatis HANYA sekali saat aplikasi pertama kali dibuka (cold load)
+  const probeForUpdate = useCallback(async (withMinDelay = false) => {
+    const tasks: [Promise<boolean>, Promise<VersionJsonPayload | null>, Promise<void>?] = [
+      checkServiceWorkersForWaiting(),
+      fetchRemoteVersionJson(),
+    ];
+    if (withMinDelay) {
+      tasks.push(
+        new Promise<void>((resolve) => {
+          window.setTimeout(resolve, 600);
+        })
+      );
+    }
+
+    const [hasWaitingSw, data] = await Promise.all(tasks);
+    const hasNewerVersion = Boolean(
+      data?.version && compareSemver(APP_VERSION, data.version) > 0
+    );
+    const swUpdateReady = (needRefreshRef.current || hasWaitingSw) && !import.meta.env.DEV;
+
+    return { data, hasNewerVersion, swUpdateReady };
+  }, []);
+
+  // Kondisi (a): Cek otomatis HANYA sekali setelah jeda 2 detik saat aplikasi dibuka (cold load)
   useEffect(() => {
     if (coldStartCheckedRef.current) return;
     coldStartCheckedRef.current = true;
@@ -117,68 +149,42 @@ export function useAppUpdater(suppressPrompt = false) {
     let cancelled = false;
 
     const runColdStartCheck = async () => {
-      if (isDismissedRef.current) return;
+      if (cancelled || isDismissedRef.current) return;
 
-      const [hasWaitingSw, data] = await Promise.all([
-        checkServiceWorkersForWaiting(),
-        fetchRemoteVersionJson(),
-      ]);
+      const { data, hasNewerVersion, swUpdateReady } = await probeForUpdate(false);
 
       if (cancelled || isDismissedRef.current) return;
 
-      const hasNewerVersion = Boolean(
-        data?.version && compareSemver(APP_VERSION, data.version) > 0
-      );
-      const swUpdateReady = (needRefreshRef.current || hasWaitingSw) && !import.meta.env.DEV;
-
-      if (hasNewerVersion && data?.version) {
+      if ((hasNewerVersion && data?.version) || swUpdateReady) {
         setModalState({
           mode: 'prompt',
-          remoteVersion: data.version,
-          releaseNotes: normalizeReleaseNotes(data.notes),
+          remoteVersion: hasNewerVersion && data?.version ? data.version : APP_VERSION,
+          releaseNotes: normalizeReleaseNotes(data?.notes),
           swDriven: swUpdateReady,
           manualTriggered: false,
         });
-        return;
-      }
-
-      if (swUpdateReady) {
-        setModalState({
-          mode: 'prompt',
-          remoteVersion: data?.version || APP_VERSION,
-          releaseNotes: normalizeReleaseNotes(data?.notes),
-          swDriven: true,
-          manualTriggered: false,
-        });
       }
     };
 
-    void runColdStartCheck();
+    const initialTimerId = window.setTimeout(() => {
+      void runColdStartCheck();
+    }, INITIAL_CHECK_DELAY_MS);
 
     return () => {
       cancelled = true;
+      window.clearTimeout(initialTimerId);
     };
-  }, []);
+  }, [probeForUpdate]);
 
   // Kondisi (b): Cek manual lewat tombol bundar hijau Cek Update
   const checkForUpdatesManual = useCallback(async (): Promise<ManualCheckResult> => {
     setIsCheckingUpdate(true);
     try {
-      const minSpinDelay = new Promise<void>((resolve) => {
-        window.setTimeout(resolve, 600);
-      });
-      const [hasWaitingSw, data] = await Promise.all([
-        checkServiceWorkersForWaiting(),
-        fetchRemoteVersionJson(),
-        minSpinDelay,
-      ]);
+      const { data, hasNewerVersion, swUpdateReady } = await probeForUpdate(true);
 
       if (!data) {
         return 'offline';
       }
-
-      const hasNewerVersion = compareSemver(APP_VERSION, data.version ?? '') > 0;
-      const swUpdateReady = (needRefreshRef.current || hasWaitingSw) && !import.meta.env.DEV;
 
       if (hasNewerVersion || swUpdateReady) {
         isDismissedRef.current = false;
@@ -197,6 +203,23 @@ export function useAppUpdater(suppressPrompt = false) {
     } finally {
       setIsCheckingUpdate(false);
     }
+  }, [probeForUpdate]);
+
+  const simulateUpdatePrompt = useCallback(() => {
+    isDismissedRef.current = false;
+    setErrorMsg(null);
+    setIsUpdating(false);
+    setModalState({
+      mode: 'prompt',
+      remoteVersion: '2.9.0',
+      releaseNotes: [
+        'Simulasi pratinjau pop-up pembaruan PWA (mode uji lokal, tidak memuat ulang aplikasi).',
+        'Memastikan tata letak modal update, badge versi, dan tombol aksi tampil presisi di layar mobile.',
+      ],
+      swDriven: false,
+      manualTriggered: true,
+      simulated: true,
+    });
   }, []);
 
   const dismissUpdate = useCallback(() => {
@@ -207,13 +230,67 @@ export function useAppUpdater(suppressPrompt = false) {
   }, []);
 
   const confirmUpdate = useCallback(async () => {
-    if (modalState.mode !== 'prompt') return;
+    if (modalState.mode !== 'prompt' || isUpdating) return;
     setIsUpdating(true);
     setErrorMsg(null);
 
+    if (modalState.simulated) {
+      window.setTimeout(() => {
+        setIsUpdating(false);
+        setModalState({ mode: 'closed' });
+      }, 900);
+      return;
+    }
+
     let aborted = false;
-    const timeoutId = window.setTimeout(() => {
+    let stabilizeTimerId: number | null = null;
+    let fallbackReloadTimerId: number | null = null;
+    const swContainer = 'serviceWorker' in navigator ? navigator.serviceWorker : null;
+    let activeControllerHandler: (() => void) | null = null;
+
+    const cleanupControllerListener = () => {
+      if (swContainer && activeControllerHandler) {
+        swContainer.removeEventListener('controllerchange', activeControllerHandler);
+        activeControllerHandler = null;
+      }
+    };
+
+    const clearAllTimers = () => {
+      window.clearTimeout(hardTimeoutId);
+      if (stabilizeTimerId !== null) {
+        window.clearTimeout(stabilizeTimerId);
+        stabilizeTimerId = null;
+      }
+      if (fallbackReloadTimerId !== null) {
+        window.clearTimeout(fallbackReloadTimerId);
+        fallbackReloadTimerId = null;
+      }
+    };
+
+    const triggerSingleReload = () => {
+      if (aborted || reloadTriggeredRef.current) return;
+      reloadTriggeredRef.current = true;
+      clearAllTimers();
+      cleanupControllerListener();
+      window.location.reload();
+    };
+
+    const scheduleStabilizedReload = () => {
+      if (aborted || reloadTriggeredRef.current || stabilizeTimerId !== null) return;
+      if (fallbackReloadTimerId !== null) {
+        window.clearTimeout(fallbackReloadTimerId);
+        fallbackReloadTimerId = null;
+      }
+      stabilizeTimerId = window.setTimeout(() => {
+        stabilizeTimerId = null;
+        triggerSingleReload();
+      }, STABILIZE_RELOAD_DELAY_MS);
+    };
+
+    const hardTimeoutId = window.setTimeout(() => {
       aborted = true;
+      clearAllTimers();
+      cleanupControllerListener();
       setIsUpdating(false);
       setErrorMsg(
         'Sinyal lemah atau koneksi terputus. Cache offline tetap aman—kamu bisa menutup jendela ini dan tetap bekerja offline.'
@@ -225,7 +302,8 @@ export function useAppUpdater(suppressPrompt = false) {
       if (aborted) return;
 
       if (!probe || (typeof navigator !== 'undefined' && navigator.onLine === false)) {
-        window.clearTimeout(timeoutId);
+        aborted = true;
+        clearAllTimers();
         setIsUpdating(false);
         setErrorMsg(
           'Koneksi terputus atau sinyal tidak stabil. Cache offline tetap dipertahankan agar aplikasi tetap bisa dipakai.'
@@ -233,33 +311,62 @@ export function useAppUpdater(suppressPrompt = false) {
         return;
       }
 
-      if (needRefreshRef.current) {
-        await updateServiceWorker(true);
-      }
+      // Batas tunggu maksimal 3 detik agar tombol Update tidak pernah macet berputar jika controllerchange terlambat
+      fallbackReloadTimerId = window.setTimeout(() => {
+        fallbackReloadTimerId = null;
+        triggerSingleReload();
+      }, FALLBACK_RELOAD_TIMEOUT_MS);
 
-      if ('serviceWorker' in navigator) {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        for (const reg of registrations) {
-          if (reg.waiting) {
-            reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-          }
-          await reg.update().catch(() => {});
+      if (swContainer && !import.meta.env.DEV) {
+        const controllerChangedPromise = new Promise<void>((resolve) => {
+          const handleControllerChange = () => {
+            cleanupControllerListener();
+            resolve();
+          };
+          activeControllerHandler = handleControllerChange;
+          swContainer.addEventListener('controllerchange', handleControllerChange);
+        });
+
+        const registrations = await swContainer.getRegistrations();
+        await Promise.all(registrations.map((r) => r.update().catch(() => {})));
+
+        const waitingRegs = registrations.filter((r) => Boolean(r.waiting));
+        const hasWaitingOrInstalling =
+          needRefreshRef.current ||
+          waitingRegs.length > 0 ||
+          registrations.some((r) => Boolean(r.installing));
+
+        if (needRefreshRef.current) {
+          await updateServiceWorker(false).catch(() => {});
         }
+        waitingRegs.forEach((reg) => {
+          reg.waiting?.postMessage({ type: 'SKIP_WAITING' });
+        });
+
+        if (hasWaitingOrInstalling) {
+          await Promise.race([
+            controllerChangedPromise,
+            new Promise<void>((resolve) => {
+              window.setTimeout(resolve, FALLBACK_RELOAD_TIMEOUT_MS);
+            }),
+          ]);
+        }
+        cleanupControllerListener();
       }
 
-      window.setTimeout(() => {
-        if (aborted) return;
-        window.clearTimeout(timeoutId);
-        window.location.reload();
-      }, 900);
+      if (!aborted) {
+        scheduleStabilizedReload();
+      }
     } catch {
-      window.clearTimeout(timeoutId);
+      aborted = true;
+      clearAllTimers();
+      cleanupControllerListener();
       setIsUpdating(false);
       setErrorMsg(
         'Gagal memuat pembaruan. Cache offline tetap aman—silakan tutup dan coba lagi saat sinyal stabil.'
       );
     }
-  }, [modalState, updateServiceWorker]);
+  }, [isUpdating, modalState, updateServiceWorker]);
 
   const visibleModalState: UpdateModalState =
     modalState.mode === 'prompt' && suppressPrompt && !modalState.manualTriggered
@@ -274,5 +381,6 @@ export function useAppUpdater(suppressPrompt = false) {
     confirmUpdate,
     dismissUpdate,
     checkForUpdatesManual,
+    simulateUpdatePrompt,
   };
 }

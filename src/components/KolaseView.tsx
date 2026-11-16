@@ -4,22 +4,23 @@ import {
   getAreaForDateAndShift,
   getLocalTodayStr,
   getOperationalShiftInfo,
-  loadSavedPreferences,
-  savePreferences,
   type GridType,
   type ReportedLogEntry,
   type ShiftName,
 } from '../data/tpmData';
 import {
   COLLAGE_PREVIEW_SPEC,
+  computeFooterFontCqw,
   copyTextToClipboard,
-  freeSingleSlot,
+  disposeSlotCanvases,
+  formatFileSizeCompact,
   freeSlotArray,
   processAndResizeFile,
   renderCollageToCanvas,
   type LoadedPhotoSlot,
 } from '../utils/imageCollage';
 import { useModalScrollLock } from '../hooks/useModalScrollLock';
+import { ConfirmModal } from './ConfirmModal';
 import { PhotoEditorModal } from './PhotoEditorModal';
 import {
   IconAlertTriangle,
@@ -31,7 +32,6 @@ import {
   IconEditPen,
   IconFileText,
   IconImage,
-  IconLoader,
   IconLock,
   IconMessageSquare,
   IconPlus,
@@ -39,8 +39,11 @@ import {
   IconSwapHorizontal,
   IconTrash,
   IconUnlock,
+  ReportedBadge,
   ShiftWeatherIcon,
 } from './Icons';
+
+export type KolaseToastKind = 'success' | 'warning' | 'error' | 'loading';
 
 interface KolaseViewProps {
   date: string;
@@ -48,6 +51,16 @@ interface KolaseViewProps {
   area: string;
   selectionKey: number;
   reportedLog: Record<string, ReportedLogEntry>;
+  devModeActive?: boolean;
+  gridType: GridType;
+  beforeSlots: Array<LoadedPhotoSlot | null>;
+  afterSlots: Array<LoadedPhotoSlot | null>;
+  rowCaptions: [string, string, string];
+  onGridTypeChange: React.Dispatch<React.SetStateAction<GridType>>;
+  onBeforeSlotsChange: React.Dispatch<React.SetStateAction<Array<LoadedPhotoSlot | null>>>;
+  onAfterSlotsChange: React.Dispatch<React.SetStateAction<Array<LoadedPhotoSlot | null>>>;
+  onRowCaptionsChange: React.Dispatch<React.SetStateAction<[string, string, string]>>;
+  onReportSubmittedStateChange: (submitted: boolean) => void;
   onDateChange: (date: string) => void;
   onShiftChange: (shift: ShiftName) => void;
   onAreaChange: (area: string) => void;
@@ -57,11 +70,38 @@ interface KolaseViewProps {
     shift: ShiftName,
     previousEntry: ReportedLogEntry | null
   ) => Promise<void>;
-  onHasFilledPhotosChange?: (hasPhotos: boolean) => void;
+  onShowToast: (message: string, kind?: KolaseToastKind, durationMs?: number) => void;
+  onDismissLoadingToast: () => void;
 }
 
-const MAX_CAPTION_LEN = 25;
+const MAX_CAPTION_LEN = 30;
 const TOTAL_SLOT_ROWS = 3;
+
+const ACTIVITY_ROW_CONFIGS = [
+  {
+    index: 0,
+    inputId: 'tpm_r1_f1',
+    inputName: 'tpm_r1_f1',
+    ariaLabel: 'Kegiatan Baris 1',
+    placeholder: 'Misal: Cleaning baseplate',
+  },
+  {
+    index: 1,
+    inputId: 'tpm_r2_f2',
+    inputName: 'tpm_r2_f2',
+    ariaLabel: 'Kegiatan Baris 2',
+    placeholder: 'Misal: Cleaning instrumentasi',
+  },
+  {
+    index: 2,
+    inputId: 'tpm_r3_f3',
+    inputName: 'tpm_r3_f3',
+    ariaLabel: 'Kegiatan Baris 3',
+    placeholder: 'Misal: Regreasing BV',
+  },
+] as const;
+
+
 
 function getRowsForGrid(grid: GridType): number {
   return parseInt(grid.split('x')[1], 10) || 3;
@@ -79,17 +119,15 @@ function detectIOSDevice(): boolean {
   );
 }
 
-interface FloatingToastState {
-  message: string;
-  kind: 'loading' | 'warning' | 'success';
-}
-
 interface PostSendModalState {
   dateStr: string;
   shift: ShiftName;
   areaStr: string;
   previousEntry: ReportedLogEntry | null;
+  fileSizeBytes: number;
 }
+
+type ConfirmDialogType = 'unlock' | 'clear-captions' | 'reset-photos' | null;
 
 export const KolaseView: React.FC<KolaseViewProps> = ({
   date,
@@ -97,14 +135,24 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
   area,
   selectionKey,
   reportedLog,
+  devModeActive = false,
+  gridType,
+  beforeSlots,
+  afterSlots,
+  rowCaptions,
+  onGridTypeChange: setGridType,
+  onBeforeSlotsChange: setBeforeSlots,
+  onAfterSlotsChange: setAfterSlots,
+  onRowCaptionsChange: setRowCaptions,
+  onReportSubmittedStateChange: setIsReportSubmitted,
   onDateChange,
   onShiftChange,
   onAreaChange,
   onReportSubmitted,
   onRestoreReport,
-  onHasFilledPhotosChange,
+  onShowToast,
+  onDismissLoadingToast,
 }) => {
-  const savedPrefs = useMemo(() => loadSavedPreferences(), []);
   const isIOS = useMemo(() => detectIOSDevice(), []);
 
   // Single source of truth berasal dari App.tsx (sinkron penuh ke UI, filter Tag Equipment, Preview, & Caption WA)
@@ -114,35 +162,22 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
 
   // Data Laporan terkunci default & auto-lock saat pindah tab / pilih jadwal baru / kirim WA
   const [isDataLocked, setIsDataLocked] = useState<boolean>(true);
-  const [unlockConfirmOpen, setUnlockConfirmOpen] = useState<boolean>(false);
-  const [clearConfirmOpen, setClearConfirmOpen] = useState<boolean>(false);
-  const [resetPhotosConfirmOpen, setResetPhotosConfirmOpen] = useState<boolean>(false);
-
-  const [gridType, setGridType] = useState<GridType>(savedPrefs.grid);
-  // Caption Baris 1-3 selalu bersih di local state & tidak disimpan ke localStorage/App.tsx
-  const [row1, setRow1] = useState<string>('');
-  const [row2, setRow2] = useState<string>('');
-  const [row3, setRow3] = useState<string>('');
+  const [activeConfirm, setActiveConfirm] = useState<ConfirmDialogType>(null);
 
   const [shiftMenuOpen, setShiftMenuOpen] = useState(false);
   const shiftDropdownRef = useRef<HTMLDivElement | null>(null);
 
-  // Penyimpanan permanen 6 slot foto (3 Before + 3 After) agar tidak ter-reset saat pindah mode grid 2x1/2x2/2x3
-  const [beforeSlots, setBeforeSlots] = useState<Array<LoadedPhotoSlot | null>>([]);
-  const [afterSlots, setAfterSlots] = useState<Array<LoadedPhotoSlot | null>>([]);
   const [swappedRow, setSwappedRow] = useState<number | null>(null);
   const swapTimerRef = useRef<number | null>(null);
 
   const [isPickingFile, setIsPickingFile] = useState(false);
-  const [isReportSubmitted, setIsReportSubmitted] = useState(false);
   const [editingTarget, setEditingTarget] = useState<{
     side: 'before' | 'after';
     index: number;
   } | null>(null);
   const [postSendModal, setPostSendModal] = useState<PostSendModalState | null>(null);
+  const [fontReadyTick, setFontReadyTick] = useState(0);
 
-  const [toast, setToast] = useState<FloatingToastState | null>(null);
-  const toastTimerRef = useRef<number | null>(null);
   const loadingDelayTimerRef = useRef<number | null>(null);
 
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle');
@@ -153,61 +188,71 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
   const slotPickerRef = useRef<HTMLInputElement | null>(null);
   const pendingTargetRef = useRef<{ side: 'before' | 'after'; index: number } | null>(null);
   const isMountedRef = useRef(true);
+  const prevDevModeRef = useRef(devModeActive);
 
-  useModalScrollLock(
-    unlockConfirmOpen || clearConfirmOpen || resetPhotosConfirmOpen || postSendModal !== null
-  );
+  useModalScrollLock(postSendModal !== null);
 
-  const clearToastTimers = useCallback(() => {
-    if (toastTimerRef.current !== null) {
-      window.clearTimeout(toastTimerRef.current);
-      toastTimerRef.current = null;
-    }
+  const clearLoadingDelayTimer = useCallback(() => {
     if (loadingDelayTimerRef.current !== null) {
       window.clearTimeout(loadingDelayTimerRef.current);
       loadingDelayTimerRef.current = null;
     }
   }, []);
 
-  const showToast = useCallback(
-    (message: string, kind: 'warning' | 'success' = 'warning', durationMs = 3500) => {
-      clearToastTimers();
-      setToast({ message, kind });
-      toastTimerRef.current = window.setTimeout(() => {
-        if (isMountedRef.current) {
-          setToast(null);
-        }
-        toastTimerRef.current = null;
-      }, durationMs);
-    },
-    [clearToastTimers]
-  );
+  // Pastikan font kustom Barlow Condensed selesai dimuat agar kalkulasi footer Preview 1:1 presisi
+  useEffect(() => {
+    let active = true;
+    if (typeof document !== 'undefined' && document.fonts) {
+      void document.fonts
+        .load('700 20px "Barlow Condensed"')
+        .then(() => document.fonts.ready)
+        .then(() => {
+          if (active) setFontReadyTick((t) => t + 1);
+        })
+        .catch(() => {});
+    }
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Auto-lock Data Laporan setiap ada pilihan jadwal baru dari Dashboard/URL
   useEffect(() => {
     setIsDataLocked(true);
     setShiftMenuOpen(false);
-    setUnlockConfirmOpen(false);
+    setActiveConfirm(null);
   }, [selectionKey]);
 
-  // Keep refs to slots for safe unmount memory cleanup & async duplicate checks
+  // Bersihkan modal transient lokal saat keluar dari Developer Mode
+  useEffect(() => {
+    if (prevDevModeRef.current && !devModeActive) {
+      setEditingTarget(null);
+      setPostSendModal(null);
+      setActiveConfirm(null);
+      clearLoadingDelayTimer();
+      onDismissLoadingToast();
+      if (slotPickerRef.current) slotPickerRef.current.value = '';
+    }
+    prevDevModeRef.current = devModeActive;
+  }, [clearLoadingDelayTimer, devModeActive, onDismissLoadingToast]);
+
+  // Keep refs to slots for async duplicate checks & swaps
   const slotsCleanupRef = useRef<{
     before: Array<LoadedPhotoSlot | null>;
     after: Array<LoadedPhotoSlot | null>;
   }>({ before: [], after: [] });
   slotsCleanupRef.current = { before: beforeSlots, after: afterSlots };
 
+  // Saat unmount (pindah tab), JANGAN mencabut ObjectURL / membuang canvas karena slot dipertahankan di App.tsx
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-      clearToastTimers();
+      clearLoadingDelayTimer();
       if (copyTimerRef.current !== null) window.clearTimeout(copyTimerRef.current);
       if (swapTimerRef.current !== null) window.clearTimeout(swapTimerRef.current);
-      freeSlotArray(slotsCleanupRef.current.before);
-      freeSlotArray(slotsCleanupRef.current.after);
     };
-  }, [clearToastTimers]);
+  }, [clearLoadingDelayTimer]);
 
   // Tutup custom dropdown Shift saat tap/klik di luar area atau menekan Escape
   useEffect(() => {
@@ -233,41 +278,25 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
     };
   }, [shiftMenuOpen]);
 
-  // Persist ONLY grid layout preference (captions are never stored to localStorage)
-  useEffect(() => {
-    savePreferences({ grid: gridType });
-  }, [gridType]);
-
   const rows = getRowsForGrid(gridType);
   const effectiveDate = tpmDate || getLocalTodayStr();
-  const isOffDay = parseInt(effectiveDate.split('-')[2], 10) === 31;
+  const isOffDay = parseInt(effectiveDate.split('-')[2] || '', 10) === 31;
 
   const beforeCountNum = countValidSlots(beforeSlots.slice(0, rows));
   const afterCountNum = countValidSlots(afterSlots.slice(0, rows));
   const hasVisiblePhotos = beforeCountNum > 0 || afterCountNum > 0;
   const hasAnyStoredPhotos =
     countValidSlots(beforeSlots) > 0 || countValidSlots(afterSlots) > 0;
-  const hasAnyCaptionText = row1.length > 0 || row2.length > 0 || row3.length > 0;
-
-  useEffect(() => {
-    onHasFilledPhotosChange?.(hasAnyStoredPhotos && !isReportSubmitted);
-  }, [hasAnyStoredPhotos, isReportSubmitted, onHasFilledPhotosChange]);
-
-  useEffect(() => {
-    return () => {
-      onHasFilledPhotosChange?.(false);
-    };
-  }, [onHasFilledPhotosChange]);
+  const hasAnyCaptionText = rowCaptions.some((val) => val.length > 0);
 
   const captionText = useMemo(() => {
     const dateFormatted = formatDateIndo(effectiveDate);
     const areaName = tpmArea.trim() || '-';
     const lines = [`*TPM ${areaName}*`, `*SHIFT ${tpmShift} ~ ${dateFormatted}*`];
 
-    const rowValues = [row1, row2, row3];
     const bullets: string[] = [];
     for (let i = 0; i < rows; i++) {
-      const text = rowValues[i]?.trim();
+      const text = rowCaptions[i]?.trim();
       if (text) {
         bullets.push(`- ${text}`);
       }
@@ -276,16 +305,16 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
       lines.push('', ...bullets);
     }
     return lines.join('\n');
-  }, [effectiveDate, tpmArea, tpmShift, row1, row2, row3, rows]);
+  }, [effectiveDate, tpmArea, tpmShift, rowCaptions, rows]);
 
   const handleLockedFieldTap = () => {
-    showToast('Data laporan terkunci. Ketuk tombol Locked untuk edit manual', 'warning');
+    onShowToast('Data laporan terkunci. Ketuk tombol Locked untuk edit manual', 'warning');
   };
 
   const handleToggleDataLock = () => {
     if (isDataLocked) {
       setShiftMenuOpen(false);
-      setUnlockConfirmOpen(true);
+      setActiveConfirm('unlock');
     } else {
       setShiftMenuOpen(false);
       setIsDataLocked(true);
@@ -293,7 +322,7 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
   };
 
   const handleConfirmUnlock = () => {
-    setUnlockConfirmOpen(false);
+    setActiveConfirm(null);
     setIsDataLocked(false);
   };
 
@@ -312,6 +341,15 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
   const handleAreaInputChange = (nextArea: string) => {
     if (isDataLocked) return;
     onAreaChange(nextArea);
+  };
+
+  const handleRowCaptionChange = (rowIdx: number, value: string) => {
+    const clipped = value.slice(0, MAX_CAPTION_LEN);
+    setRowCaptions((prev) => {
+      const next: [string, string, string] = [...prev];
+      next[rowIdx] = clipped;
+      return next;
+    });
   };
 
   // Mode grid hanya mengatur baris yang ditampilkan & dirender (6 slot foto tetap tersimpan permanen)
@@ -346,35 +384,26 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
     setIsPickingFile(true);
 
     // Smart delay 150ms agar decode cepat bebas kedipan & bebas layout shift
-    if (loadingDelayTimerRef.current !== null) {
-      window.clearTimeout(loadingDelayTimerRef.current);
-    }
+    clearLoadingDelayTimer();
     loadingDelayTimerRef.current = window.setTimeout(() => {
       loadingDelayTimerRef.current = null;
       if (isMountedRef.current) {
-        if (toastTimerRef.current !== null) {
-          window.clearTimeout(toastTimerRef.current);
-          toastTimerRef.current = null;
-        }
-        setToast({ message: 'Memuat & mengompres foto...', kind: 'loading' });
+        onShowToast('Memuat & mengompres foto...', 'loading');
       }
     }, 150);
 
     try {
       const processed = await processAndResizeFile(selectedFile);
 
-      if (loadingDelayTimerRef.current !== null) {
-        window.clearTimeout(loadingDelayTimerRef.current);
-        loadingDelayTimerRef.current = null;
-      }
+      clearLoadingDelayTimer();
 
       if (!isMountedRef.current) {
-        freeSingleSlot(processed);
+        freeSlotArray([processed]);
         return;
       }
 
       if (!processed) {
-        showToast('Gagal memuat foto. Pastikan format gambar didukung.', 'warning');
+        onShowToast('Gagal memuat foto. Pastikan format gambar didukung.', 'error');
         return;
       }
 
@@ -397,47 +426,56 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
           item.slot.lastModified === selectedFile.lastModified
       );
 
+      const previousSlot = (
+        target.side === 'before' ? slotsCleanupRef.current.before : slotsCleanupRef.current.after
+      )[target.index];
+
       const setSlots = target.side === 'before' ? setBeforeSlots : setAfterSlots;
       setSlots((prev) => {
         const len = Math.max(TOTAL_SLOT_ROWS, prev.length, target.index + 1);
         const next = Array.from({ length: len }, (_, idx) => prev[idx] || null);
-        freeSingleSlot(next[target.index]);
         next[target.index] = processed;
         return next;
       });
+      disposeSlotCanvases(previousSlot);
       setIsReportSubmitted(false);
 
       if (isDuplicateElsewhere) {
-        showToast('Foto yang sama terdeteksi sudah terpasang di slot lain.', 'warning');
+        onShowToast('Foto yang sama terdeteksi sudah terpasang di slot lain.', 'warning');
       } else if (files.length > 1) {
-        showToast(
+        onShowToast(
           `Terdeteksi ${files.length} foto dipilih — otomatis memakai foto terakhir yang diklik.`,
           'warning'
         );
       } else {
-        setToast((prev) => (prev?.kind === 'loading' ? null : prev));
+        onDismissLoadingToast();
+      }
+    } catch {
+      clearLoadingDelayTimer();
+      if (isMountedRef.current) {
+        onShowToast('Terjadi kesalahan saat memuat atau memproses foto.', 'error');
       }
     } finally {
       inputEl.value = '';
-      if (loadingDelayTimerRef.current !== null) {
-        window.clearTimeout(loadingDelayTimerRef.current);
-        loadingDelayTimerRef.current = null;
-      }
+      clearLoadingDelayTimer();
       if (isMountedRef.current) {
         setIsPickingFile(false);
-        setToast((prev) => (prev?.kind === 'loading' ? null : prev));
+        onDismissLoadingToast();
       }
     }
   };
 
   const removeSingleSlot = (side: 'before' | 'after', index: number) => {
+    const previousSlot = (
+      side === 'before' ? slotsCleanupRef.current.before : slotsCleanupRef.current.after
+    )[index];
     const setSlots = side === 'before' ? setBeforeSlots : setAfterSlots;
     setSlots((prev) => {
       const next = [...prev];
-      freeSingleSlot(next[index]);
       next[index] = null;
       return next;
     });
+    disposeSlotCanvases(previousSlot);
     setIsReportSubmitted(false);
   };
 
@@ -470,16 +508,19 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
   };
 
   const handleConfirmResetAllPhotos = () => {
-    setResetPhotosConfirmOpen(false);
-    freeSlotArray(beforeSlots);
-    freeSlotArray(afterSlots);
+    setActiveConfirm(null);
+    const prevBefore = beforeSlots;
+    const prevAfter = afterSlots;
     setBeforeSlots([]);
     setAfterSlots([]);
+    prevBefore.forEach(disposeSlotCanvases);
+    prevAfter.forEach(disposeSlotCanvases);
     setIsReportSubmitted(false);
-    clearToastTimers();
-    setToast(null);
+    clearLoadingDelayTimer();
+    onDismissLoadingToast();
     setEditingTarget(null);
     if (slotPickerRef.current) slotPickerRef.current.value = '';
+    onShowToast('Semua foto kolase berhasil direset.', 'success', 2200);
   };
 
   const handleSaveEditedSlot = (updatedSlot: LoadedPhotoSlot) => {
@@ -502,10 +543,9 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
   };
 
   const handleConfirmClearCaptions = () => {
-    setClearConfirmOpen(false);
-    setRow1('');
-    setRow2('');
-    setRow3('');
+    setActiveConfirm(null);
+    setRowCaptions(['', '', '']);
+    onShowToast('Keterangan kegiatan berhasil dikosongkan.', 'success', 2200);
   };
 
   const handleCopyCaption = async () => {
@@ -516,13 +556,14 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
     }
     if (copied) {
       setCopyStatus('copied');
+      onShowToast('Caption WhatsApp berhasil disalin.', 'success', 2000);
       copyTimerRef.current = window.setTimeout(() => {
         if (isMountedRef.current) setCopyStatus('idle');
         copyTimerRef.current = null;
       }, 2000);
     } else {
       setCopyStatus('error');
-      showToast('Gagal menyalin caption ke clipboard.', 'warning', 2500);
+      onShowToast('Gagal menyalin caption ke clipboard.', 'error', 3000);
       copyTimerRef.current = window.setTimeout(() => {
         if (isMountedRef.current) setCopyStatus('idle');
         copyTimerRef.current = null;
@@ -535,39 +576,39 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
       dateStr: string,
       shiftName: ShiftName,
       areaStr: string,
-      previousEntry: ReportedLogEntry | null
+      previousEntry: ReportedLogEntry | null,
+      fileSizeBytes: number
     ) => {
       // Optimistic status update langsung ke state & Firestore tanpa menunggu visibilitychange
       void onReportSubmitted(dateStr, shiftName, areaStr);
       if (isMountedRef.current) {
         setIsReportSubmitted(true);
-        onHasFilledPhotosChange?.(false);
         setExportStatus('idle');
         setPostSendModal({
           dateStr,
           shift: shiftName,
           areaStr,
           previousEntry,
+          fileSizeBytes,
         });
       }
     },
-    [onHasFilledPhotosChange, onReportSubmitted]
+    [onReportSubmitted, setIsReportSubmitted]
   );
 
   const handleConfirmPostSend = () => {
     setPostSendModal(null);
-    freeSlotArray(beforeSlots);
-    freeSlotArray(afterSlots);
+    const prevBefore = beforeSlots;
+    const prevAfter = afterSlots;
     setBeforeSlots([]);
     setAfterSlots([]);
-    setRow1('');
-    setRow2('');
-    setRow3('');
+    prevBefore.forEach(disposeSlotCanvases);
+    prevAfter.forEach(disposeSlotCanvases);
+    setRowCaptions(['', '', '']);
     setEditingTarget(null);
-    clearToastTimers();
-    setToast(null);
+    clearLoadingDelayTimer();
+    onDismissLoadingToast();
     setIsReportSubmitted(true);
-    onHasFilledPhotosChange?.(false);
     if (slotPickerRef.current) slotPickerRef.current.value = '';
     // tpmArea (Tag Equipment) dipertahankan!
   };
@@ -577,7 +618,6 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
     const { dateStr, shift: modalShift, previousEntry } = postSendModal;
     setPostSendModal(null);
     setIsReportSubmitted(false);
-    onHasFilledPhotosChange?.(hasAnyStoredPhotos);
     void onRestoreReport(dateStr, modalShift, previousEntry);
   };
 
@@ -585,10 +625,10 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
     if (!hasVisiblePhotos || exportStatus === 'exporting') return;
 
     // Validasi wajib minimal 1 baris keterangan kegiatan aktif terisi
-    const activeActivities = [row1, row2, row3].slice(0, rows);
+    const activeActivities = rowCaptions.slice(0, rows);
     const hasActivityNote = activeActivities.some((val) => val.trim().length > 0);
     if (!hasActivityNote) {
-      showToast('Isi minimal 1 baris keterangan kegiatan dulu', 'warning');
+      onShowToast('Isi minimal 1 baris keterangan kegiatan dulu', 'warning');
       return;
     }
 
@@ -600,7 +640,7 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
     const currentAreaStr = tpmArea.trim() || 'TPM';
     const previousEntry = reportedLog[`${effectiveDate}_${tpmShift}`] ?? null;
 
-    // Auto-tandai [✓] saat Kirim ke WhatsApp ditekan jika tag equipment & shift cocok dengan jadwal hari aktif
+    // Auto-tandai jadwal terlapor saat Kirim ke WhatsApp ditekan jika tag equipment & shift cocok dengan jadwal hari aktif
     const opInfo = getOperationalShiftInfo();
     const normTag = tpmArea.trim().toUpperCase();
     const normShift = tpmShift.trim().toUpperCase() as ShiftName;
@@ -613,98 +653,125 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
         .toUpperCase();
       if (scheduledTag && scheduledTag !== 'TIDAK ADA KEGIATAN' && normTag === scheduledTag) {
         void onReportSubmitted(opInfo.dateStr, normShift, currentAreaStr);
-        showToast('Jadwal otomatis ditandai ✓', 'success', 2600);
+        onShowToast('Jadwal otomatis ditandai', 'success', 2600);
       }
     }
 
-    // Pastikan font kustom termuat sebelum merender kanvas ekspor
-    if (typeof document !== 'undefined' && document.fonts?.load) {
-      await Promise.all([
-        document.fonts.load('700 20px "Rajdhani"'),
-        document.fonts.load('700 20px "Barlow Condensed"'),
-      ]).catch(() => {});
-    }
-
-    if (!isMountedRef.current) return;
-
     const exportCanvas = document.createElement('canvas');
-    const rendered = renderCollageToCanvas(exportCanvas, {
-      rows,
-      beforeSlots,
-      afterSlots,
-      rowTexts: activeActivities,
-      areaName: tpmArea,
-      shiftName: tpmShift,
-      dateStr: effectiveDate,
-    });
+    try {
+      // Pastikan font kustom termuat sebelum merender kanvas ekspor
+      if (typeof document !== 'undefined' && document.fonts?.load) {
+        await Promise.all([
+          document.fonts.load('700 20px "Rajdhani"'),
+          document.fonts.load('700 20px "Barlow Condensed"'),
+        ]).catch(() => {});
+      }
 
-    if (!rendered) {
-      exportCanvas.width = 0;
-      exportCanvas.height = 0;
-      setExportStatus('idle');
-      return;
-    }
-
-    exportCanvas.toBlob(
-      async (blob) => {
+      if (!isMountedRef.current) {
         exportCanvas.width = 0;
         exportCanvas.height = 0;
+        return;
+      }
 
-        try {
-          if (!blob) {
-            if (isMountedRef.current) setExportStatus('idle');
-            return;
-          }
+      const rendered = renderCollageToCanvas(exportCanvas, {
+        rows,
+        beforeSlots,
+        afterSlots,
+        rowTexts: activeActivities,
+        areaName: tpmArea,
+        shiftName: tpmShift,
+        dateStr: effectiveDate,
+      });
 
-          const areaNameClean = currentAreaStr.replace(/[^a-zA-Z0-9]/g, '_');
-          const filename = `Kolase_${areaNameClean}_${Date.now()}.jpg`;
-          const file = new File([blob], filename, { type: 'image/jpeg' });
+      if (!rendered) {
+        exportCanvas.width = 0;
+        exportCanvas.height = 0;
+        setExportStatus('idle');
+        onShowToast('Gagal merender kanvas kolase.', 'error');
+        return;
+      }
 
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            try {
-              await navigator.share({
-                files: [file],
-                title: `TPM ${currentAreaStr}`,
-                text: captionText,
-              });
-              triggerPostSendConfirmation(
-                effectiveDate,
-                tpmShift,
-                currentAreaStr,
-                previousEntry
-              );
+      exportCanvas.toBlob(
+        async (blob) => {
+          exportCanvas.width = 0;
+          exportCanvas.height = 0;
+
+          try {
+            if (!blob) {
+              if (isMountedRef.current) {
+                setExportStatus('idle');
+                onShowToast('Gagal menghasilkan file gambar kolase JPEG.', 'error');
+              }
               return;
-            } catch (err) {
-              if (err instanceof Error && err.name === 'AbortError') {
-                // Dibatalkan langsung di Share Sheet -> jangan reset form & pulihkan status bila baru ditandai
-                if (isMountedRef.current) {
-                  setExportStatus('idle');
-                  void onRestoreReport(effectiveDate, tpmShift, previousEntry);
-                }
+            }
+
+            const areaNameClean = currentAreaStr.replace(/[^a-zA-Z0-9]/g, '_');
+            const filename = `Kolase_${areaNameClean}_${Date.now()}.jpg`;
+            const file = new File([blob], filename, { type: 'image/jpeg' });
+
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+              try {
+                await navigator.share({
+                  files: [file],
+                  title: `TPM ${currentAreaStr}`,
+                  text: captionText,
+                });
+                triggerPostSendConfirmation(
+                  effectiveDate,
+                  tpmShift,
+                  currentAreaStr,
+                  previousEntry,
+                  blob.size
+                );
                 return;
+              } catch (err) {
+                if (err instanceof Error && err.name === 'AbortError') {
+                  // Dibatalkan langsung di Share Sheet -> jangan reset form & pulihkan status bila baru ditandai
+                  if (isMountedRef.current) {
+                    setExportStatus('idle');
+                    void onRestoreReport(effectiveDate, tpmShift, previousEntry);
+                  }
+                  return;
+                }
               }
             }
+
+            // Fallback PC/Desktop: Unduh JPG + salin caption ke clipboard
+            await copyTextToClipboard(captionText);
+            const blobUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+
+            triggerPostSendConfirmation(
+              effectiveDate,
+              tpmShift,
+              currentAreaStr,
+              previousEntry,
+              blob.size
+            );
+          } catch {
+            if (isMountedRef.current) {
+              setExportStatus('idle');
+              onShowToast('Gagal membagikan atau mengunduh kolase.', 'error');
+            }
           }
-
-          // Fallback PC/Desktop: Unduh JPG + salin caption ke clipboard
-          await copyTextToClipboard(captionText);
-          const blobUrl = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = blobUrl;
-          link.download = filename;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-
-          triggerPostSendConfirmation(effectiveDate, tpmShift, currentAreaStr, previousEntry);
-        } catch {
-          if (isMountedRef.current) setExportStatus('idle');
-        }
-      },
-      'image/jpeg',
-      0.95
-    );
+        },
+        'image/jpeg',
+        0.95
+      );
+    } catch {
+      exportCanvas.width = 0;
+      exportCanvas.height = 0;
+      if (isMountedRef.current) {
+        setExportStatus('idle');
+        onShowToast('Terjadi kesalahan saat memproses ekspor kolase.', 'error');
+      }
+    }
   };
 
   const editingSlot =
@@ -717,8 +784,12 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
       ? `${editingTarget.side === 'before' ? 'Before' : 'After'} ${editingTarget.index + 1}`
       : '';
 
-  const rowValues = [row1, row2, row3];
   const displayAreaStamp = tpmArea.trim() || '-';
+  const footerPreviewText = `TPM ${displayAreaStamp}   •   SHIFT ${tpmShift}   •   ${formatDateIndo(effectiveDate)}`;
+  const footerFontCqw = useMemo(
+    () => computeFooterFontCqw(footerPreviewText),
+    [footerPreviewText, fontReadyTick]
+  );
 
   const renderCounterBadge = (len: number) => {
     const colorClass =
@@ -739,26 +810,6 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
 
   return (
     <>
-      {toast && (
-        <div
-          role={toast.kind === 'warning' ? 'alert' : 'status'}
-          className={`modal-pop fixed bottom-6 left-1/2 z-[10050] flex w-[calc(100%-2rem)] max-w-[420px] -translate-x-1/2 items-center gap-3 rounded-xl border px-4 py-3 text-left text-[13px] font-semibold leading-snug shadow-[0_8px_24px_rgba(2,6,23,0.75)] backdrop-blur-md ${
-            toast.kind === 'success'
-              ? 'border-emerald-400/50 bg-emerald-950/95 text-emerald-200'
-              : 'border-amber-400/50 bg-amber-950/95 text-amber-200'
-          }`}
-        >
-          {toast.kind === 'loading' ? (
-            <IconLoader className="h-[22px] w-[22px] shrink-0 text-amber-400" />
-          ) : toast.kind === 'success' ? (
-            <IconCheck className="h-[22px] w-[22px] shrink-0 text-emerald-400" />
-          ) : (
-            <IconAlertTriangle className="h-[22px] w-[22px] shrink-0 text-amber-400" />
-          )}
-          <span>{toast.message}</span>
-        </div>
-      )}
-
       <div className="mb-2 flex w-full flex-col gap-4 overflow-x-clip rounded-xl border border-slate-800 bg-slate-900 p-3.5 shadow-[0_4px_16px_rgba(2,6,23,0.5)] sm:p-5">
         {/* File Picker: multiple khusus iOS (dengan auto-pick terakhir), Android single-select */}
         <input
@@ -805,7 +856,7 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
             {/* Tanggal */}
             <div className="flex min-w-0 flex-col gap-1">
               <label
-                htmlFor="tpmDateInput"
+                htmlFor="tpm_d_f2"
                 className="text-[13px] font-semibold text-slate-200"
               >
                 Tanggal
@@ -821,8 +872,12 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
                 </span>
                 <input
                   type="date"
-                  id="tpmDateInput"
+                  id="tpm_d_f2"
+                  name="tpm_d_f2"
                   aria-label="Tanggal"
+                  autoComplete="off"
+                  data-form-type="other"
+                  data-lpignore="true"
                   disabled={isDataLocked}
                   value={effectiveDate}
                   onChange={(e) => handleDateChange(e.target.value)}
@@ -853,7 +908,7 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
               <div ref={shiftDropdownRef} className="relative flex h-[42px] min-w-0 items-center">
                 <button
                   type="button"
-                  id="tpmShiftInput"
+                  id="tpm_s_f1"
                   aria-label="Shift"
                   aria-haspopup="listbox"
                   aria-expanded={shiftMenuOpen}
@@ -915,19 +970,21 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
 
           {/* Input Tag Equipment Full-Width (Rajdhani saat terisi, Plus Jakarta placeholder) */}
           <div className="flex w-full flex-col gap-1">
-            <label htmlFor="tpmAreaInput" className="text-[13px] font-semibold text-slate-200">
+            <label htmlFor="tpm_t_f1" className="text-[13px] font-semibold text-slate-200">
               Tag Equipment / Area
             </label>
             <div className="relative w-full">
               <input
                 type="text"
-                id="tpmAreaInput"
-                name="tpm_field_area_tag_x1"
+                id="tpm_t_f1"
+                name="tpm_t_f1"
                 aria-label="Area / Equipment TPM"
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck={false}
+                data-form-type="other"
+                data-lpignore="true"
                 readOnly={isDataLocked}
                 value={tpmArea}
                 onChange={(e) => handleAreaInputChange(e.target.value)}
@@ -991,11 +1048,13 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
             className="w-full max-w-full overflow-hidden rounded-xl border border-slate-700/80 bg-[#0F172A] [container-type:inline-size]"
             style={{ padding: COLLAGE_PREVIEW_SPEC.paddingCqw }}
           >
-            {/* 1. Header Kolom: BEFORE | AFTER (Barlow Condensed 700, Monokrom Putih #FFFFFF, 6.2cqw) */}
+            {/* 1. Header Kolom: BEFORE | AFTER (Barlow Condensed 700, Monokrom Putih #FFFFFF, 7.4cqw) */}
             <div
               className="grid w-full grid-cols-2 items-center text-center"
               style={{
+                marginTop: COLLAGE_PREVIEW_SPEC.subHeaderTopGapCqw,
                 height: COLLAGE_PREVIEW_SPEC.subHeaderHeightCqw,
+                marginBottom: COLLAGE_PREVIEW_SPEC.subHeaderBottomGapCqw,
                 gap: COLLAGE_PREVIEW_SPEC.gapCqw,
               }}
             >
@@ -1013,10 +1072,10 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
               </span>
             </div>
 
-            {/* 2. Grid Baris 1..N (Sudut 8px, Kapsul bawah-tengah, Tombol Tukar Cepat ⇄) */}
+            {/* 2. Grid Baris 1..N (Sudut 8px, Kapsul bawah-tengah, Tombol Tukar Cepat) */}
             <div className="flex w-full flex-col" style={{ gap: COLLAGE_PREVIEW_SPEC.gapCqw }}>
               {Array.from({ length: rows }).map((_, r) => {
-                const rowOverlayText = rowValues[r]?.trim();
+                const rowOverlayText = rowCaptions[r]?.trim();
                 const hasRowPhoto = Boolean(beforeSlots[r] || afterSlots[r]);
                 const isRowSwapped = swappedRow === r;
                 const cells = [
@@ -1089,7 +1148,7 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
                       </div>
                     ))}
 
-                    {/* Tombol Tukar Cepat Per Baris (⇄) — hanya muncul jika min. 1 slot terisi & tidak ter-render saat ekspor */}
+                    {/* Tombol Tukar Cepat Per Baris — hanya muncul jika min. 1 slot terisi & tidak ter-render saat ekspor */}
                     {hasRowPhoto && (
                       <button
                         type="button"
@@ -1108,9 +1167,9 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
                       </button>
                     )}
 
-                    {/* Kapsul Keterangan Tengah Tiap Baris (Barlow Condensed 700, Monokrom Putih #FFFFFF, 4.9cqw) */}
+                    {/* Kapsul Keterangan Tengah Tiap Baris (Barlow Condensed 700, Monokrom Putih #FFFFFF, 4.9cqw, maks 85%) */}
                     {rowOverlayText && (
-                      <div className="pointer-events-none absolute bottom-2.5 left-1/2 z-10 flex max-w-[calc(100%-16px)] -translate-x-1/2 justify-center">
+                      <div className="pointer-events-none absolute bottom-2.5 left-1/2 z-10 flex max-w-[85%] -translate-x-1/2 justify-center">
                         <span
                           className="font-collage max-w-full truncate whitespace-nowrap rounded-full border border-slate-400/45 bg-[#0F172A] font-bold text-white shadow-sm"
                           style={{
@@ -1131,7 +1190,7 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
               })}
             </div>
 
-            {/* 3. Footer 1 Baris Terpusat: TPM [TAG]   •   SHIFT   •   TANGGAL (Barlow Condensed 700, Monokrom Putih #FFFFFF, 4.5cqw) */}
+            {/* 3. Footer 1 Baris Terpusat: TPM [TAG]   •   SHIFT   •   TANGGAL (Auto-scale 1:1 dengan ekspor JPEG, tanpa elipsis) */}
             <div
               className="flex w-full items-center justify-center px-1 text-center"
               style={{
@@ -1140,10 +1199,10 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
               }}
             >
               <div
-                className="font-collage max-w-[90%] truncate whitespace-pre! font-bold leading-[1.2] text-white"
-                style={{ fontSize: COLLAGE_PREVIEW_SPEC.footerFontCqw }}
+                className="font-collage max-w-[90%] whitespace-pre! font-bold leading-[1.2] text-white"
+                style={{ fontSize: footerFontCqw }}
               >
-                {`TPM ${displayAreaStamp}   •   SHIFT ${tpmShift}   •   ${formatDateIndo(effectiveDate)}`}
+                {footerPreviewText}
               </div>
             </div>
           </div>
@@ -1151,7 +1210,7 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
           {hasAnyStoredPhotos && (
             <button
               type="button"
-              onClick={() => setResetPhotosConfirmOpen(true)}
+              onClick={() => setActiveConfirm('reset-photos')}
               className="inline-flex min-h-[42px] w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-rose-400/40 bg-rose-500/15 px-3 py-2 text-[14px] font-semibold text-rose-300 transition hover:bg-rose-500/25 active:scale-[0.98]"
             >
               <IconTrash className="h-4 w-4" /> Reset Semua Foto
@@ -1168,7 +1227,7 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
             <button
               type="button"
               disabled={!hasAnyCaptionText}
-              onClick={() => setClearConfirmOpen(true)}
+              onClick={() => setActiveConfirm('clear-captions')}
               aria-label="Bersihkan Keterangan"
               title="Bersihkan Keterangan"
               className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-rose-400/40 bg-rose-500/15 text-rose-300 transition hover:bg-rose-500/25 active:scale-90 disabled:cursor-not-allowed disabled:opacity-40"
@@ -1178,66 +1237,31 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
           </div>
 
           <div className="flex w-full flex-col gap-2">
-            <div className="relative flex w-full items-center">
-              <input
-                type="text"
-                id="row1Text"
-                name="tpm_field_act_row1_x1"
-                aria-label="Kegiatan Baris 1"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck={false}
-                maxLength={MAX_CAPTION_LEN}
-                value={row1}
-                onChange={(e) => setRow1(e.target.value.slice(0, MAX_CAPTION_LEN))}
-                placeholder="Misal: Cleaning baseplate"
-                className="tpm-input pr-14! font-semibold text-white placeholder:font-normal placeholder:text-slate-400 placeholder:normal-case"
-              />
-              {renderCounterBadge(row1.length)}
-            </div>
-
-            {rows >= 2 && (
-              <div className="relative flex w-full items-center">
-                <input
-                  type="text"
-                  id="row2Text"
-                  name="tpm_field_act_row2_x2"
-                  aria-label="Kegiatan Baris 2"
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck={false}
-                  maxLength={MAX_CAPTION_LEN}
-                  value={row2}
-                  onChange={(e) => setRow2(e.target.value.slice(0, MAX_CAPTION_LEN))}
-                  placeholder="Misal: Cleaning instrumen"
-                  className="tpm-input pr-14! font-semibold text-white placeholder:font-normal placeholder:text-slate-400 placeholder:normal-case"
-                />
-                {renderCounterBadge(row2.length)}
-              </div>
-            )}
-
-            {rows >= 3 && (
-              <div className="relative flex w-full items-center">
-                <input
-                  type="text"
-                  id="row3Text"
-                  name="tpm_field_act_row3_x3"
-                  aria-label="Kegiatan Baris 3"
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck={false}
-                  maxLength={MAX_CAPTION_LEN}
-                  value={row3}
-                  onChange={(e) => setRow3(e.target.value.slice(0, MAX_CAPTION_LEN))}
-                  placeholder="Misal: Regreasing BV"
-                  className="tpm-input pr-14! font-semibold text-white placeholder:font-normal placeholder:text-slate-400 placeholder:normal-case"
-                />
-                {renderCounterBadge(row3.length)}
-              </div>
-            )}
+            {ACTIVITY_ROW_CONFIGS.slice(0, rows).map((cfg) => {
+              const val = rowCaptions[cfg.index];
+              return (
+                <div key={cfg.inputId} className="relative flex w-full items-center">
+                  <input
+                    type="text"
+                    id={cfg.inputId}
+                    name={cfg.inputName}
+                    aria-label={cfg.ariaLabel}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    data-form-type="other"
+                    data-lpignore="true"
+                    maxLength={MAX_CAPTION_LEN}
+                    value={val}
+                    onChange={(e) => handleRowCaptionChange(cfg.index, e.target.value)}
+                    placeholder={cfg.placeholder}
+                    className="tpm-input pr-14! font-semibold text-white placeholder:font-normal placeholder:text-slate-400 placeholder:normal-case"
+                  />
+                  {renderCounterBadge(val.length)}
+                </div>
+              );
+            })}
           </div>
 
           {/* Pratinjau Caption WhatsApp */}
@@ -1297,136 +1321,74 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
         onSave={handleSaveEditedSlot}
         onReplacePhoto={handleReplaceEditedPhoto}
         onCancel={() => setEditingTarget(null)}
+        onError={(msg) => onShowToast(msg, 'error')}
       />
 
       {/* Modal Konfirmasi Buka Kunci Data Laporan */}
-      {unlockConfirmOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="unlock-data-title"
-          className="fixed inset-0 z-[10000] flex touch-none items-center justify-center overscroll-contain bg-slate-950/84 p-4 backdrop-blur-[4px]"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setUnlockConfirmOpen(false);
-          }}
-        >
-          <div className="modal-pop w-full max-w-[380px] overscroll-contain rounded-2xl border border-slate-700/80 bg-slate-900 p-5 text-white shadow-[0_12px_34px_rgba(2,6,23,0.8)]">
-            <h3
-              id="unlock-data-title"
-              className="mb-2 flex items-center gap-2 text-base font-bold text-amber-300"
-            >
-              <IconUnlock className="h-5 w-5 text-amber-400" /> Buka Kunci Data Laporan?
-            </h3>
-            <p className="mb-2 text-[14px] leading-[1.5] text-slate-300">
-              Membuka kunci (<strong className="text-white">Locked → Unlocked</strong>) akan
-              mengaktifkan mode input manual untuk mengubah Tanggal, Shift, atau Tag Equipment.
-            </p>
-            <p className="mb-4 text-xs leading-[1.45] text-slate-400">
-              Catatan: Data akan otomatis terkunci kembali saat memilih jadwal baru, berpindah tab,
-              atau menekan Kirim ke WhatsApp.
-            </p>
-            <div className="grid grid-cols-2 gap-2.5">
-              <button
-                type="button"
-                onClick={() => setUnlockConfirmOpen(false)}
-                className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-lg border border-slate-600 bg-slate-800 px-3 py-2.5 text-[14px] font-semibold text-slate-200 transition hover:bg-slate-700 active:scale-[0.98]"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmUnlock}
-                className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-lg border-0 bg-sky-600 px-3 py-2.5 text-[14px] font-bold text-white transition hover:bg-sky-500 active:scale-[0.98]"
-              >
-                Buka Kunci
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={activeConfirm === 'unlock'}
+        titleId="unlock-data-title"
+        title={
+          <>
+            <IconUnlock className="h-5 w-5 text-amber-400" /> Buka Kunci Data Laporan?
+          </>
+        }
+        titleToneClass="text-amber-300"
+        confirmLabel="Buka Kunci"
+        confirmTone="sky"
+        onConfirm={handleConfirmUnlock}
+        onCancel={() => setActiveConfirm(null)}
+      >
+        <p className="mb-2 text-[14px] leading-[1.5] text-slate-300">
+          Membuka kunci (<strong className="text-white">Locked → Unlocked</strong>) akan
+          mengaktifkan mode input manual untuk mengubah Tanggal, Shift, atau Tag Equipment.
+        </p>
+        <p className="mb-4 text-xs leading-[1.45] text-slate-400">
+          Catatan: Data akan otomatis terkunci kembali saat memilih jadwal baru, berpindah tab, atau
+          menekan Kirim ke WhatsApp.
+        </p>
+      </ConfirmModal>
 
       {/* Modal Konfirmasi Bersihkan Keterangan */}
-      {clearConfirmOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="clear-caption-title"
-          className="fixed inset-0 z-[10000] flex touch-none items-center justify-center overscroll-contain bg-slate-950/84 p-4 backdrop-blur-[4px]"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setClearConfirmOpen(false);
-          }}
-        >
-          <div className="modal-pop w-full max-w-[380px] overscroll-contain rounded-2xl border border-slate-700/80 bg-slate-900 p-5 text-white shadow-[0_12px_34px_rgba(2,6,23,0.8)]">
-            <h3
-              id="clear-caption-title"
-              className="mb-2 flex items-center gap-2 text-base font-bold text-rose-300"
-            >
-              <IconBroom className="h-5 w-5 text-rose-400" /> Bersihkan Keterangan?
-            </h3>
-            <p className="mb-4 text-[14px] leading-[1.5] text-slate-300">
-              Semua teks di kolom <strong className="text-white">Keterangan Kegiatan</strong> akan
-              dikosongkan. Lanjutkan?
-            </p>
-            <div className="grid grid-cols-2 gap-2.5">
-              <button
-                type="button"
-                onClick={() => setClearConfirmOpen(false)}
-                className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-lg border border-slate-600 bg-slate-800 px-3 py-2.5 text-[14px] font-semibold text-slate-200 transition hover:bg-slate-700 active:scale-[0.98]"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmClearCaptions}
-                className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-lg border border-rose-500/40 bg-rose-600 px-3 py-2.5 text-[14px] font-bold text-white transition hover:bg-rose-500 active:scale-[0.98]"
-              >
-                Ya, Bersihkan
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={activeConfirm === 'clear-captions'}
+        titleId="clear-caption-title"
+        title={
+          <>
+            <IconBroom className="h-5 w-5 text-rose-400" /> Bersihkan Keterangan?
+          </>
+        }
+        titleToneClass="text-rose-300"
+        confirmLabel="Ya, Bersihkan"
+        confirmTone="rose"
+        onConfirm={handleConfirmClearCaptions}
+        onCancel={() => setActiveConfirm(null)}
+      >
+        <p className="mb-4 text-[14px] leading-[1.5] text-slate-300">
+          Semua teks di kolom <strong className="text-white">Keterangan Kegiatan</strong> akan
+          dikosongkan. Lanjutkan?
+        </p>
+      </ConfirmModal>
 
       {/* Modal Konfirmasi Reset Semua Foto */}
-      {resetPhotosConfirmOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="reset-photos-title"
-          className="fixed inset-0 z-[10000] flex touch-none items-center justify-center overscroll-contain bg-slate-950/84 p-4 backdrop-blur-[4px]"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setResetPhotosConfirmOpen(false);
-          }}
-        >
-          <div className="modal-pop w-full max-w-[380px] overscroll-contain rounded-2xl border border-slate-700/80 bg-slate-900 p-5 text-white shadow-[0_12px_34px_rgba(2,6,23,0.8)]">
-            <h3
-              id="reset-photos-title"
-              className="mb-2 flex items-center gap-2 text-base font-bold text-rose-300"
-            >
-              <IconTrash className="h-5 w-5 text-rose-400" /> Reset Semua Foto?
-            </h3>
-            <p className="mb-4 text-[14px] leading-[1.5] text-slate-300">
-              Seluruh foto Before &amp; After yang sudah terpasang di grid akan dihapus. Lanjutkan?
-            </p>
-            <div className="grid grid-cols-2 gap-2.5">
-              <button
-                type="button"
-                onClick={() => setResetPhotosConfirmOpen(false)}
-                className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-lg border border-slate-600 bg-slate-800 px-3 py-2.5 text-[14px] font-semibold text-slate-200 transition hover:bg-slate-700 active:scale-[0.98]"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmResetAllPhotos}
-                className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-lg border border-rose-500/40 bg-rose-600 px-3 py-2.5 text-[14px] font-bold text-white transition hover:bg-rose-500 active:scale-[0.98]"
-              >
-                Ya, Reset Foto
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={activeConfirm === 'reset-photos'}
+        titleId="reset-photos-title"
+        title={
+          <>
+            <IconTrash className="h-5 w-5 text-rose-400" /> Reset Semua Foto?
+          </>
+        }
+        titleToneClass="text-rose-300"
+        confirmLabel="Ya, Reset Foto"
+        confirmTone="rose"
+        onConfirm={handleConfirmResetAllPhotos}
+        onCancel={() => setActiveConfirm(null)}
+      >
+        <p className="mb-4 text-[14px] leading-[1.5] text-slate-300">
+          Seluruh foto Before &amp; After yang sudah terpasang di grid akan dihapus. Lanjutkan?
+        </p>
+      </ConfirmModal>
 
       {/* Modal Konfirmasi Pasca-Kirim WA (Terkunci / No Backdrop Dismiss) */}
       {postSendModal && (
@@ -1446,18 +1408,23 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
             <p className="mb-3.5 text-[14px] leading-[1.5] text-slate-300">
               Pertahankan status alat{' '}
               <strong className="inline-flex items-center gap-1 text-sky-300">
-                <IconCheck className="h-4 w-4" /> Terlapor
+                <ReportedBadge size="sm" /> Terlapor
               </strong>{' '}
               &amp; bersihkan foto serta keterangan form?
             </p>
             <div className="mb-4 rounded-lg border border-slate-700/80 bg-slate-800/80 px-3 py-2 text-xs">
-              <div className="flex items-center gap-1.5 font-bold tabular-nums text-sky-300">
-                <ShiftWeatherIcon shift={postSendModal.shift} className="h-3.5 w-3.5" />
-                <span>
-                  {postSendModal.shift} • {formatDateIndo(postSendModal.dateStr)}
+              <div className="flex items-center justify-between gap-2 font-bold tabular-nums text-sky-300">
+                <span className="inline-flex items-center gap-1.5">
+                  <ShiftWeatherIcon shift={postSendModal.shift} className="h-3.5 w-3.5" />
+                  <span>
+                    {postSendModal.shift} • {formatDateIndo(postSendModal.dateStr)}
+                  </span>
+                </span>
+                <span className="rounded-md border border-emerald-500/35 bg-emerald-500/15 px-1.5 py-0.5 text-[11px] font-bold tabular-nums text-emerald-300">
+                  {formatFileSizeCompact(postSendModal.fileSizeBytes)}
                 </span>
               </div>
-              <div className="font-equipment mt-0.5 truncate text-[15px] font-bold text-white">
+              <div className="font-equipment mt-1 truncate text-[15px] font-bold text-white">
                 {postSendModal.areaStr}
               </div>
             </div>

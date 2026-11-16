@@ -865,3 +865,93 @@ export const IconCheckCircle: React.FC<IconProps> = ({ className = 'w-5 h-5' }) 
     <path d="m9 12 2 2 4-4" />
   </svg>
 );
+
+export const ReportedBadge: React.FC<{
+  size?: 'sm' | 'md';
+  className?: string;
+}> = ({ size = 'sm', className = '' }) => {
+  const outerSize = size === 'md' ? 'h-7 w-7' : 'h-5 w-5';
+  const iconSize = size === 'md' ? 'h-4 w-4' : 'h-3 w-3';
+  return (
+    <span
+      aria-hidden="true"
+      className={`inline-flex shrink-0 items-center justify-center rounded-full border border-sky-500/40 bg-sky-500/15 text-sky-400 ${outerSize} ${className}`.trim()}
+    >
+      <IconCheck className={iconSize} />
+    </span>
+  );
+};
+
+export const IconWrench: React.FC<IconProps> = ({ className = 'w-5 h-5' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width="20"
+    height="20"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2.2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    className={getIconClass(className)}
+  >
+    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+  </svg>
+);
+
+export const IconFlaskConical: React.FC<IconProps> = ({ className = 'w-5 h-5' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width="20"
+    height="20"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2.2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    className={getIconClass(className)}
+  >
+    <path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2" />
+    <path d="M8.5 2h7" />
+    <path d="M7 16h10" />
+  </svg>
+);
+
+export const IconCloudOff: React.FC<IconProps> = ({ className = 'w-5 h-5' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width="20"
+    height="20"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2.2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    className={getIconClass(className)}
+  >
+    <path d="m2 2 20 20" />
+    <path d="M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193" />
+    <path d="M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07" />
+  </svg>
+);
+
+export const IconXCircle: React.FC<IconProps> = ({ className = 'w-5 h-5' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width="20"
+    height="20"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2.2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    className={getIconClass(className)}
+  >
+    <circle cx="12" cy="12" r="10" />
+    <path d="m15 9-6 6" />
+    <path d="m9 9 6 6" />
+  </svg>
+);

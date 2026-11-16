@@ -1,5 +1,5 @@
-export const APP_VERSION = '2.8.2';
-export const STORAGE_VERSION = '2.8.2';
+export const APP_VERSION = '2.8.5';
+export const STORAGE_VERSION = '2.8.5';
 
 export type ShiftName = 'PAGI' | 'SORE' | 'MALAM';
 export type GridType = '2x1' | '2x2' | '2x3';
@@ -45,6 +45,22 @@ export const masterTPMUrea1B: Record<number, DayRotation> = {
   14: { PAGI: 'GA101A OIL', SORE: 'GA101B OIL', MALAM: 'GA801 & GA803' },
   15: { PAGI: 'GA102A OIL', SORE: 'GA102B OIL', MALAM: 'FLARE' },
 };
+
+export function buildExtremeDummyTag(): string {
+  let maxLen = 13;
+  Object.values(masterTPMUrea1B).forEach((day) => {
+    (['PAGI', 'SORE', 'MALAM'] as const).forEach((shift) => {
+      const len = day[shift]?.trim().length || 0;
+      if (len > maxLen) maxLen = len;
+    });
+  });
+  const base = 'TEST-TAG-999-EXTREME';
+  if (maxLen <= base.length) {
+    const sliced = base.slice(0, maxLen);
+    return sliced.endsWith('-') ? `${sliced.slice(0, -1)}X` : sliced;
+  }
+  return base.padEnd(maxLen, 'X');
+}
 
 export const SHIFT_TIME_RANGES: Record<ShiftName, string> = {
   PAGI: '07:00 – 15:00',
@@ -161,18 +177,41 @@ export function normalizeEquipmentSearch(str: string): string {
   return str.toUpperCase().replace(/\s+/g, '');
 }
 
+interface DateCycleInfo {
+  isValid: boolean;
+  dayOfMonth: number;
+  isOffDay: boolean;
+  cycleDay: number | null;
+}
+
+function getCycleInfoForDate(dateStr: string): DateCycleInfo {
+  if (!dateStr) {
+    return { isValid: false, dayOfMonth: 0, isOffDay: false, cycleDay: null };
+  }
+  const dayOfMonth = parseInt(dateStr.split('-')[2] || '', 10);
+  if (!dayOfMonth || Number.isNaN(dayOfMonth)) {
+    return { isValid: false, dayOfMonth: 0, isOffDay: false, cycleDay: null };
+  }
+  if (dayOfMonth === 31) {
+    return { isValid: true, dayOfMonth, isOffDay: true, cycleDay: null };
+  }
+  return {
+    isValid: true,
+    dayOfMonth,
+    isOffDay: false,
+    cycleDay: ((dayOfMonth - 1) % 15) + 1,
+  };
+}
+
 export function getCycleDayForDate(dateStr: string): number | null {
-  if (!dateStr) return null;
-  const dayOfMonth = parseInt(dateStr.split('-')[2], 10);
-  if (!dayOfMonth || dayOfMonth === 31) return null;
-  return ((dayOfMonth - 1) % 15) + 1;
+  return getCycleInfoForDate(dateStr).cycleDay;
 }
 
 export function getScheduleForDate(dateStr: string): ScheduleTask[] {
-  if (!dateStr) return [];
-  const dayOfMonth = parseInt(dateStr.split('-')[2], 10);
+  const info = getCycleInfoForDate(dateStr);
+  if (!info.isValid) return [];
 
-  if (dayOfMonth === 31) {
+  if (info.isOffDay) {
     return [
       {
         shift: 'INFO',
@@ -183,8 +222,7 @@ export function getScheduleForDate(dateStr: string): ScheduleTask[] {
     ];
   }
 
-  const cycleDay = ((dayOfMonth - 1) % 15) + 1;
-  const dayData = masterTPMUrea1B[cycleDay];
+  const dayData = info.cycleDay !== null ? masterTPMUrea1B[info.cycleDay] : undefined;
   if (!dayData) return [];
 
   return [
@@ -195,11 +233,10 @@ export function getScheduleForDate(dateStr: string): ScheduleTask[] {
 }
 
 export function getAreaForDateAndShift(dateStr: string, shift: ShiftName): string {
-  if (!dateStr) return '';
-  const dayOfMonth = parseInt(dateStr.split('-')[2], 10);
-  if (dayOfMonth === 31) return 'TIDAK ADA KEGIATAN';
-  const cycleDay = ((dayOfMonth - 1) % 15) + 1;
-  return masterTPMUrea1B[cycleDay]?.[shift] ?? '';
+  const info = getCycleInfoForDate(dateStr);
+  if (!info.isValid) return '';
+  if (info.isOffDay) return 'TIDAK ADA KEGIATAN';
+  return info.cycleDay !== null ? (masterTPMUrea1B[info.cycleDay]?.[shift] ?? '') : '';
 }
 
 export function getLocalTodayStr(): string {

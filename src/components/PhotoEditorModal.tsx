@@ -17,6 +17,7 @@ interface PhotoEditorModalProps {
   onSave: (updatedSlot: LoadedPhotoSlot) => void;
   onReplacePhoto: () => void;
   onCancel: () => void;
+  onError?: (message: string) => void;
 }
 
 export const PhotoEditorModal: React.FC<PhotoEditorModalProps> = ({
@@ -26,11 +27,13 @@ export const PhotoEditorModal: React.FC<PhotoEditorModalProps> = ({
   onSave,
   onReplacePhoto,
   onCancel,
+  onError,
 }) => {
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState<number>(1);
   const [rotation, setRotation] = useState<number>(0);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<CropAreaPixels | null>(null);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
 
   useEffect(() => {
     if (!isOpen || !slot) return;
@@ -38,6 +41,7 @@ export const PhotoEditorModal: React.FC<PhotoEditorModalProps> = ({
     setZoom(slot.editParams?.zoom ?? 1);
     setRotation(slot.editParams?.rotation ?? 0);
     setCroppedAreaPixels(null);
+    setIsSaving(false);
   }, [isOpen, slot]);
 
   const handleCropComplete = useCallback((_croppedArea: Area, pixels: Area) => {
@@ -63,23 +67,33 @@ export const PhotoEditorModal: React.FC<PhotoEditorModalProps> = ({
     setRotation(0);
   };
 
-  const handleSave = () => {
-    const fallbackPixels: CropAreaPixels = {
-      x: 0,
-      y: 0,
-      width: rotation % 180 === 0 ? slot.sourceCanvas.width : slot.sourceCanvas.height,
-      height: rotation % 180 === 0 ? slot.sourceCanvas.height : slot.sourceCanvas.width,
-    };
-    const targetPixels = croppedAreaPixels || fallbackPixels;
-    const edited = renderEditedSlot(slot, targetPixels, rotation, {
-      crop,
-      zoom,
-      rotation,
-    });
-    if (edited) {
-      onSave(edited);
-    } else {
+  const handleSave = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      const fallbackPixels: CropAreaPixels = {
+        x: 0,
+        y: 0,
+        width: rotation % 180 === 0 ? slot.sourceCanvas.width : slot.sourceCanvas.height,
+        height: rotation % 180 === 0 ? slot.sourceCanvas.height : slot.sourceCanvas.width,
+      };
+      const targetPixels = croppedAreaPixels || fallbackPixels;
+      const edited = await renderEditedSlot(slot, targetPixels, rotation, {
+        crop,
+        zoom,
+        rotation,
+      });
+      if (edited) {
+        onSave(edited);
+      } else {
+        onError?.('Gagal menyimpan hasil edit foto.');
+        onCancel();
+      }
+    } catch {
+      onError?.('Terjadi kesalahan saat memproses edit foto.');
       onCancel();
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -162,17 +176,25 @@ export const PhotoEditorModal: React.FC<PhotoEditorModalProps> = ({
           <div className="grid grid-cols-2 gap-2.5">
             <button
               type="button"
+              disabled={isSaving}
               onClick={onCancel}
-              className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-lg border border-slate-600 bg-slate-800 px-4 py-2.5 text-[14px] font-semibold text-slate-200 transition hover:bg-slate-700 active:scale-[0.98]"
+              className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-lg border border-slate-600 bg-slate-800 px-4 py-2.5 text-[14px] font-semibold text-slate-200 transition hover:bg-slate-700 active:scale-[0.98] disabled:opacity-50"
             >
               Batal
             </button>
             <button
               type="button"
-              onClick={handleSave}
-              className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-lg border-0 bg-sky-600 px-4 py-2.5 text-[14px] font-bold text-white transition hover:bg-sky-500 active:scale-[0.98]"
+              disabled={isSaving}
+              onClick={() => void handleSave()}
+              className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-lg border-0 bg-sky-600 px-4 py-2.5 text-[14px] font-bold text-white transition hover:bg-sky-500 active:scale-[0.98] disabled:opacity-60"
             >
-              Simpan
+              {isSaving ? (
+                <>
+                  <span className="spinner" /> Menyimpan...
+                </>
+              ) : (
+                'Simpan'
+              )}
             </button>
           </div>
         </div>

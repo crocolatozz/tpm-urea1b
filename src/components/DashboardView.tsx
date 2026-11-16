@@ -18,8 +18,6 @@ import {
 import { useModalScrollLock } from '../hooks/useModalScrollLock';
 import {
   IconCalendar,
-  IconCheck,
-  IconCheckCircle,
   IconChevronLeft,
   IconChevronRight,
   IconClose,
@@ -27,13 +25,15 @@ import {
   IconInfoCircle,
   IconSearch,
   IconUndo,
+  ReportedBadge,
   ShiftWeatherIcon,
 } from './Icons';
 
 interface DashboardViewProps {
   reportedLog: Record<string, ReportedLogEntry>;
   onSelectShift: (params: { date: string; shift: ShiftName; area: string }) => void;
-  onUndoReport: (dateStr: string, shift: ShiftName) => Promise<void>;
+  onUndoReport: (dateStr: string, shift: ShiftName) => Promise<boolean>;
+  onShowToast: (message: string, kind?: 'success' | 'warning' | 'error', durationMs?: number) => void;
 }
 
 interface SearchMatch {
@@ -50,6 +50,141 @@ interface ReportedStatusTarget {
   entry: ReportedLogEntry | null;
 }
 
+interface ScheduleCardProps {
+  shift: ShiftName | 'INFO';
+  areaText: string;
+  isOff?: boolean;
+  isHighlighted?: boolean;
+  highlightLabel?: string;
+  highlightDot?: boolean;
+  reportedEntry: ReportedLogEntry | null;
+  subtext?: string;
+  subtextWithCalendarIcon?: boolean;
+  onCardClick?: () => void;
+  onBadgeClick?: () => void;
+}
+
+const ScheduleCard: React.FC<ScheduleCardProps> = ({
+  shift,
+  areaText,
+  isOff = false,
+  isHighlighted = false,
+  highlightLabel,
+  highlightDot = false,
+  reportedEntry,
+  subtext,
+  subtextWithCalendarIcon = false,
+  onCardClick,
+  onBadgeClick,
+}) => {
+  const reported = Boolean(reportedEntry) && !isOff && shift !== 'INFO';
+  const shiftRange = !isOff && shift !== 'INFO' ? SHIFT_TIME_RANGES[shift] : null;
+
+  return (
+    <div
+      onClick={onCardClick}
+      className={`relative flex items-stretch overflow-hidden rounded-[10px] border border-l-4 transition ${
+        isOff
+          ? 'border-amber-500/35 border-l-amber-400 bg-amber-950/30'
+          : isHighlighted
+            ? 'cursor-pointer border-emerald-500/45 border-l-emerald-400 bg-emerald-950/35 hover:bg-emerald-950/50 active:scale-[0.98]'
+            : 'cursor-pointer border-slate-700/80 border-l-sky-400 bg-slate-800/70 hover:bg-slate-800 active:scale-[0.98]'
+      }`}
+    >
+      <div
+        className={`flex min-w-0 flex-1 flex-col justify-center gap-2 py-3.5 pl-3.5 ${
+          isOff ? 'pr-3.5' : 'pr-10 sm:pr-12'
+        }`}
+      >
+        <div className="flex items-start justify-between gap-2">
+          {shift === 'INFO' ? (
+            <span className="inline-flex items-center gap-1.5 text-[15px] font-extrabold uppercase text-amber-300">
+              <IconInfoCircle className="h-4 w-4 text-amber-400" /> STATUS
+            </span>
+          ) : (
+            <div className="flex flex-col gap-0.5">
+              <span className="inline-flex items-center gap-1.5 text-[15px] font-extrabold uppercase leading-tight text-white">
+                <ShiftWeatherIcon
+                  shift={shift}
+                  tone={isHighlighted ? 'semantic-active' : 'semantic-default'}
+                  className="h-4 w-4"
+                />
+                <span>SHIFT {shift}</span>
+              </span>
+              {shiftRange && (
+                <span
+                  className={`text-xs font-medium tabular-nums ${
+                    isHighlighted ? 'text-emerald-100' : 'text-slate-300'
+                  }`}
+                >
+                  {shiftRange}
+                </span>
+              )}
+            </div>
+          )}
+
+          {isHighlighted && highlightLabel && (
+            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-400/50 bg-emerald-500/20 px-2.5 py-0.5 text-xs font-bold text-emerald-300">
+              {highlightDot && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />}
+              {highlightLabel}
+            </span>
+          )}
+        </div>
+
+        <div className="inline-flex flex-wrap items-center gap-2">
+          <div className="font-equipment min-w-0 break-words text-[21px] font-bold leading-tight tracking-wide text-white sm:text-[22px]">
+            {areaText}
+          </div>
+
+          {reported && onBadgeClick && (
+            <button
+              type="button"
+              aria-label={`Lihat status dilaporkan SHIFT ${shift}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onBadgeClick();
+              }}
+              className="relative z-20 inline-flex shrink-0 cursor-pointer items-center justify-center rounded-full transition hover:brightness-125 active:scale-90"
+            >
+              <ReportedBadge size="md" />
+            </button>
+          )}
+        </div>
+
+        {subtext && (
+          <div className="flex items-center gap-1.5 text-xs font-medium tabular-nums text-amber-200">
+            {subtextWithCalendarIcon ? (
+              <IconCalendar className="h-3.5 w-3.5 text-amber-400" />
+            ) : (
+              <IconInfoCircle className="h-3.5 w-3.5 text-amber-400" />
+            )}
+            <span>{subtext}</span>
+          </div>
+        )}
+      </div>
+
+      {!isOff && (
+        <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center justify-center">
+          <svg
+            viewBox="0 0 24 24"
+            width="20"
+            height="20"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={4}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            className={`h-5 w-5 ${isHighlighted ? 'text-emerald-400/80' : 'text-sky-400/75'}`}
+          >
+            <path d="m9 18 6-6-6-6" />
+          </svg>
+        </div>
+      )}
+    </div>
+  );
+};
+
 function formatReportedTime(ts?: number): string {
   if (!ts || !Number.isFinite(ts)) return '-';
   try {
@@ -62,20 +197,35 @@ function formatReportedTime(ts?: number): string {
   }
 }
 
+interface OperationalClockSnapshot {
+  dateStr: string;
+  shift: ShiftName;
+  todayStr: string;
+}
+
+function readOperationalClock(): OperationalClockSnapshot {
+  const op = getOperationalShiftInfo();
+  return {
+    dateStr: op.dateStr,
+    shift: op.shift,
+    todayStr: getLocalTodayStr(),
+  };
+}
+
 export const DashboardView: React.FC<DashboardViewProps> = ({
   reportedLog,
   onSelectShift,
   onUndoReport,
+  onShowToast,
 }) => {
-  const [nowTick, setNowTick] = useState<number>(() => Date.now());
-  const operationalInfo = useMemo(() => {
-    void nowTick;
-    return getOperationalShiftInfo();
-  }, [nowTick]);
-  const todayStr = useMemo(() => {
-    void nowTick;
-    return getLocalTodayStr();
-  }, [nowTick]);
+  const [clockSnapshot, setClockSnapshot] = useState<OperationalClockSnapshot>(() =>
+    readOperationalClock()
+  );
+  const operationalInfo = useMemo(
+    () => ({ dateStr: clockSnapshot.dateStr, shift: clockSnapshot.shift }),
+    [clockSnapshot.dateStr, clockSnapshot.shift]
+  );
+  const todayStr = clockSnapshot.todayStr;
   const prevOpDateRef = useRef<string>(operationalInfo.dateStr);
 
   const [selectedDate, setSelectedDate] = useState<string>(operationalInfo.dateStr);
@@ -86,9 +236,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   useModalScrollLock(statusTarget !== null || cycleInfoOpen);
 
-  // Auto-refresh active shift (07:00, 15:00, 23:00) & operational day rollover
+  // Auto-refresh active shift (07:00, 15:00, 23:00) & operational day rollover without unnecessary re-renders
   useEffect(() => {
-    const syncClock = () => setNowTick(Date.now());
+    const syncClock = () => {
+      const next = readOperationalClock();
+      setClockSnapshot((prev) => {
+        if (
+          prev.dateStr === next.dateStr &&
+          prev.shift === next.shift &&
+          prev.todayStr === next.todayStr
+        ) {
+          return prev;
+        }
+        return next;
+      });
+    };
     const intervalId = window.setInterval(syncClock, 30_000);
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
@@ -162,8 +324,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     if (!statusTarget || isUndoing) return;
     setIsUndoing(true);
     try {
-      await onUndoReport(statusTarget.date, statusTarget.shift);
+      const ok = await onUndoReport(statusTarget.date, statusTarget.shift);
       setStatusTarget(null);
+      if (ok) {
+        onShowToast('Status laporan berhasil direset.', 'success', 2600);
+      }
+    } catch {
+      onShowToast('Gagal mereset status laporan.', 'error');
     } finally {
       setIsUndoing(false);
     }
@@ -177,7 +344,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {/* Tanggal Jadwal */}
           <div className="flex w-full min-w-0 flex-col gap-2">
             <label
-              htmlFor="tpmDate"
+              htmlFor="tpm_d_f1"
               className="inline-flex items-center gap-2 text-[15px] font-bold text-white sm:text-base"
             >
               <IconCalendar className="h-5 w-5 text-sky-400" /> Tanggal Jadwal
@@ -197,7 +364,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </span>
                 <input
                   type="date"
-                  id="tpmDate"
+                  id="tpm_d_f1"
+                  name="tpm_d_f1"
+                  autoComplete="off"
+                  data-form-type="other"
+                  data-lpignore="true"
                   value={selectedDate}
                   onChange={handleDateChange}
                   onClick={(e) => {
@@ -224,7 +395,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {/* Pencarian Alat */}
           <div className="flex w-full min-w-0 flex-col gap-2">
             <label
-              htmlFor="equipmentSearchInput"
+              htmlFor="tpm_q_f1"
               className="inline-flex items-center gap-2 text-[15px] font-bold text-white sm:text-base"
             >
               <IconSearch className="h-5 w-5 text-sky-400" /> Cari Alat / Area
@@ -232,12 +403,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="relative flex items-center">
               <input
                 type="text"
-                id="equipmentSearchInput"
-                name="tpm_field_search_equip_x1"
+                id="tpm_q_f1"
+                name="tpm_q_f1"
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck={false}
+                data-form-type="other"
+                data-lpignore="true"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Misal: GA101, FLARE..."
@@ -298,107 +471,38 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               searchMatches.map((m) => {
                 const isTodayMatch = m.nextDateStr === todayStr;
                 const entry = reportedLog[`${m.nextDateStr}_${m.shift}`] ?? null;
-                const reported = Boolean(entry);
-                const shiftRange = SHIFT_TIME_RANGES[m.shift];
 
                 return (
-                  <div
+                  <ScheduleCard
                     key={`${m.cycleDay}-${m.shift}-${m.areaName}`}
-                    onClick={() =>
+                    shift={m.shift}
+                    areaText={m.areaName}
+                    isHighlighted={isTodayMatch}
+                    highlightLabel="HARI INI"
+                    highlightDot={true}
+                    reportedEntry={entry}
+                    subtext={
+                      isTodayMatch
+                        ? `Hari Ini (${formatDateIndo(m.nextDateStr)})`
+                        : `Terdekat: ${formatDateIndo(m.nextDateStr)} • Hari ${m.cycleDay}`
+                    }
+                    subtextWithCalendarIcon={true}
+                    onCardClick={() =>
                       onSelectShift({
                         date: m.nextDateStr,
                         shift: m.shift,
                         area: m.areaName,
                       })
                     }
-                    className={`relative flex cursor-pointer items-stretch overflow-hidden rounded-[10px] border border-l-4 transition active:scale-[0.98] ${
-                      isTodayMatch
-                        ? 'border-emerald-500/45 border-l-emerald-400 bg-emerald-950/35 hover:bg-emerald-950/50'
-                        : 'border-slate-700/80 border-l-sky-400 bg-slate-800/70 hover:bg-slate-800'
-                    }`}
-                  >
-                    <div className="flex min-w-0 flex-1 flex-col justify-center gap-2 py-3.5 pr-10 pl-3.5 sm:pr-12">
-                      {/* Baris 1: Judul SHIFT 15px + Jam 12px di bawahnya | Pil HARI INI di kanan */}
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="inline-flex items-center gap-1.5 text-[15px] font-extrabold uppercase leading-tight text-white">
-                            <ShiftWeatherIcon
-                              shift={m.shift}
-                              tone={isTodayMatch ? 'semantic-active' : 'semantic-default'}
-                              className="h-4 w-4"
-                            />
-                            <span>SHIFT {m.shift}</span>
-                          </span>
-                          <span
-                            className={`text-xs font-medium tabular-nums ${
-                              isTodayMatch ? 'text-emerald-100' : 'text-slate-300'
-                            }`}
-                          >
-                            {shiftRange}
-                          </span>
-                        </div>
-                        {isTodayMatch && (
-                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-400/50 bg-emerald-500/20 px-2.5 py-0.5 text-xs font-bold text-emerald-300">
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> HARI INI
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Baris 2: Tag Equipment (Rajdhani) + Ikon Centang Bulat [✓] menempel di sebelah kanan */}
-                      <div className="inline-flex flex-wrap items-center gap-2">
-                        <div className="font-equipment min-w-0 break-words text-[21px] font-bold leading-tight tracking-wide text-white sm:text-[22px]">
-                          {m.areaName}
-                        </div>
-                        {reported && (
-                          <button
-                            type="button"
-                            aria-label={`Lihat status dilaporkan SHIFT ${m.shift}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setStatusTarget({
-                                date: m.nextDateStr,
-                                shift: m.shift,
-                                area: m.areaName,
-                                entry,
-                              });
-                            }}
-                            className="relative z-20 flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full border border-sky-500/40 bg-sky-500/15 text-sky-400 transition hover:bg-sky-500/30 active:scale-90"
-                          >
-                            <IconCheck className="h-4 w-4" />
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-1.5 text-xs font-medium tabular-nums text-amber-200">
-                        <IconCalendar className="h-3.5 w-3.5 text-amber-400" />
-                        <span>
-                          {isTodayMatch
-                            ? `Hari Ini (${formatDateIndo(m.nextDateStr)})`
-                            : `Terdekat: ${formatDateIndo(m.nextDateStr)} • Hari ${m.cycleDay}`}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Ikon Panah Kanan w-5 h-5 (strokeWidth={4}) */}
-                    <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center justify-center">
-                      <svg
-                        viewBox="0 0 24 24"
-                        width="20"
-                        height="20"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth={4}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                        className={`h-5 w-5 ${
-                          isTodayMatch ? 'text-emerald-400/80' : 'text-sky-400/75'
-                        }`}
-                      >
-                        <path d="m9 18 6-6-6-6" />
-                      </svg>
-                    </div>
-                  </div>
+                    onBadgeClick={() =>
+                      setStatusTarget({
+                        date: m.nextDateStr,
+                        shift: m.shift,
+                        area: m.areaName,
+                        entry,
+                      })
+                    }
+                  />
                 );
               })
             )
@@ -413,126 +517,40 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 !task.isOff && task.shift !== 'INFO'
                   ? (reportedLog[`${selectedDate}_${task.shift}`] ?? null)
                   : null;
-              const reported = Boolean(entry);
-              const shiftRange =
-                !task.isOff && task.shift !== 'INFO' ? SHIFT_TIME_RANGES[task.shift] : null;
 
               return (
-                <div
+                <ScheduleCard
                   key={`${task.shift}-${task.text}`}
-                  onClick={() => {
-                    if (!task.isOff && task.shift !== 'INFO') {
-                      onSelectShift({
-                        date: selectedDate,
-                        shift: task.shift,
-                        area: task.text,
-                      });
-                    }
-                  }}
-                  className={`relative flex items-stretch overflow-hidden rounded-[10px] border border-l-4 transition ${
-                    task.isOff
-                      ? 'border-amber-500/35 border-l-amber-400 bg-amber-950/30'
-                      : isCurrentShift
-                        ? 'cursor-pointer border-emerald-500/45 border-l-emerald-400 bg-emerald-950/35 hover:bg-emerald-950/50 active:scale-[0.98]'
-                        : 'cursor-pointer border-slate-700/80 border-l-sky-400 bg-slate-800/70 hover:bg-slate-800 active:scale-[0.98]'
-                  }`}
-                >
-                  <div
-                    className={`flex min-w-0 flex-1 flex-col justify-center gap-2 py-3.5 pl-3.5 ${
-                      task.isOff ? 'pr-3.5' : 'pr-10 sm:pr-12'
-                    }`}
-                  >
-                    {/* Baris 1: Judul SHIFT 15px + Jam 12px di bawahnya | Pil ● AKTIF di kanan */}
-                    <div className="flex items-start justify-between gap-2">
-                      {task.shift === 'INFO' ? (
-                        <span className="inline-flex items-center gap-1.5 text-[15px] font-extrabold uppercase text-amber-300">
-                          <IconInfoCircle className="h-4 w-4 text-amber-400" /> STATUS
-                        </span>
-                      ) : (
-                        <div className="flex flex-col gap-0.5">
-                          <span className="inline-flex items-center gap-1.5 text-[15px] font-extrabold uppercase leading-tight text-white">
-                            <ShiftWeatherIcon
-                              shift={task.shift}
-                              tone={isCurrentShift ? 'semantic-active' : 'semantic-default'}
-                              className="h-4 w-4"
-                            />
-                            <span>SHIFT {task.shift}</span>
-                          </span>
-                          {shiftRange && (
-                            <span
-                              className={`text-xs font-medium tabular-nums ${
-                                isCurrentShift ? 'text-emerald-100' : 'text-slate-300'
-                              }`}
-                            >
-                              {shiftRange}
-                            </span>
-                          )}
-                        </div>
-                      )}
-
-                      {isCurrentShift && (
-                        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-400/50 bg-emerald-500/20 px-2.5 py-0.5 text-xs font-bold text-emerald-300">
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> AKTIF
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Baris 2: Tag Equipment (Rajdhani) + Ikon Centang Bulat [✓] menempel di sebelah kanan */}
-                    <div className="inline-flex flex-wrap items-center gap-2">
-                      <div className="font-equipment min-w-0 break-words text-[21px] font-bold leading-tight tracking-wide text-white sm:text-[22px]">
-                        {task.text}
-                      </div>
-
-                      {reported && task.shift !== 'INFO' && (
-                        <button
-                          type="button"
-                          aria-label={`Lihat status dilaporkan SHIFT ${task.shift}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setStatusTarget({
-                              date: selectedDate,
-                              shift: task.shift as ShiftName,
-                              area: task.text,
-                              entry,
-                            });
-                          }}
-                          className="relative z-20 flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full border border-sky-500/40 bg-sky-500/15 text-sky-400 transition hover:bg-sky-500/30 active:scale-90"
-                        >
-                          <IconCheck className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-
-                    {task.subtext && (
-                      <div className="flex items-center gap-1.5 text-xs font-medium text-amber-200">
-                        <IconInfoCircle className="h-3.5 w-3.5 text-amber-400" />
-                        <span>{task.subtext}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Ikon Panah Kanan w-5 h-5 (strokeWidth={4}) */}
-                  {!task.isOff && (
-                    <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center justify-center">
-                      <svg
-                        viewBox="0 0 24 24"
-                        width="20"
-                        height="20"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth={4}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                        className={`h-5 w-5 ${
-                          isCurrentShift ? 'text-emerald-400/80' : 'text-sky-400/75'
-                        }`}
-                      >
-                        <path d="m9 18 6-6-6-6" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
+                  shift={task.shift}
+                  areaText={task.text}
+                  isOff={task.isOff}
+                  isHighlighted={isCurrentShift}
+                  highlightLabel="AKTIF"
+                  highlightDot={true}
+                  reportedEntry={entry}
+                  subtext={task.subtext}
+                  onCardClick={
+                    !task.isOff && task.shift !== 'INFO'
+                      ? () =>
+                          onSelectShift({
+                            date: selectedDate,
+                            shift: task.shift as ShiftName,
+                            area: task.text,
+                          })
+                      : undefined
+                  }
+                  onBadgeClick={
+                    !task.isOff && task.shift !== 'INFO'
+                      ? () =>
+                          setStatusTarget({
+                            date: selectedDate,
+                            shift: task.shift as ShiftName,
+                            area: task.text,
+                            entry,
+                          })
+                      : undefined
+                  }
+                />
               );
             })
           )}
@@ -599,7 +617,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       )}
 
-      {/* Pop-up Status Sinkronisasi & Reset Dilaporkan [✓] */}
+      {/* Pop-up Status Sinkronisasi & Reset Dilaporkan */}
       {statusTarget && (
         <div
           role="dialog"
@@ -615,7 +633,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               id="status-sync-title"
               className="mb-2 flex items-center gap-2 text-base font-bold text-white"
             >
-              <IconCheckCircle className="h-5 w-5 text-sky-400" /> Status Dilaporkan
+              <ReportedBadge size="sm" /> Status Dilaporkan
             </h3>
             <p className="mb-3 text-[14px] leading-[1.5] text-slate-300">
               {statusTarget.entry?.pendingOffline

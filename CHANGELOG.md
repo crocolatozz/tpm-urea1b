@@ -2,6 +2,41 @@
 
 Semua perubahan penting pada aplikasi **Dashboard & Kolase Foto TPM Urea 1B** dicatat di file ini mengikuti standar [Semantic Versioning](https://semver.org/).
 
+## [2.8.5] - 2026-11-16
+
+### Ditambahkan
+- **Indikator Ukuran File Ekspor (`KolaseView.tsx`, `imageCollage.ts`):** Menampilkan ukuran file JPEG hasil render kolase (misalnya `340 KB`) di dalam modal konfirmasi **Kolase TPM Berhasil Dibuat!** setelah menekan **Kirim ke WhatsApp**.
+
+### Diperbaiki
+- **Persistensi Foto & Keterangan Lintas Tab (`App.tsx`, `KolaseView.tsx`):** Mempertahankan seluruh slot foto dan teks keterangan kegiatan agar tidak ter-reset saat berpindah dari tab **Kolase Foto** ke **Jadwal TPM** lalu kembali lagi, tanpa mencabut `ObjectURL` secara prematur. Mengetuk kartu jadwal kini hanya memperbarui Tanggal, Shift, Tag Equipment, dan status `Locked`.
+- **Timeout Cadangan 3 Detik Updater PWA (`useAppUpdater.ts`):** Menambahkan batas tunggu maksimal `3000ms` sebagai pengaman cadangan di samping mekanisme `controllerchange` + jeda stabilisasi `500ms` agar aplikasi tetap me-reload 1 kali dan tombol **Update** tidak pernah macet.
+
+### Diubah
+- **Penyempurnaan Redaksi Panduan & Sinkronisasi Versi `2.8.5` (`GuideModal.tsx`, `package.json`, `tpmData.ts`, `version.json`, `vite.config.js`):** Memperbarui poin Tab 1, Tab 2 (`"Setelah proses kirim selesai..."`), dan Tab 3 (`"Tap tombol Install Aplikasi"`) pada Panduan Aplikasi serta menyelaraskan seluruh versi & `cacheId` Service Worker ke `v2.8.5`.
+
+## [2.8.4] - 2026-11-16
+
+### Diperbaiki
+- **Pembaruan PWA Sekali Klik (`useAppUpdater.ts`):** Menunggu sinyal `controllerchange` Service Worker disertai jeda stabilisasi pembersihan cache (`500ms`) dan pengaman *single reload* agar tombol **Update** langsung menuntaskan pembaruan dalam 1x klik, serta memberi jeda awal `2 detik` saat aplikasi dibuka dan *cache-bypass* ketat pada `version.json`.
+- **Pembersihan Memori `ObjectURL` Anti-Kedip (`KolaseView.tsx`, `imageCollage.ts`):** Memindahkan pencabutan `URL.revokeObjectURL()` ke tahap pasca-render (*post-commit effect*) agar slot foto tidak pernah berkedip gambar rusak saat foto diedit, ditukar, atau dihapus.
+- **Penanganan Error Menyeluruh & Toast 3 Varian (`App.tsx`, `KolaseView.tsx`, `DashboardView.tsx`, `PhotoEditorModal.tsx`, `shiftReportSync.ts`):** Menyeragamkan toast menjadi 3 varian berikon SVG (**Sukses**, **Peringatan**, **Error**) dan menghubungkannya ke seluruh kegagalan decode foto, simpan editor foto, render kanvas/unduh kolase, salin caption, serta kegagalan sinkronisasi Firestore.
+
+### Diubah
+- **Skala Otomatis Footer Kolase 1:1 (`KolaseView.tsx`, `imageCollage.ts`):** Menghapus pemotongan teks elipsis (`...`) pada footer Preview dan memakai fungsi kalkulasi skala font yang sama persis dengan kanvas ekspor (`90%` lebar kanvas) sehingga tag equipment panjang tampil 1:1 antara layar Preview dan file JPEG.
+- **Sinkronisasi Versi `2.8.4` (`package.json`, `tpmData.ts`, `version.json`, `vite.config.js`):** Menaikkan versi aplikasi serta `cacheId` Service Worker ke `v2.8.4`.
+
+## [2.8.3] - 2026-11-16
+
+### Diubah
+- **Header Kolase `7.4cqw` & Padding Simetris (`KolaseView.tsx`, `imageCollage.ts`):** Memperbesar teks header **`BEFORE`** dan **`AFTER`** menjadi `7.4cqw` (`Barlow Condensed` `700`, putih `#FFFFFF`) dengan ruang napas atas dan bawah yang seimbang terhadap footer antara Preview dan hasil ekspor JPEG.
+- **Pulihkan Batas 30 Karakter & Saran `Cleaning instrumentasi` (`KolaseView.tsx`, `imageCollage.ts`):** Mengembalikan batas input keterangan kegiatan ke `30` karakter per baris beserta placeholder Baris 2 `"Misal: Cleaning instrumentasi"` dan pengaman `ctx.measureText()` pada `85%` lebar kanvas agar kapsul keterangan tidak terpotong di sisi bingkai.
+- **Standarisasi Ikon Centang Biru Terlapor & Hijau Sukses (`Icons.tsx`, `DashboardView.tsx`, `KolaseView.tsx`, `GuideModal.tsx`):** Menyeragamkan komponen ikon centang bulat biru (`ReportedBadge`) khusus status jadwal terlapor di kartu jadwal, pop-up status, modal pasca-kirim WA, dan panduan, serta mempertahankan centang hijau khusus status proses berhasil.
+- **Polesan Panduan Aplikasi (`GuideModal.tsx`):** Menyelaraskan batas `30` karakter per baris, menyeragamkan seluruh ikon inline ke SVG `14px` (`w-3.5 h-3.5`), menebalkan khusus nama elemen UI, dan menstandarkan warna aksen semantik.
+
+### Diperbaiki
+- **Efisiensi Memori Foto via `Blob` + `ObjectURL` (`imageCollage.ts`, `PhotoEditorModal.tsx`):** Mengganti penyimpanan ganda Base64 (`toDataURL`) dengan `Blob` + `URL.createObjectURL()` disertai `URL.revokeObjectURL()` ketat saat edit, hapus slot, reset, maupun unmount untuk mencegah lonjakan RAM di HP/iOS.
+- **Blokir Bar Autofill Android & Optimasi Kuota (`DashboardView.tsx`, `KolaseView.tsx`, `firebase.ts`):** Menambahkan atribut anti-autofill (`data-form-type="other"`, `data-lpignore="true"`, dan `id`/`name` netral) pada seluruh kolom input, mengoptimalkan pengecekan interval shift agar hanya me-render ulang saat terjadi transisi shift/hari, serta menghapus pembacaan uji koneksi Firestore saat startup untuk menghemat kuota baca.
+
 ## [2.8.2] - 2026-11-16
 
 ### Diperbaiki

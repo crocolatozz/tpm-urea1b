@@ -20,6 +20,7 @@ import {
   IconShareIos,
   IconSmartphone,
   IconSwapHorizontal,
+  ReportedBadge,
 } from './Icons';
 
 interface GuideModalProps {
@@ -132,33 +133,32 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
               </h4>
               <ul className="flex list-disc flex-col gap-2 pl-[18px]">
                 <li>
-                  Tap kotak tanggal untuk memilih lewat kalender, tekan panah{' '}
-                  <strong className="inline-flex items-center">
-                    <IconChevronLeft className="inline-block h-[1em] w-[1em] align-[-0.125em]" />
+                  Tap <strong className="text-white">Tanggal Jadwal</strong> untuk memilih lewat
+                  kalender, tekan panah{' '}
+                  <strong className="inline-flex items-center text-white">
+                    <IconChevronLeft className="h-3.5 w-3.5" />
                   </strong>{' '}
                   dan{' '}
-                  <strong className="inline-flex items-center">
-                    <IconChevronRight className="inline-block h-[1em] w-[1em] align-[-0.125em]" />
+                  <strong className="inline-flex items-center text-white">
+                    <IconChevronRight className="h-3.5 w-3.5" />
                   </strong>{' '}
-                  untuk geser harian, atau ketik di <strong>Cari Alat / Area</strong> untuk mencari
-                  jadwal alat tertentu.
+                  untuk geser harian, atau ketik di{' '}
+                  <strong className="text-white">Cari Alat / Area</strong> untuk mencari jadwal
+                  alat tertentu.
                 </li>
                 <li>
                   Badge <strong className="text-emerald-400">● AKTIF</strong> menandakan shift yang
                   sedang berjalan (termasuk pergantian shift malam lintas hari). Tap pil{' '}
-                  <strong className="text-sky-300">Siklus</strong> untuk melihat info rotasi 15 hari.
+                  <strong className="text-sky-400">Siklus</strong> untuk melihat info rotasi 15 hari.
                 </li>
                 <li>
-                  Ikon centang bulat{' '}
-                  <strong className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-sky-500/40 bg-sky-500/15 text-sky-400 align-[-0.125em]">
-                    <IconCheck className="h-3 w-3" />
-                  </strong>{' '}
-                  di sebelah nama equipment otomatis tersinkron ke semua HP operator lain dan bisa
+                  Ikon centang bulat <ReportedBadge size="sm" className="align-[-0.25em]" /> di
+                  sebelah nama equipment otomatis tersinkron ke semua HP operator lain dan bisa
                   di-tap untuk melihat info sinkronisasi atau membatalkan/reset tanda.
                 </li>
                 <li>
-                  Tap kartu jadwal untuk langsung mengisi tanggal, shift, dan nama equipment ke
-                  halaman Kolase untuk mulai menyusun kolase.
+                  Tap <strong className="text-white">kartu jadwal</strong> untuk langsung membuka tab{' '}
+                  <strong className="text-white">Kolase Foto</strong> dan menyusun kolase.
                 </li>
               </ul>
             </div>
@@ -171,45 +171,50 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
               </h4>
               <ul className="flex list-disc flex-col gap-2 pl-[18px]">
                 <li>
-                  <strong>Data Laporan</strong> terkunci otomatis agar sesuai jadwal; ketuk tombol{' '}
-                  <strong className="inline-flex items-center gap-1 text-sky-300">
-                    <IconLock className="inline-block h-[1em] w-[1em] align-[-0.125em]" /> Locked
+                  <strong className="text-white">Data Laporan</strong> terkunci otomatis agar sesuai
+                  jadwal; ketuk tombol{' '}
+                  <strong className="inline-flex items-center gap-1 text-sky-400">
+                    <IconLock className="h-3.5 w-3.5" /> Locked
                   </strong>{' '}
                   di pojok kanan atas bila perlu mengubah ke mode input manual.
                 </li>
                 <li>
-                  Pilih layout (<strong>2x1</strong>, <strong>2x2</strong>, atau <strong>2x3</strong>
-                  ) lalu <strong>tap kotak slot (+)</strong> untuk memasukkan foto. Gunakan tombol{' '}
-                  <strong className="inline-flex items-center gap-1 text-sky-300">
-                    <IconSwapHorizontal className="inline-block h-[1em] w-[1em] align-[-0.125em]" />
+                  Pilih layout (<strong className="text-white">2x1</strong>,{' '}
+                  <strong className="text-white">2x2</strong>, atau{' '}
+                  <strong className="text-white">2x3</strong>) lalu tap kotak slot{' '}
+                  <strong className="inline-flex items-center text-sky-400">
+                    <IconPlusSquare className="h-3.5 w-3.5" />
+                  </strong>{' '}
+                  untuk memasukkan foto. Gunakan tombol{' '}
+                  <strong className="inline-flex items-center text-sky-400">
+                    <IconSwapHorizontal className="h-3.5 w-3.5" />
                   </strong>{' '}
                   di tengah baris untuk menukar foto Before–After, atau tap foto untuk membuka{' '}
-                  <strong>Atur Foto</strong> (crop 1:1, putar{' '}
-                  <strong className="inline-flex items-center gap-1">
-                    <IconRotateCw className="inline-block h-[1em] w-[1em] align-[-0.125em]" /> 90°
+                  <strong className="text-white">Atur Foto</strong> (crop 1:1, putar{' '}
+                  <strong className="inline-flex items-center gap-1 text-white">
+                    <IconRotateCw className="h-3.5 w-3.5 text-sky-400" /> 90°
                   </strong>
                   , atau{' '}
-                  <strong className="inline-flex items-center gap-1">
-                    <IconImageSwap className="inline-block h-[1em] w-[1em] align-[-0.125em]" />{' '}
-                    Ganti Foto
+                  <strong className="inline-flex items-center gap-1 text-white">
+                    <IconImageSwap className="h-3.5 w-3.5 text-sky-400" /> Ganti Foto
                   </strong>
                   ).
                 </li>
                 <li>
-                  Isi keterangan kegiatan sesuai jumlah baris layout (maksimal 25 karakter per
+                  Isi keterangan kegiatan sesuai jumlah baris layout (maksimal 30 karakter per
                   baris), lalu tekan{' '}
                   <strong className="inline-flex items-center gap-1 text-emerald-400">
-                    <IconSend className="inline-block h-[1em] w-[1em] align-[-0.125em]" /> Kirim ke
-                    WhatsApp
+                    <IconSend className="h-3.5 w-3.5" /> Kirim ke WhatsApp
                   </strong>{' '}
                   untuk otomatis menandai jadwal terkait dengan{' '}
-                  <strong className="text-sky-300">[✓]</strong>.
+                  <ReportedBadge size="sm" className="align-[-0.25em]" />.
                 </li>
                 <li>
-                  Setelah share selesai, konfirmasi akan muncul: pilih{' '}
+                  Setelah proses kirim selesai, konfirmasi akan muncul: pilih{' '}
                   <strong className="text-emerald-400">Ya, Update</strong> untuk menjaga status{' '}
-                  <strong className="text-sky-300">[✓]</strong> dan membersihkan foto &amp; caption,
-                  atau pilih <strong>Batal</strong> jika pengiriman gagal.
+                  <ReportedBadge size="sm" className="align-[-0.25em]" /> dan membersihkan foto
+                  &amp; caption, atau pilih <strong className="text-white">Batal</strong> jika
+                  pengiriman gagal.
                 </li>
               </ul>
             </div>
@@ -222,38 +227,34 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
               </h4>
               <ul className="flex list-disc flex-col gap-2 pl-[18px]">
                 <li>
-                  <strong>Android (Chrome / Samsung Browser):</strong> Tap tombol biru{' '}
+                  <strong className="text-white">Android (Chrome / Samsung Browser):</strong> Tap
+                  tombol{' '}
                   <strong className="inline-flex items-center gap-1 text-sky-400">
-                    <IconDownload className="inline-block h-[1em] w-[1em] align-[-0.125em]" />{' '}
-                    Install Aplikasi
+                    <IconDownload className="h-3.5 w-3.5" /> Install Aplikasi
                   </strong>{' '}
                   atau buka menu browser{' '}
-                  <IconArrowRight className="inline-block h-[1em] w-[1em] align-[-0.125em] text-sky-400" />{' '}
-                  pilih <strong>Install app / Tambahkan ke layar utama</strong>. Jika muncul
-                  peringatan Play Protect di Samsung Browser, pilih{' '}
-                  <strong>Install anyway / Tetap install</strong>.
+                  <IconArrowRight className="h-3.5 w-3.5 text-sky-400" /> pilih{' '}
+                  <strong className="text-white">Install app / Tambahkan ke layar utama</strong>.
+                  Jika muncul peringatan Play Protect di Samsung Browser, pilih{' '}
+                  <strong className="text-white">Install anyway / Tetap install</strong>.
                 </li>
                 <li>
-                  <strong>iPhone (Safari):</strong> Tap ikon{' '}
+                  <strong className="text-white">iPhone (Safari):</strong> Tap ikon{' '}
                   <strong className="inline-flex items-center gap-1 text-sky-400">
-                    Share{' '}
-                    <IconShareIos className="inline-block h-[1em] w-[1em] align-[-0.125em]" />
+                    Share <IconShareIos className="h-3.5 w-3.5" />
                   </strong>{' '}
-                  <IconArrowRight className="inline-block h-[1em] w-[1em] align-[-0.125em] text-sky-400" />{' '}
-                  pilih{' '}
-                  <strong className="inline-flex items-center gap-1 text-sky-400">
+                  <IconArrowRight className="h-3.5 w-3.5 text-sky-400" /> pilih{' '}
+                  <strong className="text-white">
                     Tambah ke Layar Utama{' '}
-                    <IconPlusSquare className="inline-block h-[1em] w-[1em] align-[-0.125em]" />
+                    <IconPlusSquare className="h-3.5 w-3.5 text-sky-400" />
                   </strong>
                   .
                 </li>
                 <li>
-                  <strong>Koneksi Internet &amp; Sinkronisasi:</strong> Pastikan perangkat terhubung
-                  ke internet agar status{' '}
-                  <strong className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-sky-500/40 bg-sky-500/15 text-sky-400 align-[-0.125em]">
-                    <IconCheck className="h-3 w-3" />
-                  </strong>{' '}
-                  tersinkron secara <em>real-time</em> ke semua HP operator lain.
+                  <strong className="text-white">Koneksi Internet &amp; Sinkronisasi:</strong>{' '}
+                  Pastikan perangkat terhubung ke internet agar status{' '}
+                  <ReportedBadge size="sm" className="align-[-0.25em]" /> tersinkron secara{' '}
+                  <em>real-time</em> ke semua HP operator lain.
                 </li>
               </ul>
             </div>

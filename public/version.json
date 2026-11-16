@@ -1,8 +1,8 @@
 {
-  "version": "2.8.2",
+  "version": "2.8.5",
   "notes": [
-    "Perbaikan ukuran global seluruh ikon SVG dengan atribut default 20x20 dan ukuran presisi per lokasi (ikon + 24px, header 20px, tombol sampah mini 14px, toast 22px, close 16px, panah jadwal 20px)",
-    "Footer kolase kini memakai Barlow Condensed 4.5cqw monokrom putih dengan jarak pemisah dot (•) lebih lega, ruang napas vertikal lebih luas, dan auto-scale agar tag panjang tidak terpotong (maks 90% lebar kanvas)",
-    "Pembersihan dead code (CSS tidak terpakai dan referensi usang) tanpa mengubah alur kerja"
+    "Foto kolase dan keterangan kegiatan kini tetap tersimpan aman saat berpindah antar-tab Jadwal TPM dan Kolase Foto",
+    "Pengaman batas tunggu maksimal 3 detik pada pembaruan PWA agar tombol Update tidak pernah macet berputar terus",
+    "Indikator ukuran file JPEG ringkas di modal konfirmasi pasca-kirim WhatsApp serta penyempurnaan redaksi Panduan Aplikasi"
   ]
 }

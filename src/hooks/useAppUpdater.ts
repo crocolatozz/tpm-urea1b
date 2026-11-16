@@ -211,7 +211,7 @@ export function useAppUpdater(suppressPrompt = false) {
     setIsUpdating(false);
     setModalState({
       mode: 'prompt',
-      remoteVersion: '2.9.0',
+      remoteVersion: '2.10.0',
       releaseNotes: [
         'Simulasi pratinjau pop-up pembaruan PWA (mode uji lokal, tidak memuat ulang aplikasi).',
         'Memastikan tata letak modal update, badge versi, dan tombol aksi tampil presisi di layar mobile.',

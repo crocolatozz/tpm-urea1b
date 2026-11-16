@@ -95,7 +95,7 @@ export default defineConfig(({ command }) => {
           name: 'Dashboard TPM Urea 1B',
           short_name: 'TPM Urea 1B',
           description:
-            'Monitoring jadwal inspeksi mesin dan kolase foto dokumentasi Before & After TPM Urea 1B (v2.8.5).',
+            'Monitoring jadwal inspeksi mesin dan kolase foto dokumentasi Before & After TPM Urea 1B (v2.10.0).',
           start_url: basePath,
           scope: basePath,
           display: 'standalone',
@@ -123,7 +123,7 @@ export default defineConfig(({ command }) => {
           ],
         },
         workbox: {
-          cacheId: 'tpm-urea1b-v2.8.5',
+          cacheId: 'tpm-urea1b-v2.10.0',
           skipWaiting: false,
           clientsClaim: false,
           cleanupOutdatedCaches: true,
@@ -139,7 +139,7 @@ export default defineConfig(({ command }) => {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
               handler: 'StaleWhileRevalidate',
               options: {
-                cacheName: 'google-fonts-stylesheets-v2.8.5',
+                cacheName: 'google-fonts-stylesheets-v2.10.0',
                 cacheableResponse: {
                   statuses: [0, 200],
                 },
@@ -153,7 +153,7 @@ export default defineConfig(({ command }) => {
               urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
               handler: 'CacheFirst',
               options: {
-                cacheName: 'google-fonts-webfonts-v2.8.5',
+                cacheName: 'google-fonts-webfonts-v2.10.0',
                 cacheableResponse: {
                   statuses: [0, 200],
                 },

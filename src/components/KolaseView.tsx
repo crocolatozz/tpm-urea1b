@@ -14,7 +14,8 @@ import {
   copyTextToClipboard,
   disposeSlotCanvases,
   formatFileSizeCompact,
-  freeSlotArray,
+  freeSingleSlot,
+  isHeicFile,
   processAndResizeFile,
   renderCollageToCanvas,
   type LoadedPhotoSlot,
@@ -36,7 +37,6 @@ import {
   IconMessageSquare,
   IconPlus,
   IconSend,
-  IconSwapHorizontal,
   IconTrash,
   IconUnlock,
   ReportedBadge,
@@ -72,6 +72,7 @@ interface KolaseViewProps {
   ) => Promise<void>;
   onShowToast: (message: string, kind?: KolaseToastKind, durationMs?: number) => void;
   onDismissLoadingToast: () => void;
+  onDragLockChange?: (locked: boolean) => void;
 }
 
 const MAX_CAPTION_LEN = 30;
@@ -111,14 +112,6 @@ function countValidSlots(slots: Array<LoadedPhotoSlot | null>): number {
   return slots.filter(Boolean).length;
 }
 
-function detectIOSDevice(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  return (
-    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-  );
-}
-
 interface PostSendModalState {
   dateStr: string;
   shift: ShiftName;
@@ -128,6 +121,21 @@ interface PostSendModalState {
 }
 
 type ConfirmDialogType = 'unlock' | 'clear-captions' | 'reset-photos' | null;
+
+interface SlotCoord {
+  side: 'before' | 'after';
+  index: number;
+}
+
+interface ActiveDragState {
+  source: SlotCoord;
+  previewUrl: string;
+  label: string;
+  width: number;
+  height: number;
+  initialX: number;
+  initialY: number;
+}
 
 export const KolaseView: React.FC<KolaseViewProps> = ({
   date,
@@ -152,9 +160,8 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
   onRestoreReport,
   onShowToast,
   onDismissLoadingToast,
+  onDragLockChange,
 }) => {
-  const isIOS = useMemo(() => detectIOSDevice(), []);
-
   // Single source of truth berasal dari App.tsx (sinkron penuh ke UI, filter Tag Equipment, Preview, & Caption WA)
   const tpmDate = date;
   const tpmShift = shift;
@@ -167,10 +174,12 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
   const [shiftMenuOpen, setShiftMenuOpen] = useState(false);
   const shiftDropdownRef = useRef<HTMLDivElement | null>(null);
 
-  const [swappedRow, setSwappedRow] = useState<number | null>(null);
-  const swapTimerRef = useRef<number | null>(null);
+  const [activeDrag, setActiveDrag] = useState<ActiveDragState | null>(null);
+  const [dragTarget, setDragTarget] = useState<SlotCoord | null>(null);
 
   const [isPickingFile, setIsPickingFile] = useState(false);
+  const [isPickerMulti, setIsPickerMulti] = useState(true);
+  const [loadingSlotKeys, setLoadingSlotKeys] = useState<Set<string>>(() => new Set());
   const [editingTarget, setEditingTarget] = useState<{
     side: 'before' | 'after';
     index: number;
@@ -178,26 +187,78 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
   const [postSendModal, setPostSendModal] = useState<PostSendModalState | null>(null);
   const [fontReadyTick, setFontReadyTick] = useState(0);
 
-  const loadingDelayTimerRef = useRef<number | null>(null);
-
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle');
   const copyTimerRef = useRef<number | null>(null);
 
   const [exportStatus, setExportStatus] = useState<'idle' | 'exporting'>('idle');
 
   const slotPickerRef = useRef<HTMLInputElement | null>(null);
-  const pendingTargetRef = useRef<{ side: 'before' | 'after'; index: number } | null>(null);
+  const pendingTargetRef = useRef<{
+    side: 'before' | 'after';
+    index: number;
+    mode: 'multi' | 'single';
+  } | null>(null);
+  const fileQueueRunIdRef = useRef(0);
   const isMountedRef = useRef(true);
   const prevDevModeRef = useRef(devModeActive);
 
+  const slotElementsRef = useRef<Map<string, HTMLDivElement>>(new Map());
+  const ghostCardRef = useRef<HTMLDivElement | null>(null);
+  const suppressNextClickRef = useRef(false);
+  const suppressClickTimerRef = useRef<number | null>(null);
+  const dragListenersCleanupRef = useRef<(() => void) | null>(null);
+  const dragSessionRef = useRef<{
+    phase: 'idle' | 'pending' | 'dragging';
+    pointerId: number | null;
+    source: SlotCoord | null;
+    target: SlotCoord | null;
+    startX: number;
+    startY: number;
+    currentX: number;
+    currentY: number;
+    slotWidth: number;
+    slotHeight: number;
+    holdTimerId: number | null;
+  }>({
+    phase: 'idle',
+    pointerId: null,
+    source: null,
+    target: null,
+    startX: 0,
+    startY: 0,
+    currentX: 0,
+    currentY: 0,
+    slotWidth: 140,
+    slotHeight: 140,
+    holdTimerId: null,
+  });
+
   useModalScrollLock(postSendModal !== null);
 
-  const clearLoadingDelayTimer = useCallback(() => {
-    if (loadingDelayTimerRef.current !== null) {
-      window.clearTimeout(loadingDelayTimerRef.current);
-      loadingDelayTimerRef.current = null;
+  const cancelSlotDrag = useCallback(() => {
+    const session = dragSessionRef.current;
+    if (session.holdTimerId !== null) {
+      window.clearTimeout(session.holdTimerId);
+      session.holdTimerId = null;
     }
-  }, []);
+    const wasDragging = session.phase === 'dragging';
+    session.phase = 'idle';
+    session.pointerId = null;
+    session.source = null;
+    session.target = null;
+
+    if (dragListenersCleanupRef.current) {
+      dragListenersCleanupRef.current();
+      dragListenersCleanupRef.current = null;
+    }
+    if (wasDragging) {
+      onDragLockChange?.(false);
+    }
+    if (isMountedRef.current) {
+      setActiveDrag(null);
+      setDragTarget(null);
+    }
+  }, [onDragLockChange]);
 
   // Pastikan font kustom Barlow Condensed selesai dimuat agar kalkulasi footer Preview 1:1 presisi
   useEffect(() => {
@@ -221,20 +282,26 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
     setIsDataLocked(true);
     setShiftMenuOpen(false);
     setActiveConfirm(null);
-  }, [selectionKey]);
+    cancelSlotDrag();
+  }, [cancelSlotDrag, selectionKey]);
 
-  // Bersihkan modal transient lokal saat keluar dari Developer Mode
+  // Bersihkan modal transient lokal, antrean foto, & kunci kembali Data Laporan saat keluar dari Developer Mode
   useEffect(() => {
     if (prevDevModeRef.current && !devModeActive) {
+      fileQueueRunIdRef.current += 1;
+      cancelSlotDrag();
+      setLoadingSlotKeys(new Set());
+      setIsPickingFile(false);
+      setIsDataLocked(true);
+      setShiftMenuOpen(false);
       setEditingTarget(null);
       setPostSendModal(null);
       setActiveConfirm(null);
-      clearLoadingDelayTimer();
       onDismissLoadingToast();
       if (slotPickerRef.current) slotPickerRef.current.value = '';
     }
     prevDevModeRef.current = devModeActive;
-  }, [clearLoadingDelayTimer, devModeActive, onDismissLoadingToast]);
+  }, [cancelSlotDrag, devModeActive, onDismissLoadingToast]);
 
   // Keep refs to slots for async duplicate checks & swaps
   const slotsCleanupRef = useRef<{
@@ -248,11 +315,14 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-      clearLoadingDelayTimer();
+      fileQueueRunIdRef.current += 1;
+      cancelSlotDrag();
       if (copyTimerRef.current !== null) window.clearTimeout(copyTimerRef.current);
-      if (swapTimerRef.current !== null) window.clearTimeout(swapTimerRef.current);
+      if (suppressClickTimerRef.current !== null) {
+        window.clearTimeout(suppressClickTimerRef.current);
+      }
     };
-  }, [clearLoadingDelayTimer]);
+  }, [cancelSlotDrag]);
 
   // Tutup custom dropdown Shift saat tap/klik di luar area atau menekan Escape
   useEffect(() => {
@@ -358,9 +428,16 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
     setGridType(nextGrid);
   };
 
-  const triggerSlotPicker = (side: 'before' | 'after', index: number) => {
+  const triggerSlotPicker = (
+    side: 'before' | 'after',
+    index: number,
+    mode: 'multi' | 'single'
+  ) => {
     if (isPickingFile || !slotPickerRef.current) return;
-    pendingTargetRef.current = { side, index };
+    const allowMulti = mode === 'multi';
+    setIsPickerMulti(allowMulti);
+    slotPickerRef.current.multiple = allowMulti;
+    pendingTargetRef.current = { side, index, mode };
     slotPickerRef.current.click();
   };
 
@@ -380,87 +457,178 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
       return;
     }
 
-    const selectedFile = files[files.length - 1];
-    setIsPickingFile(true);
+    // Tentukan daftar slot target: single (Ganti Foto) vs multi-select (tap slot kosong +)
+    let candidateTargets: Array<{ side: 'before' | 'after'; index: number }> = [];
+    let filesToProcess: File[] = [];
+    let overflowCount = 0;
 
-    // Smart delay 150ms agar decode cepat bebas kedipan & bebas layout shift
-    clearLoadingDelayTimer();
-    loadingDelayTimerRef.current = window.setTimeout(() => {
-      loadingDelayTimerRef.current = null;
-      if (isMountedRef.current) {
-        onShowToast('Memuat & mengompres foto...', 'loading');
+    if (target.mode === 'single') {
+      candidateTargets = [{ side: target.side, index: target.index }];
+      filesToProcess = [files[files.length - 1]];
+    } else {
+      const orderedSlots: Array<{ side: 'before' | 'after'; index: number }> = [];
+      for (let rIdx = 0; rIdx < rows; rIdx++) {
+        orderedSlots.push({ side: 'before', index: rIdx });
+        orderedSlots.push({ side: 'after', index: rIdx });
       }
-    }, 150);
+      const startPos = orderedSlots.findIndex(
+        (s) => s.side === target.side && s.index === target.index
+      );
+      candidateTargets = orderedSlots
+        .slice(Math.max(0, startPos))
+        .filter((s) => {
+          const arr =
+            s.side === 'before'
+              ? slotsCleanupRef.current.before
+              : slotsCleanupRef.current.after;
+          return !arr[s.index];
+        });
+
+      if (candidateTargets.length === 0) {
+        inputEl.value = '';
+        onShowToast('Semua sisa slot foto pada layout ini sudah terisi.', 'warning');
+        return;
+      }
+
+      if (files.length > candidateTargets.length) {
+        overflowCount = files.length - candidateTargets.length;
+        filesToProcess = files.slice(0, candidateTargets.length);
+      } else {
+        filesToProcess = files;
+      }
+    }
+
+    const targetSlots = candidateTargets.slice(0, filesToProcess.length);
+    const targetKeys = targetSlots.map((s) => `${s.side}-${s.index}`);
+    const hasHeic = filesToProcess.some(isHeicFile);
+    const shouldShowQueueToast = filesToProcess.length > 1 || hasHeic;
+
+    const queueRunId = ++fileQueueRunIdRef.current;
+    setIsPickingFile(true);
+    setLoadingSlotKeys((prev) => {
+      const next = new Set(prev);
+      targetKeys.forEach((k) => next.add(k));
+      return next;
+    });
+
+    if (shouldShowQueueToast) {
+      onShowToast(`Memproses ${filesToProcess.length} foto, mohon tunggu...`, 'loading');
+    }
+
+    let duplicateDetected = false;
+    let failedCount = 0;
+
+    // Salinan lokal untuk cek duplikasi akurat selama antrean berurutan berjalan
+    const workingBefore = [...slotsCleanupRef.current.before];
+    const workingAfter = [...slotsCleanupRef.current.after];
 
     try {
-      const processed = await processAndResizeFile(selectedFile);
+      for (let i = 0; i < filesToProcess.length; i++) {
+        if (!isMountedRef.current || queueRunId !== fileQueueRunIdRef.current) {
+          break;
+        }
 
-      clearLoadingDelayTimer();
+        const file = filesToProcess[i];
+        const slotTarget = targetSlots[i];
+        const slotKey = `${slotTarget.side}-${slotTarget.index}`;
 
-      if (!isMountedRef.current) {
-        freeSlotArray([processed]);
-        return;
-      }
+        let processed: LoadedPhotoSlot | null = null;
+        try {
+          processed = await processAndResizeFile(file);
+        } catch {
+          processed = null;
+        }
 
-      if (!processed) {
-        onShowToast('Gagal memuat foto. Pastikan format gambar didukung.', 'error');
-        return;
-      }
+        if (isMountedRef.current) {
+          setLoadingSlotKeys((prev) => {
+            if (!prev.has(slotKey)) return prev;
+            const next = new Set(prev);
+            next.delete(slotKey);
+            return next;
+          });
+        }
 
-      // Cek apakah foto identik (size + lastModified) sudah terpasang di slot aktif lain
-      const activeOtherSlots = [
-        ...slotsCleanupRef.current.before
-          .slice(0, rows)
-          .map((slot, idx) => ({ side: 'before' as const, idx, slot })),
-        ...slotsCleanupRef.current.after
-          .slice(0, rows)
-          .map((slot, idx) => ({ side: 'after' as const, idx, slot })),
-      ];
-      const isDuplicateElsewhere = activeOtherSlots.some(
-        (item) =>
-          !(item.side === target.side && item.idx === target.index) &&
-          item.slot !== null &&
-          item.slot.fileSize !== undefined &&
-          item.slot.lastModified !== undefined &&
-          item.slot.fileSize === selectedFile.size &&
-          item.slot.lastModified === selectedFile.lastModified
-      );
+        if (!isMountedRef.current || queueRunId !== fileQueueRunIdRef.current) {
+          freeSingleSlot(processed);
+          break;
+        }
 
-      const previousSlot = (
-        target.side === 'before' ? slotsCleanupRef.current.before : slotsCleanupRef.current.after
-      )[target.index];
+        if (!processed) {
+          failedCount += 1;
+          const fileLabel = file.name ? `"${file.name}"` : `#${i + 1}`;
+          onShowToast(
+            `Gagal memuat foto ${fileLabel}. Pastikan format gambar didukung.`,
+            'error'
+          );
+          continue;
+        }
 
-      const setSlots = target.side === 'before' ? setBeforeSlots : setAfterSlots;
-      setSlots((prev) => {
-        const len = Math.max(TOTAL_SLOT_ROWS, prev.length, target.index + 1);
-        const next = Array.from({ length: len }, (_, idx) => prev[idx] || null);
-        next[target.index] = processed;
-        return next;
-      });
-      disposeSlotCanvases(previousSlot);
-      setIsReportSubmitted(false);
-
-      if (isDuplicateElsewhere) {
-        onShowToast('Foto yang sama terdeteksi sudah terpasang di slot lain.', 'warning');
-      } else if (files.length > 1) {
-        onShowToast(
-          `Terdeteksi ${files.length} foto dipilih — otomatis memakai foto terakhir yang diklik.`,
-          'warning'
+        const activeOtherSlots = [
+          ...workingBefore
+            .slice(0, rows)
+            .map((slot, idx) => ({ side: 'before' as const, idx, slot })),
+          ...workingAfter
+            .slice(0, rows)
+            .map((slot, idx) => ({ side: 'after' as const, idx, slot })),
+        ];
+        const isDuplicateElsewhere = activeOtherSlots.some(
+          (item) =>
+            !(item.side === slotTarget.side && item.idx === slotTarget.index) &&
+            item.slot !== null &&
+            item.slot.fileSize !== undefined &&
+            item.slot.lastModified !== undefined &&
+            item.slot.fileSize === file.size &&
+            item.slot.lastModified === file.lastModified
         );
-      } else {
-        onDismissLoadingToast();
+        if (isDuplicateElsewhere) {
+          duplicateDetected = true;
+        }
+
+        const previousSlot = (
+          slotTarget.side === 'before' ? workingBefore : workingAfter
+        )[slotTarget.index];
+
+        if (slotTarget.side === 'before') {
+          workingBefore[slotTarget.index] = processed;
+        } else {
+          workingAfter[slotTarget.index] = processed;
+        }
+
+        const setSlots = slotTarget.side === 'before' ? setBeforeSlots : setAfterSlots;
+        setSlots((prev) => {
+          const len = Math.max(TOTAL_SLOT_ROWS, prev.length, slotTarget.index + 1);
+          const next = Array.from({ length: len }, (_, idx) => prev[idx] || null);
+          next[slotTarget.index] = processed;
+          return next;
+        });
+        disposeSlotCanvases(previousSlot);
+        setIsReportSubmitted(false);
       }
-    } catch {
-      clearLoadingDelayTimer();
-      if (isMountedRef.current) {
-        onShowToast('Terjadi kesalahan saat memuat atau memproses foto.', 'error');
+
+      if (isMountedRef.current && queueRunId === fileQueueRunIdRef.current) {
+        onDismissLoadingToast();
+        if (overflowCount > 0) {
+          onShowToast(
+            `${overflowCount} foto berlebih diabaikan karena sisa slot pada layout sudah penuh.`,
+            'warning',
+            4000
+          );
+        } else if (failedCount === 0 && duplicateDetected && filesToProcess.length === 1) {
+          onShowToast('Foto yang sama terdeteksi sudah terpasang di slot lain.', 'warning');
+        }
       }
     } finally {
       inputEl.value = '';
-      clearLoadingDelayTimer();
       if (isMountedRef.current) {
-        setIsPickingFile(false);
-        onDismissLoadingToast();
+        setLoadingSlotKeys((prev) => {
+          const next = new Set(prev);
+          targetKeys.forEach((k) => next.delete(k));
+          return next;
+        });
+        if (queueRunId === fileQueueRunIdRef.current) {
+          setIsPickingFile(false);
+          onDismissLoadingToast();
+        }
       }
     }
   };
@@ -479,36 +647,239 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
     setIsReportSubmitted(false);
   };
 
-  const handleSwapRowPhotos = (rowIndex: number) => {
-    const currentBefore = slotsCleanupRef.current.before[rowIndex] || null;
-    const currentAfter = slotsCleanupRef.current.after[rowIndex] || null;
-    if (!currentBefore && !currentAfter) return;
+  const swapAnySlots = useCallback(
+    (source: SlotCoord, target: SlotCoord) => {
+      if (source.side === target.side && source.index === target.index) return;
 
-    setBeforeSlots((prev) => {
-      const len = Math.max(TOTAL_SLOT_ROWS, prev.length, rowIndex + 1);
-      const next = Array.from({ length: len }, (_, idx) => prev[idx] || null);
-      next[rowIndex] = currentAfter;
-      return next;
-    });
-    setAfterSlots((prev) => {
-      const len = Math.max(TOTAL_SLOT_ROWS, prev.length, rowIndex + 1);
-      const next = Array.from({ length: len }, (_, idx) => prev[idx] || null);
-      next[rowIndex] = currentBefore;
-      return next;
-    });
+      const currentBefore = slotsCleanupRef.current.before;
+      const currentAfter = slotsCleanupRef.current.after;
+      const sourceSlot =
+        (source.side === 'before' ? currentBefore : currentAfter)[source.index] || null;
+      const targetSlot =
+        (target.side === 'before' ? currentBefore : currentAfter)[target.index] || null;
 
-    setSwappedRow(rowIndex);
-    if (swapTimerRef.current !== null) {
-      window.clearTimeout(swapTimerRef.current);
-    }
-    swapTimerRef.current = window.setTimeout(() => {
-      if (isMountedRef.current) setSwappedRow(null);
-      swapTimerRef.current = null;
-    }, 350);
-  };
+      if (!sourceSlot && !targetSlot) return;
+
+      if (source.side === target.side) {
+        const setSlots = source.side === 'before' ? setBeforeSlots : setAfterSlots;
+        setSlots((prev) => {
+          const len = Math.max(TOTAL_SLOT_ROWS, prev.length, source.index + 1, target.index + 1);
+          const next = Array.from({ length: len }, (_, idx) => prev[idx] || null);
+          next[source.index] = targetSlot;
+          next[target.index] = sourceSlot;
+          return next;
+        });
+      } else {
+        const beforeIdx = source.side === 'before' ? source.index : target.index;
+        const beforeVal = source.side === 'before' ? targetSlot : sourceSlot;
+        const afterIdx = source.side === 'after' ? source.index : target.index;
+        const afterVal = source.side === 'after' ? targetSlot : sourceSlot;
+
+        setBeforeSlots((prev) => {
+          const len = Math.max(TOTAL_SLOT_ROWS, prev.length, beforeIdx + 1);
+          const next = Array.from({ length: len }, (_, idx) => prev[idx] || null);
+          next[beforeIdx] = beforeVal;
+          return next;
+        });
+        setAfterSlots((prev) => {
+          const len = Math.max(TOTAL_SLOT_ROWS, prev.length, afterIdx + 1);
+          const next = Array.from({ length: len }, (_, idx) => prev[idx] || null);
+          next[afterIdx] = afterVal;
+          return next;
+        });
+      }
+
+      setIsReportSubmitted(false);
+    },
+    [setAfterSlots, setBeforeSlots, setIsReportSubmitted]
+  );
+
+  const hitTestSlotAtPoint = useCallback(
+    (clientX: number, clientY: number, source: SlotCoord | null): SlotCoord | null => {
+      for (let rIdx = 0; rIdx < rows; rIdx++) {
+        for (const side of ['before', 'after'] as const) {
+          const el = slotElementsRef.current.get(`${side}-${rIdx}`);
+          if (!el) continue;
+          const rect = el.getBoundingClientRect();
+          if (
+            clientX >= rect.left &&
+            clientX <= rect.right &&
+            clientY >= rect.top &&
+            clientY <= rect.bottom
+          ) {
+            if (source && source.side === side && source.index === rIdx) {
+              return null;
+            }
+            return { side, index: rIdx };
+          }
+        }
+      }
+      return null;
+    },
+    [rows]
+  );
+
+  const handleSlotPointerDown = useCallback(
+    (
+      side: 'before' | 'after',
+      index: number,
+      label: string,
+      slot: LoadedPhotoSlot | null,
+      e: React.PointerEvent<HTMLDivElement>
+    ) => {
+      if (!slot || e.button !== 0 || isPickingFile || editingTarget !== null) return;
+      if (loadingSlotKeys.has(`${side}-${index}`)) return;
+
+      const slotEl = slotElementsRef.current.get(`${side}-${index}`);
+      if (!slotEl) return;
+
+      cancelSlotDrag();
+
+      const rect = slotEl.getBoundingClientRect();
+      const session = dragSessionRef.current;
+      session.phase = 'pending';
+      session.pointerId = e.pointerId;
+      session.source = { side, index };
+      session.target = null;
+      session.startX = e.clientX;
+      session.startY = e.clientY;
+      session.currentX = e.clientX;
+      session.currentY = e.clientY;
+      session.slotWidth = rect.width;
+      session.slotHeight = rect.height;
+
+      const armClickSuppress = () => {
+        suppressNextClickRef.current = true;
+        if (suppressClickTimerRef.current !== null) {
+          window.clearTimeout(suppressClickTimerRef.current);
+        }
+        suppressClickTimerRef.current = window.setTimeout(() => {
+          suppressNextClickRef.current = false;
+          suppressClickTimerRef.current = null;
+        }, 120);
+      };
+
+      const updatePointerMove = (clientX: number, clientY: number) => {
+        session.currentX = clientX;
+        session.currentY = clientY;
+
+        if (session.phase === 'pending') {
+          const dist = Math.hypot(clientX - session.startX, clientY - session.startY);
+          if (dist > 8) {
+            cancelSlotDrag();
+          }
+          return;
+        }
+
+        if (session.phase === 'dragging') {
+          if (ghostCardRef.current) {
+            ghostCardRef.current.style.transform = `translate3d(${clientX - session.slotWidth / 2}px, ${clientY - session.slotHeight / 2}px, 0) scale(1.06)`;
+          }
+          const nextTarget = hitTestSlotAtPoint(clientX, clientY, session.source);
+          const prevTarget = session.target;
+          const changed =
+            prevTarget?.side !== nextTarget?.side || prevTarget?.index !== nextTarget?.index;
+          if (changed) {
+            session.target = nextTarget;
+            setDragTarget(nextTarget);
+          }
+        }
+      };
+
+      const handlePointerMove = (ev: PointerEvent) => {
+        if (ev.pointerId !== session.pointerId) return;
+        updatePointerMove(ev.clientX, ev.clientY);
+      };
+
+      const handleTouchMove = (ev: TouchEvent) => {
+        if (session.phase === 'dragging') {
+          ev.preventDefault();
+          const t = ev.touches[0];
+          if (t) {
+            updatePointerMove(t.clientX, t.clientY);
+          }
+        }
+      };
+
+      const handlePointerUp = (ev: PointerEvent) => {
+        if (ev.pointerId !== session.pointerId) return;
+        const wasDragging = session.phase === 'dragging';
+        const src = session.source;
+        const finalTarget = wasDragging
+          ? hitTestSlotAtPoint(ev.clientX, ev.clientY, src) ?? session.target
+          : null;
+
+        if (wasDragging) {
+          armClickSuppress();
+        }
+        cancelSlotDrag();
+
+        if (wasDragging && src && finalTarget) {
+          swapAnySlots(src, finalTarget);
+        }
+      };
+
+      const handlePointerCancel = (ev: PointerEvent) => {
+        if (ev.pointerId !== session.pointerId) return;
+        if (session.phase === 'dragging') {
+          armClickSuppress();
+        }
+        cancelSlotDrag();
+      };
+
+      window.addEventListener('pointermove', handlePointerMove);
+      window.addEventListener('pointerup', handlePointerUp);
+      window.addEventListener('pointercancel', handlePointerCancel);
+      document.addEventListener('touchmove', handleTouchMove, { passive: false });
+
+      dragListenersCleanupRef.current = () => {
+        window.removeEventListener('pointermove', handlePointerMove);
+        window.removeEventListener('pointerup', handlePointerUp);
+        window.removeEventListener('pointercancel', handlePointerCancel);
+        document.removeEventListener('touchmove', handleTouchMove);
+      };
+
+      session.holdTimerId = window.setTimeout(() => {
+        session.holdTimerId = null;
+        if (!isMountedRef.current || session.phase !== 'pending') return;
+
+        session.phase = 'dragging';
+        onDragLockChange?.(true);
+        try {
+          navigator.vibrate?.(12);
+        } catch {
+          // Ignore vibration errors on unsupported browsers
+        }
+
+        setActiveDrag({
+          source: { side, index },
+          previewUrl: slot.previewUrl || slot.sourceUrl,
+          label,
+          width: session.slotWidth,
+          height: session.slotHeight,
+          initialX: session.currentX,
+          initialY: session.currentY,
+        });
+        setDragTarget(null);
+      }, 200);
+    },
+    [
+      cancelSlotDrag,
+      editingTarget,
+      hitTestSlotAtPoint,
+      isPickingFile,
+      loadingSlotKeys,
+      onDragLockChange,
+      swapAnySlots,
+    ]
+  );
 
   const handleConfirmResetAllPhotos = () => {
     setActiveConfirm(null);
+    cancelSlotDrag();
+    fileQueueRunIdRef.current += 1;
+    setLoadingSlotKeys(new Set());
+    setIsPickingFile(false);
     const prevBefore = beforeSlots;
     const prevAfter = afterSlots;
     setBeforeSlots([]);
@@ -516,7 +887,6 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
     prevBefore.forEach(disposeSlotCanvases);
     prevAfter.forEach(disposeSlotCanvases);
     setIsReportSubmitted(false);
-    clearLoadingDelayTimer();
     onDismissLoadingToast();
     setEditingTarget(null);
     if (slotPickerRef.current) slotPickerRef.current.value = '';
@@ -538,7 +908,7 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
   const handleReplaceEditedPhoto = () => {
     if (!editingTarget) return;
     const { side, index } = editingTarget;
-    triggerSlotPicker(side, index);
+    triggerSlotPicker(side, index, 'single');
     setEditingTarget(null);
   };
 
@@ -598,6 +968,9 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
 
   const handleConfirmPostSend = () => {
     setPostSendModal(null);
+    fileQueueRunIdRef.current += 1;
+    setLoadingSlotKeys(new Set());
+    setIsPickingFile(false);
     const prevBefore = beforeSlots;
     const prevAfter = afterSlots;
     setBeforeSlots([]);
@@ -606,7 +979,6 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
     prevAfter.forEach(disposeSlotCanvases);
     setRowCaptions(['', '', '']);
     setEditingTarget(null);
-    clearLoadingDelayTimer();
     onDismissLoadingToast();
     setIsReportSubmitted(true);
     if (slotPickerRef.current) slotPickerRef.current.value = '';
@@ -811,12 +1183,12 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
   return (
     <>
       <div className="mb-2 flex w-full flex-col gap-4 overflow-x-clip rounded-xl border border-slate-800 bg-slate-900 p-3.5 shadow-[0_4px_16px_rgba(2,6,23,0.5)] sm:p-5">
-        {/* File Picker: multiple khusus iOS (dengan auto-pick terakhir), Android single-select */}
+        {/* File Picker: multiple otomatis pada slot kosong (+), single pada Ganti Foto */}
         <input
           ref={slotPickerRef}
           type="file"
           accept="image/*"
-          multiple={isIOS}
+          multiple={isPickerMulti}
           onChange={handleSlotFileChange}
           className="hidden"
         />
@@ -989,7 +1361,7 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
                 value={tpmArea}
                 onChange={(e) => handleAreaInputChange(e.target.value)}
                 placeholder="Misal: GA101A, FLARE..."
-                className={`tpm-input font-equipment min-h-[42px]! w-full py-2! text-center font-bold text-white placeholder:font-sans placeholder:font-normal placeholder:text-slate-400 placeholder:normal-case ${
+                className={`tpm-input font-equipment min-h-[42px]! w-full py-1.5! text-center text-xl! font-bold tracking-wider text-white placeholder:font-sans placeholder:text-base! placeholder:font-normal placeholder:tracking-normal placeholder:text-slate-400 placeholder:normal-case ${
                   isDataLocked ? 'cursor-not-allowed opacity-80' : ''
                 }`}
               />
@@ -1072,12 +1444,10 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
               </span>
             </div>
 
-            {/* 2. Grid Baris 1..N (Sudut 8px, Kapsul bawah-tengah, Tombol Tukar Cepat) */}
+            {/* 2. Grid Baris 1..N (Sudut 8px, Kapsul bawah-tengah, Drag-and-Drop antar-slot) */}
             <div className="flex w-full flex-col" style={{ gap: COLLAGE_PREVIEW_SPEC.gapCqw }}>
               {Array.from({ length: rows }).map((_, r) => {
                 const rowOverlayText = rowCaptions[r]?.trim();
-                const hasRowPhoto = Boolean(beforeSlots[r] || afterSlots[r]);
-                const isRowSwapped = swappedRow === r;
                 const cells = [
                   {
                     side: 'before' as const,
@@ -1097,75 +1467,138 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
                     className="relative grid w-full min-w-0 grid-cols-2"
                     style={{ gap: COLLAGE_PREVIEW_SPEC.gapCqw }}
                   >
-                    {cells.map((cell) => (
-                      <div
-                        key={cell.side}
-                        className="relative aspect-square w-full min-w-0 overflow-hidden rounded-[8px] bg-slate-800"
-                      >
-                        {cell.slot ? (
-                          <div className="relative h-full w-full overflow-hidden rounded-[8px]">
-                            {cell.slot.previewUrl ? (
-                              <img
-                                src={cell.slot.previewUrl}
-                                alt={cell.label}
-                                onClick={() => setEditingTarget({ side: cell.side, index: r })}
-                                className="h-full w-full cursor-pointer object-cover"
-                              />
-                            ) : (
-                              <div
-                                onClick={() => setEditingTarget({ side: cell.side, index: r })}
-                                className="flex h-full w-full cursor-pointer items-center justify-center bg-slate-800 text-xs font-semibold text-slate-300"
-                              >
-                                {cell.label}
-                              </div>
-                            )}
+                    {cells.map((cell) => {
+                      const slotNumber = r * 2 + (cell.side === 'before' ? 1 : 2);
+                      const cellKey = `${cell.side}-${r}`;
+                      const isSlotLoading = loadingSlotKeys.has(cellKey);
+                      const isDragSource =
+                        activeDrag?.source.side === cell.side && activeDrag.source.index === r;
+                      const isDropTarget =
+                        dragTarget?.side === cell.side && dragTarget.index === r;
 
-                            {/* Tombol Hapus Bulat Frosted Deep Slate dengan Ikon Tempat Sampah Mini */}
+                      return (
+                        <div
+                          key={cell.side}
+                          ref={(el) => {
+                            if (el) {
+                              slotElementsRef.current.set(cellKey, el);
+                            } else {
+                              slotElementsRef.current.delete(cellKey);
+                            }
+                          }}
+                          onPointerDown={(e) =>
+                            handleSlotPointerDown(cell.side, r, cell.label, cell.slot, e)
+                          }
+                          onContextMenu={(e) => {
+                            if (cell.slot) e.preventDefault();
+                          }}
+                          className={`@container relative aspect-square w-full min-w-0 select-none overflow-hidden rounded-[8px] bg-slate-800 transition-all duration-150 ${
+                            isDragSource
+                              ? 'scale-[0.96] opacity-35 ring-2 ring-dashed ring-sky-400/50'
+                              : isDropTarget
+                                ? 'z-20 scale-[1.02] ring-2 ring-cyan-400 shadow-[0_0_18px_rgba(34,211,238,0.45)]'
+                                : ''
+                          }`}
+                        >
+                          {cell.slot ? (
+                            <div className="relative h-full w-full overflow-hidden rounded-[8px] [-webkit-touch-callout:none]">
+                              {cell.slot.previewUrl ? (
+                                <img
+                                  src={cell.slot.previewUrl}
+                                  alt={cell.label}
+                                  draggable={false}
+                                  onDragStart={(e) => e.preventDefault()}
+                                  onContextMenu={(e) => e.preventDefault()}
+                                  onClick={() => {
+                                    if (
+                                      suppressNextClickRef.current ||
+                                      dragSessionRef.current.phase === 'dragging'
+                                    ) {
+                                      return;
+                                    }
+                                    setEditingTarget({ side: cell.side, index: r });
+                                  }}
+                                  className="h-full w-full cursor-pointer select-none object-cover [-webkit-touch-callout:none]"
+                                />
+                              ) : (
+                                <div
+                                  onClick={() => {
+                                    if (
+                                      suppressNextClickRef.current ||
+                                      dragSessionRef.current.phase === 'dragging'
+                                    ) {
+                                      return;
+                                    }
+                                    setEditingTarget({ side: cell.side, index: r });
+                                  }}
+                                  className="flex h-full w-full cursor-pointer items-center justify-center bg-slate-800 text-xs font-semibold text-slate-300"
+                                >
+                                  {cell.label}
+                                </div>
+                              )}
+
+                              {isDropTarget && (
+                                <div className="pointer-events-none absolute inset-0 z-10 bg-cyan-400/15" />
+                              )}
+
+                              {isSlotLoading && (
+                                <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/65 backdrop-blur-[1px]">
+                                  <span className="spinner h-6 w-6 border-sky-400/30! border-t-sky-400!" />
+                                </div>
+                              )}
+
+                              {/* Tombol Hapus Bulat Frosted Deep Slate dengan Ikon Tempat Sampah Mini */}
+                              <button
+                                type="button"
+                                aria-label={`Hapus ${cell.label}`}
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeSingleSlot(cell.side, r);
+                                }}
+                                className="absolute top-1.5 right-1.5 z-10 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-slate-600/80 bg-slate-900/85 backdrop-blur-sm transition hover:border-rose-400/70 hover:bg-rose-950/90 active:scale-90"
+                              >
+                                <IconTrash className="h-3.5 w-3.5 text-rose-300" />
+                              </button>
+                            </div>
+                          ) : (
                             <button
                               type="button"
-                              aria-label={`Hapus ${cell.label}`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                removeSingleSlot(cell.side, r);
+                              disabled={isSlotLoading}
+                              aria-label={`Tambah foto ${cell.label} (Slot ${slotNumber})`}
+                              onClick={() => {
+                                if (
+                                  suppressNextClickRef.current ||
+                                  dragSessionRef.current.phase === 'dragging'
+                                ) {
+                                  return;
+                                }
+                                triggerSlotPicker(cell.side, r, 'multi');
                               }}
-                              className="absolute top-1.5 right-1.5 z-10 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-slate-600/80 bg-slate-900/85 backdrop-blur-sm transition hover:border-rose-400/70 hover:bg-rose-950/90 active:scale-90"
+                              className={`relative flex h-full w-full cursor-pointer items-center justify-center overflow-hidden rounded-[8px] border border-dashed p-2 transition hover:border-sky-500/60 active:border-sky-400 active:bg-sky-950/50 disabled:cursor-wait ${
+                                isDropTarget
+                                  ? 'border-cyan-400 bg-sky-950/55'
+                                  : 'border-slate-700/80 bg-slate-900/90'
+                              }`}
                             >
-                              <IconTrash className="h-3.5 w-3.5 text-rose-300" />
+                              {isSlotLoading ? (
+                                <span className="spinner relative z-10 h-6 w-6 border-sky-400/30! border-t-sky-400!" />
+                              ) : (
+                                <>
+                                  <span
+                                    aria-hidden="true"
+                                    className="font-collage pointer-events-none absolute inset-0 flex select-none items-center justify-center text-[62cqw] font-bold leading-none text-white/[0.06]"
+                                  >
+                                    {slotNumber}
+                                  </span>
+                                  <IconPlus className="relative z-10 h-6 w-6 text-sky-400" />
+                                </>
+                              )}
                             </button>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => triggerSlotPicker(cell.side, r)}
-                            className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-[8px] border border-dashed border-slate-700/80 bg-slate-900/90 p-2 transition hover:border-sky-500/60 active:border-sky-400 active:bg-sky-950/50"
-                          >
-                            <IconPlus className="h-6 w-6 text-sky-400" />
-                            <span className="text-xs font-semibold text-slate-300">
-                              {cell.label}
-                            </span>
-                          </button>
-                        )}
-                      </div>
-                    ))}
-
-                    {/* Tombol Tukar Cepat Per Baris — hanya muncul jika min. 1 slot terisi & tidak ter-render saat ekspor */}
-                    {hasRowPhoto && (
-                      <button
-                        type="button"
-                        aria-label={`Tukar foto Before dan After Baris ${r + 1}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSwapRowPhotos(r);
-                        }}
-                        className={`absolute top-1/2 left-1/2 z-20 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border bg-slate-900/85 backdrop-blur-sm transition active:scale-90 ${
-                          isRowSwapped
-                            ? 'border-sky-400 text-white shadow-[0_0_10px_rgba(56,189,248,0.45)]'
-                            : 'border-slate-600/80 text-sky-300/90 hover:border-sky-400 hover:text-white'
-                        }`}
-                      >
-                        <IconSwapHorizontal className="h-4 w-4" />
-                      </button>
-                    )}
+                          )}
+                        </div>
+                      );
+                    })}
 
                     {/* Kapsul Keterangan Tengah Tiap Baris (Barlow Condensed 700, Monokrom Putih #FFFFFF, 4.9cqw, maks 85%) */}
                     {rowOverlayText && (
@@ -1445,6 +1878,32 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
               </button>
             </div>
           </div>
+        </div>
+      )}
+      {/* Pratinjau Kartu Melayang saat Drag-and-Drop Slot Foto */}
+      {activeDrag && (
+        <div
+          ref={ghostCardRef}
+          aria-hidden="true"
+          style={{
+            width: `${activeDrag.width}px`,
+            height: `${activeDrag.height}px`,
+            transform: `translate3d(${activeDrag.initialX - activeDrag.width / 2}px, ${activeDrag.initialY - activeDrag.height / 2}px, 0) scale(1.06)`,
+          }}
+          className="pointer-events-none fixed top-0 left-0 z-[9990] overflow-hidden rounded-[8px] bg-slate-900 shadow-[0_18px_38px_rgba(2,6,23,0.88)] ring-2 ring-cyan-400"
+        >
+          {activeDrag.previewUrl ? (
+            <img
+              src={activeDrag.previewUrl}
+              alt={activeDrag.label}
+              draggable={false}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-slate-800 text-xs font-bold text-white">
+              {activeDrag.label}
+            </div>
+          )}
         </div>
       )}
     </>

@@ -1,8 +1,9 @@
 {
-  "version": "2.8.5",
+  "version": "2.10.0",
   "notes": [
-    "Foto kolase dan keterangan kegiatan kini tetap tersimpan aman saat berpindah antar-tab Jadwal TPM dan Kolase Foto",
-    "Pengaman batas tunggu maksimal 3 detik pada pembaruan PWA agar tombol Update tidak pernah macet berputar terus",
-    "Indikator ukuran file JPEG ringkas di modal konfirmasi pasca-kirim WhatsApp serta penyempurnaan redaksi Panduan Aplikasi"
+    "Fitur geser bebas (drag-and-drop) untuk menukar posisi foto antar-slot 1–6 setelah tekan-tahan singkat",
+    "Tampilan Preview kolase lebih bersih dan 100% identik dengan hasil ekspor JPEG tanpa tombol tukar tengah",
+    "Auto-scale watermark angka 1–6 pada kotak kosong mengikuti lebar wadah sehingga proporsional di semua ukuran layar",
+    "Pembaruan Panduan Aplikasi untuk alur multi-select, dukungan .heic, dan drag-and-drop antar-slot"
   ]
 }

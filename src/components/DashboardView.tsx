@@ -31,6 +31,7 @@ import {
 
 interface DashboardViewProps {
   reportedLog: Record<string, ReportedLogEntry>;
+  devModeActive?: boolean;
   onSelectShift: (params: { date: string; shift: ShiftName; area: string }) => void;
   onUndoReport: (dateStr: string, shift: ShiftName) => Promise<boolean>;
   onShowToast: (message: string, kind?: 'success' | 'warning' | 'error', durationMs?: number) => void;
@@ -214,6 +215,7 @@ function readOperationalClock(): OperationalClockSnapshot {
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
   reportedLog,
+  devModeActive = false,
   onSelectShift,
   onUndoReport,
   onShowToast,
@@ -227,6 +229,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   );
   const todayStr = clockSnapshot.todayStr;
   const prevOpDateRef = useRef<string>(operationalInfo.dateStr);
+  const prevDevModeRef = useRef<boolean>(devModeActive);
 
   const [selectedDate, setSelectedDate] = useState<string>(operationalInfo.dateStr);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -235,6 +238,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [isUndoing, setIsUndoing] = useState(false);
 
   useModalScrollLock(statusTarget !== null || cycleInfoOpen);
+
+  // Saat keluar dari Developer Mode, kembalikan tanggal jadwal ke shift aktif saat ini
+  useEffect(() => {
+    if (prevDevModeRef.current && !devModeActive) {
+      const fresh = readOperationalClock();
+      setClockSnapshot(fresh);
+      prevOpDateRef.current = fresh.dateStr;
+      setSelectedDate(fresh.dateStr);
+      setSearchQuery('');
+      setStatusTarget(null);
+      setCycleInfoOpen(false);
+    }
+    prevDevModeRef.current = devModeActive;
+  }, [devModeActive]);
 
   // Auto-refresh active shift (07:00, 15:00, 23:00) & operational day rollover without unnecessary re-renders
   useEffect(() => {

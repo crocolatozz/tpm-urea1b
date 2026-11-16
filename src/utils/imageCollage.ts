@@ -143,7 +143,7 @@ async function resizeSourceToOffscreenCanvas(
 ): Promise<LoadedPhotoSlot | null> {
   if (!srcW || !srcH) return null;
 
-  const MAX_DIM = 1200;
+  const MAX_DIM = 1600;
   let targetW = srcW;
   let targetH = srcH;
 
@@ -218,7 +218,7 @@ export async function renderEditedSlot(
   const safeW = Math.max(1, Math.min(rotW - safeX, Math.round(croppedAreaPixels.width)));
   const safeH = Math.max(1, Math.min(rotH - safeY, Math.round(croppedAreaPixels.height)));
 
-  const MAX_OUT = 1200;
+  const MAX_OUT = 1600;
   let outW = safeW;
   let outH = safeH;
   if (outW > MAX_OUT || outH > MAX_OUT) {
@@ -272,7 +272,7 @@ function resizeImageToOffscreenCanvas(img: HTMLImageElement): Promise<LoadedPhot
   return resizeSourceToOffscreenCanvas(img, srcW, srcH);
 }
 
-function loadViaFileReader(file: File): Promise<LoadedPhotoSlot | null> {
+function loadViaFileReader(file: Blob): Promise<LoadedPhotoSlot | null> {
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -311,7 +311,7 @@ function loadViaFileReader(file: File): Promise<LoadedPhotoSlot | null> {
   });
 }
 
-function loadViaObjectUrl(file: File): Promise<LoadedPhotoSlot | null> {
+function loadViaObjectUrl(file: Blob): Promise<LoadedPhotoSlot | null> {
   return new Promise((resolve) => {
     let objectUrl: string | null = null;
     try {
@@ -365,14 +365,63 @@ function loadViaObjectUrl(file: File): Promise<LoadedPhotoSlot | null> {
   });
 }
 
+export function isHeicFile(file: File): boolean {
+  const mime = (file.type || '').toLowerCase();
+  if (
+    mime === 'image/heic' ||
+    mime === 'image/heif' ||
+    mime === 'image/heic-sequence' ||
+    mime === 'image/heif-sequence'
+  ) {
+    return true;
+  }
+  return /\.(heic|heif)$/i.test(file.name || '');
+}
+
+async function convertHeicToJpegBlob(file: File): Promise<Blob | null> {
+  try {
+    const heicModule = await import('heic2any');
+    const heic2any = heicModule.default;
+    const output = await heic2any({
+      blob: file,
+      toType: 'image/jpeg',
+      quality: 0.9,
+    });
+    const converted = Array.isArray(output) ? output[0] : output;
+    if (converted instanceof Blob && converted.size > 0) {
+      return converted;
+    }
+    return null;
+  } catch (err) {
+    // Jika Safari/browser sudah menyuplai file readable (ERR_USER), biarkan pipeline native mencoba decode
+    const message =
+      err && typeof err === 'object' && 'message' in err && typeof err.message === 'string'
+        ? err.message
+        : '';
+    if (/already browser readable/i.test(message)) {
+      return file;
+    }
+    return null;
+  }
+}
+
 export async function processAndResizeFile(file: File): Promise<LoadedPhotoSlot | null> {
+  let decodeSource: Blob = file;
+
+  if (isHeicFile(file)) {
+    const converted = await convertHeicToJpegBlob(file);
+    if (converted) {
+      decodeSource = converted;
+    }
+  }
+
   let result: LoadedPhotoSlot | null = null;
 
   if (typeof createImageBitmap === 'function') {
     let bitmap: ImageBitmap | null = null;
     try {
-      bitmap = await createImageBitmap(file, {
-        resizeWidth: 1200,
+      bitmap = await createImageBitmap(decodeSource, {
+        resizeWidth: 1600,
         resizeQuality: 'high',
       });
       result = await resizeSourceToOffscreenCanvas(bitmap, bitmap.width, bitmap.height);
@@ -384,7 +433,7 @@ export async function processAndResizeFile(file: File): Promise<LoadedPhotoSlot 
   }
 
   if (!result) {
-    result = await loadViaObjectUrl(file);
+    result = await loadViaObjectUrl(decodeSource);
   }
 
   if (result) {

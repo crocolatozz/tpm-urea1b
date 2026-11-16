@@ -2,6 +2,25 @@
 
 Semua perubahan penting pada aplikasi **Dashboard & Kolase Foto TPM Urea 1B** dicatat di file ini mengikuti standar [Semantic Versioning](https://semver.org/).
 
+## [2.10.0] - 2026-11-16
+
+### Ditambahkan
+- **Drag-and-Drop Tukar Posisi Bebas Antar-Slot (`KolaseView.tsx`, `App.tsx`):** Operator kini dapat menekan-tahan singkat (~200ms) lalu menggeser (*drag*) foto ke kotak slot tujuan mana saja (`1–6`, kosong maupun terisi) untuk menukar posisi secara langsung lengkap dengan pratinjau melayang, sorotan border cyan pada slot tujuan, serta penguncian otomatis *swipe* tab dan *scroll* selama proses geser berlangsung.
+
+### Diubah
+- **Preview Kolase Lebih Bersih & Auto-Scale Watermark `1–6` (`KolaseView.tsx`):** Menghapus tombol tukar `⇄` di tengah kolom *Before–After* sehingga tampilan **Preview** 100% bersih identik dengan hasil ekspor JPEG, serta mengonversi kotak slot kosong menjadi CSS Container Query (`@container`) dengan watermark angka `text-[62cqw]` (`Barlow Condensed`) agar proporsional di semua ukuran layar HP maupun desktop.
+- **Pembaruan Redaksi Panduan & Sinkronisasi Versi `2.10.0` (`GuideModal.tsx`, `package.json`, `tpmData.ts`, `version.json`, `vite.config.js`):** Memperbarui isi Tab 2 **Grid Kolase** pada Panduan Aplikasi untuk menjelaskan *multi-select* foto, konversi `.heic`, serta gestur tekan-tahan & geser (*drag*) antar-slot, dan menyelaraskan versi serta `cacheId` Service Worker ke `v2.10.0`.
+
+## [2.9.0] - 2026-11-16
+
+### Ditambahkan
+- **Multi-Select Galeri & Konversi Otomatis `.heic`/`.heif` (`KolaseView.tsx`, `imageCollage.ts`):** Ketuk kotak kosong (`+`) kini mendukung pemilihan banyak foto sekaligus yang otomatis mengisi slot-slot kosong berikutnya secara berurutan (dengan pengaman toast jika jumlah foto melebihi sisa slot). Dilengkapi konversi otomatis foto `.heic`/`.heif` (*lazy-load* `heic2any`) dan pemrosesan berurutan beresolusi maksimal `1600px` agar tetap ringan di HP.
+- **Watermark Nomor Urut Slot `1–6` (`KolaseView.tsx`):** Kotak foto kosong di Preview kini menampilkan angka urutan slot (`1–6`) transparan (`Barlow Condensed`) di belakang ikon `+` dan menyembunyikan teks `Before/After 1–3`, serta menampilkan indikator *loading* pada slot yang sedang diproses.
+- **Navigasi *Swipe* Antar-Tab & Memori Posisi *Scroll* (`App.tsx`):** Kini dapat menggeser kiri/kanan pada area konten utama untuk berpindah antar tab **Jadwal TPM** dan **Kolase Foto** lengkap dengan pengaman anti-bentrok (*scroll* vertikal, *horizontal scroll*, modal terbuka, dan anti-zoom) serta penyimpanan posisi *scroll* independen per tab.
+
+### Diubah
+- **Peningkatan Tampilan Input Tag Equipment & Sinkronisasi Versi `2.9.0` (`KolaseView.tsx`, `package.json`, `tpmData.ts`, `version.json`, `vite.config.js`, `GuideModal.tsx`):** Memperbesar font input **Tag Equipment / Area** menjadi `20px` (`text-xl font-bold tracking-wider`) agar seimbang dengan **Tanggal** dan **Shift**, serta menyelaraskan versi aplikasi dan `cacheId` Service Worker ke `v2.9.0`.
+
 ## [2.8.5] - 2026-11-16
 
 ### Ditambahkan

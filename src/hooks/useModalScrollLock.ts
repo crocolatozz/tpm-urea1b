@@ -2,6 +2,10 @@ import { useEffect, useRef } from 'react';
 
 const activeLockIds = new Set<symbol>();
 
+export function hasActiveModalLock(): boolean {
+  return activeLockIds.size > 0;
+}
+
 function syncDocumentScrollLock(): void {
   if (typeof document === 'undefined') return;
   const html = document.documentElement;

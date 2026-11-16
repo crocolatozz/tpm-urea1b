@@ -828,26 +828,6 @@ export const IconSmartphone: React.FC<IconProps> = ({ className = 'w-5 h-5' }) =
   </svg>
 );
 
-export const IconSwapHorizontal: React.FC<IconProps> = ({ className = 'w-5 h-5' }) => (
-  <svg
-    viewBox="0 0 24 24"
-    width="20"
-    height="20"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth={2.2}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-    className={getIconClass(className)}
-  >
-    <path d="m16 3 4 4-4 4" />
-    <path d="M20 7H4" />
-    <path d="m8 21-4-4 4-4" />
-    <path d="M4 17h16" />
-  </svg>
-);
-
 export const IconCheckCircle: React.FC<IconProps> = ({ className = 'w-5 h-5' }) => (
   <svg
     viewBox="0 0 24 24"

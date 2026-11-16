@@ -144,3 +144,33 @@
     opacity: 1;
   }
 }
+
+.tab-enter-from-right {
+  animation: tpmTabEnterRight 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.tab-enter-from-left {
+  animation: tpmTabEnterLeft 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes tpmTabEnterRight {
+  from {
+    opacity: 0.72;
+    transform: translateX(26px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes tpmTabEnterLeft {
+  from {
+    opacity: 0.72;
+    transform: translateX(-26px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

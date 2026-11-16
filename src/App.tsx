@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   APP_VERSION,
   buildExtremeDummyTag,
@@ -21,6 +21,7 @@ import {
   type LoadedPhotoSlot,
 } from './utils/imageCollage';
 import { useNativeTouchGuard } from './hooks/useNativeTouchGuard';
+import { hasActiveModalLock } from './hooks/useModalScrollLock';
 import { usePWAInstall } from './hooks/usePWAInstall';
 import { useAppUpdater } from './hooks/useAppUpdater';
 import {
@@ -126,6 +127,37 @@ function buildInitialKolaseContext(parsed: ParsedHashRoute): KolaseContextState 
   return { date, shift, area };
 }
 
+function hasHorizontalScrollAncestor(
+  target: EventTarget | null,
+  boundary: HTMLElement | null
+): boolean {
+  let node = target instanceof HTMLElement ? target : null;
+  while (node && node !== boundary) {
+    const tag = node.tagName.toUpperCase();
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+      return true;
+    }
+    const role = node.getAttribute('role');
+    if (role === 'dialog' || role === 'listbox' || role === 'slider') {
+      return true;
+    }
+    if (
+      node.classList.contains('overflow-x-auto') ||
+      node.classList.contains('overflow-x-scroll')
+    ) {
+      return true;
+    }
+    if (node.scrollWidth > node.clientWidth + 1) {
+      const overflowX = window.getComputedStyle(node).overflowX;
+      if (overflowX === 'auto' || overflowX === 'scroll') {
+        return true;
+      }
+    }
+    node = node.parentElement;
+  }
+  return false;
+}
+
 export const App: React.FC = () => {
   useNativeTouchGuard();
 
@@ -166,6 +198,34 @@ export const App: React.FC = () => {
   const [toast, setToast] = useState<UnifiedToastState | null>(null);
   const toastTimerRef = useRef<number | null>(null);
   const testToastSeqTimersRef = useRef<number[]>([]);
+
+  // Memori posisi scroll independen & gestur swipe antar-tab
+  const mainContainerRef = useRef<HTMLElement | null>(null);
+  const routeRef = useRef<AppRoute>(route);
+  routeRef.current = route;
+  const scrollPositionsRef = useRef<Record<AppRoute, number>>({ jadwal: 0, kolase: 0 });
+  const transitionDirRef = useRef<'none' | 'to-kolase' | 'to-jadwal'>('none');
+  const [swipeDragX, setSwipeDragX] = useState(0);
+  const isSwipeLockedRef = useRef(false);
+  const swipeGestureRef = useRef<{
+    active: boolean;
+    startX: number;
+    startY: number;
+    lockedAxis: 'x' | 'y' | null;
+  }>({
+    active: false,
+    startX: 0,
+    startY: 0,
+    lockedAxis: null,
+  });
+
+  const handleDragLockChange = useCallback((locked: boolean) => {
+    isSwipeLockedRef.current = locked;
+    if (locked) {
+      swipeGestureRef.current.active = false;
+      setSwipeDragX(0);
+    }
+  }, []);
 
   const hasAnyStoredPhotos = beforeSlots.some(Boolean) || afterSlots.some(Boolean);
   const effectiveHasFilledPhotos = hasAnyStoredPhotos && !isReportSubmitted;
@@ -285,11 +345,17 @@ export const App: React.FC = () => {
   useEffect(() => {
     const handleHashChange = () => {
       const parsed = parseLocationToRouteState();
-      setRoute(parsed.route);
+      const prevRoute = routeRef.current;
+      if (prevRoute !== parsed.route) {
+        scrollPositionsRef.current[prevRoute] =
+          window.scrollY || document.documentElement.scrollTop || 0;
+        transitionDirRef.current = parsed.route === 'kolase' ? 'to-kolase' : 'to-jadwal';
+      }
       if (
         parsed.route === 'kolase' &&
         (parsed.date !== undefined || parsed.shift !== undefined || parsed.area !== undefined)
       ) {
+        scrollPositionsRef.current.kolase = 0;
         setKolaseContext((prev) => {
           const nextDate = parsed.date || prev.date;
           const nextShift = parsed.shift || prev.shift;
@@ -305,6 +371,7 @@ export const App: React.FC = () => {
         });
         setKolaseSelectionKey((k) => k + 1);
       }
+      setRoute(parsed.route);
     };
 
     window.addEventListener('hashchange', handleHashChange);
@@ -315,15 +382,30 @@ export const App: React.FC = () => {
     document.title = route === 'kolase' ? 'Kolase Foto TPM' : 'Dashboard TPM Urea 1B';
   }, [route]);
 
+  useLayoutEffect(() => {
+    const targetY = scrollPositionsRef.current[route] ?? 0;
+    window.scrollTo(0, targetY);
+  }, [route, kolaseSelectionKey]);
+
   const navigateToJadwal = useCallback(() => {
+    if (routeRef.current === 'jadwal') return;
+    scrollPositionsRef.current[routeRef.current] =
+      window.scrollY || document.documentElement.scrollTop || 0;
+    transitionDirRef.current = 'to-jadwal';
     window.location.hash = '#jadwal';
     setRoute('jadwal');
-    window.scrollTo(0, 0);
   }, []);
 
   const navigateToKolase = useCallback(
     (params?: { date: string; shift: ShiftName; area: string }) => {
+      if (routeRef.current !== 'kolase') {
+        scrollPositionsRef.current[routeRef.current] =
+          window.scrollY || document.documentElement.scrollTop || 0;
+        transitionDirRef.current = 'to-kolase';
+      }
       if (params) {
+        // Khusus dari tap kartu jadwal: reset posisi scroll Kolase ke 0 agar Data Laporan langsung terlihat
+        scrollPositionsRef.current.kolase = 0;
         const search = new URLSearchParams({
           date: params.date,
           shift: params.shift,
@@ -336,14 +418,104 @@ export const App: React.FC = () => {
           area: params.area,
         });
         setKolaseSelectionKey((k) => k + 1);
-      } else {
+      } else if (routeRef.current !== 'kolase') {
         window.location.hash = '#kolase';
       }
       setRoute('kolase');
-      window.scrollTo(0, 0);
     },
     []
   );
+
+  const handleMainTouchStart = useCallback((e: React.TouchEvent<HTMLElement>) => {
+    if (e.touches.length !== 1 || hasActiveModalLock() || isSwipeLockedRef.current) {
+      swipeGestureRef.current.active = false;
+      return;
+    }
+    if (hasHorizontalScrollAncestor(e.target, mainContainerRef.current)) {
+      swipeGestureRef.current.active = false;
+      return;
+    }
+    const touch = e.touches[0];
+    swipeGestureRef.current = {
+      active: true,
+      startX: touch.clientX,
+      startY: touch.clientY,
+      lockedAxis: null,
+    };
+  }, []);
+
+  const handleMainTouchMove = useCallback((e: React.TouchEvent<HTMLElement>) => {
+    const gesture = swipeGestureRef.current;
+    if (
+      !gesture.active ||
+      e.touches.length !== 1 ||
+      hasActiveModalLock() ||
+      isSwipeLockedRef.current
+    ) {
+      if (gesture.active) {
+        gesture.active = false;
+        setSwipeDragX(0);
+      }
+      return;
+    }
+
+    const touch = e.touches[0];
+    const dx = touch.clientX - gesture.startX;
+    const dy = touch.clientY - gesture.startY;
+
+    if (gesture.lockedAxis === null) {
+      if (Math.abs(dy) > 10 && Math.abs(dy) >= Math.abs(dx)) {
+        gesture.lockedAxis = 'y';
+        gesture.active = false;
+        return;
+      }
+      if (Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        gesture.lockedAxis = 'x';
+      }
+    }
+
+    if (gesture.lockedAxis === 'x') {
+      const canSwipeTarget =
+        (routeRef.current === 'jadwal' && dx < 0) || (routeRef.current === 'kolase' && dx > 0);
+      if (canSwipeTarget) {
+        const damped = Math.max(-44, Math.min(44, dx * 0.25));
+        setSwipeDragX(damped);
+      } else {
+        setSwipeDragX(0);
+      }
+    }
+  }, []);
+
+  const handleMainTouchEnd = useCallback(
+    (e: React.TouchEvent<HTMLElement>) => {
+      setSwipeDragX(0);
+      const gesture = swipeGestureRef.current;
+      if (!gesture.active || hasActiveModalLock() || isSwipeLockedRef.current) {
+        gesture.active = false;
+        return;
+      }
+      gesture.active = false;
+
+      const touch = e.changedTouches[0];
+      if (!touch) return;
+      const dx = touch.clientX - gesture.startX;
+      const dy = touch.clientY - gesture.startY;
+
+      if (Math.abs(dx) >= 55 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        if (routeRef.current === 'jadwal' && dx < 0) {
+          navigateToKolase();
+        } else if (routeRef.current === 'kolase' && dx > 0) {
+          navigateToJadwal();
+        }
+      }
+    },
+    [navigateToJadwal, navigateToKolase]
+  );
+
+  const handleMainTouchCancel = useCallback(() => {
+    swipeGestureRef.current.active = false;
+    setSwipeDragX(0);
+  }, []);
 
   const handleReportSubmitted = useCallback(
     async (dateStr: string, shift: ShiftName, area: string) => {
@@ -476,11 +648,14 @@ export const App: React.FC = () => {
       shift: op.shift,
       area: extremeTag,
     });
+    scrollPositionsRef.current[routeRef.current] =
+      window.scrollY || document.documentElement.scrollTop || 0;
+    scrollPositionsRef.current.kolase = 0;
+    transitionDirRef.current = 'to-kolase';
     setKolaseSelectionKey((k) => k + 1);
     setRowCaptions([...DEV_TEST_ROWS]);
     window.location.hash = '#kolase';
     setRoute('kolase');
-    window.scrollTo(0, 0);
 
     const specs = [
       { color: '#F8FAFC', striped: false },
@@ -533,7 +708,6 @@ export const App: React.FC = () => {
 
   const handleDevCleanupAndExit = useCallback(() => {
     devFillRunIdRef.current += 1;
-    const extremeTag = buildExtremeDummyTag();
     clearTestToastSequence();
 
     const prevBefore = slotsCleanupRef.current.before;
@@ -544,9 +718,16 @@ export const App: React.FC = () => {
     prevAfter.forEach(disposeSlotCanvases);
     setRowCaptions(['', '', '']);
     setIsReportSubmitted(false);
-    setKolaseContext((prev) =>
-      prev.area === extremeTag ? { ...prev, area: '' } : prev
-    );
+
+    // Wajib kembalikan Tanggal, Shift, Tag Equipment & Locked ke jadwal shift aktif saat ini
+    const op = getOperationalShiftInfo();
+    const activeArea = getAreaForDateAndShift(op.dateStr, op.shift);
+    setKolaseContext({
+      date: op.dateStr,
+      shift: op.shift,
+      area: activeArea,
+    });
+    setKolaseSelectionKey((k) => k + 1);
 
     devModeActiveRef.current = false;
     setDevModeActive(false);
@@ -561,7 +742,7 @@ export const App: React.FC = () => {
         setReportedLog(freshLog);
       }
     });
-    showToast('Data dummy dibersihkan & sinkronisasi dipulihkan.', 'success', 2500);
+    showToast('Data dummy dibersihkan & jadwal shift aktif dipulihkan.', 'success', 2500);
   }, [clearTestToastSequence, showToast]);
 
   return (
@@ -647,41 +828,66 @@ export const App: React.FC = () => {
         </a>
       </nav>
 
-      {/* Main View */}
-      <main className="w-full min-w-0">
-        {route === 'jadwal' ? (
-          <DashboardView
-            reportedLog={reportedLog}
-            onSelectShift={(params) => navigateToKolase(params)}
-            onUndoReport={handleReportUndo}
-            onShowToast={showToast}
-          />
-        ) : (
-          <KolaseView
-            date={kolaseContext.date}
-            shift={kolaseContext.shift}
-            area={kolaseContext.area}
-            selectionKey={kolaseSelectionKey}
-            reportedLog={reportedLog}
-            devModeActive={devModeActive}
-            gridType={kolaseGridType}
-            beforeSlots={beforeSlots}
-            afterSlots={afterSlots}
-            rowCaptions={rowCaptions}
-            onGridTypeChange={setKolaseGridType}
-            onBeforeSlotsChange={setBeforeSlots}
-            onAfterSlotsChange={setAfterSlots}
-            onRowCaptionsChange={setRowCaptions}
-            onReportSubmittedStateChange={setIsReportSubmitted}
-            onDateChange={handleKolaseDateChange}
-            onShiftChange={handleKolaseShiftChange}
-            onAreaChange={handleKolaseAreaChange}
-            onReportSubmitted={handleReportSubmitted}
-            onRestoreReport={handleReportRestore}
-            onShowToast={showToast}
-            onDismissLoadingToast={dismissLoadingToast}
-          />
-        )}
+      {/* Main View dengan Navigasi Swipe Horizontal + Transisi Halus */}
+      <main
+        ref={mainContainerRef}
+        onTouchStart={handleMainTouchStart}
+        onTouchMove={handleMainTouchMove}
+        onTouchEnd={handleMainTouchEnd}
+        onTouchCancel={handleMainTouchCancel}
+        className="w-full min-w-0 touch-pan-y overflow-x-clip"
+      >
+        <div
+          key={route}
+          style={
+            swipeDragX !== 0
+              ? { transform: `translateX(${swipeDragX}px)`, transition: 'none' }
+              : undefined
+          }
+          className={
+            transitionDirRef.current === 'to-kolase'
+              ? 'tab-enter-from-right'
+              : transitionDirRef.current === 'to-jadwal'
+                ? 'tab-enter-from-left'
+                : undefined
+          }
+        >
+          {route === 'jadwal' ? (
+            <DashboardView
+              reportedLog={reportedLog}
+              devModeActive={devModeActive}
+              onSelectShift={(params) => navigateToKolase(params)}
+              onUndoReport={handleReportUndo}
+              onShowToast={showToast}
+            />
+          ) : (
+            <KolaseView
+              date={kolaseContext.date}
+              shift={kolaseContext.shift}
+              area={kolaseContext.area}
+              selectionKey={kolaseSelectionKey}
+              reportedLog={reportedLog}
+              devModeActive={devModeActive}
+              gridType={kolaseGridType}
+              beforeSlots={beforeSlots}
+              afterSlots={afterSlots}
+              rowCaptions={rowCaptions}
+              onGridTypeChange={setKolaseGridType}
+              onBeforeSlotsChange={setBeforeSlots}
+              onAfterSlotsChange={setAfterSlots}
+              onRowCaptionsChange={setRowCaptions}
+              onReportSubmittedStateChange={setIsReportSubmitted}
+              onDateChange={handleKolaseDateChange}
+              onShiftChange={handleKolaseShiftChange}
+              onAreaChange={handleKolaseAreaChange}
+              onReportSubmitted={handleReportSubmitted}
+              onRestoreReport={handleReportRestore}
+              onShowToast={showToast}
+              onDismissLoadingToast={dismissLoadingToast}
+              onDragLockChange={handleDragLockChange}
+            />
+          )}
+        </div>
       </main>
 
       {/* Footer dengan Smart Install, Credit & Versi */}

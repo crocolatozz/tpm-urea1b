@@ -19,7 +19,6 @@ import {
   IconSend,
   IconShareIos,
   IconSmartphone,
-  IconSwapHorizontal,
   ReportedBadge,
 } from './Icons';
 
@@ -181,15 +180,19 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
                 <li>
                   Pilih layout (<strong className="text-white">2x1</strong>,{' '}
                   <strong className="text-white">2x2</strong>, atau{' '}
-                  <strong className="text-white">2x3</strong>) lalu tap kotak slot{' '}
+                  <strong className="text-white">2x3</strong>), lalu tap kotak kosong (
                   <strong className="inline-flex items-center text-sky-400">
                     <IconPlusSquare className="h-3.5 w-3.5" />
-                  </strong>{' '}
-                  untuk memasukkan foto. Gunakan tombol{' '}
-                  <strong className="inline-flex items-center text-sky-400">
-                    <IconSwapHorizontal className="h-3.5 w-3.5" />
-                  </strong>{' '}
-                  di tengah baris untuk menukar foto Before–After, atau tap foto untuk membuka{' '}
+                  </strong>
+                  ) untuk memilih <strong className="text-white">banyak foto sekaligus</strong>{' '}
+                  (<em>multi-select</em>) yang otomatis terisi berurutan mengikuti nomor watermark{' '}
+                  <strong className="text-white">1–6</strong> (foto{' '}
+                  <strong className="text-white">.heic</strong> dikonversi otomatis).
+                </li>
+                <li>
+                  Untuk menukar posisi foto antar-slot,{' '}
+                  <strong className="text-white">tekan-tahan lalu geser (drag)</strong> foto ke
+                  kotak tujuan mana saja; atau tap foto untuk membuka{' '}
                   <strong className="text-white">Atur Foto</strong> (crop 1:1, putar{' '}
                   <strong className="inline-flex items-center gap-1 text-white">
                     <IconRotateCw className="h-3.5 w-3.5 text-sky-400" /> 90°

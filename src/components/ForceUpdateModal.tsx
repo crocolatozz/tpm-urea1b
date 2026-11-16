@@ -1,12 +1,16 @@
 import React from 'react';
 import { APP_VERSION } from '../data/tpmData';
-import { normalizeReleaseNotes, type UpdateModalState } from '../hooks/useAppUpdater';
+import {
+  normalizeReleaseNotes,
+  type UpdateModalState,
+  type UpdatePhase,
+} from '../hooks/useAppUpdater';
 import { useModalScrollLock } from '../hooks/useModalScrollLock';
 import { IconArrowRight, IconRocket, IconSync, IconWifiOff } from './Icons';
 
 interface ForceUpdateModalProps {
   modalState: UpdateModalState;
-  isUpdating: boolean;
+  updatePhase: UpdatePhase;
   errorMsg: string | null;
   onConfirm: () => void;
   onDismiss: () => void;
@@ -14,7 +18,7 @@ interface ForceUpdateModalProps {
 
 export const ForceUpdateModal: React.FC<ForceUpdateModalProps> = ({
   modalState,
-  isUpdating,
+  updatePhase,
   errorMsg,
   onConfirm,
   onDismiss,
@@ -23,6 +27,7 @@ export const ForceUpdateModal: React.FC<ForceUpdateModalProps> = ({
 
   if (modalState.mode === 'closed') return null;
 
+  const isBusy = updatePhase !== 'idle';
   const notesList = Array.isArray(modalState.releaseNotes)
     ? modalState.releaseNotes
     : normalizeReleaseNotes(modalState.releaseNotes);
@@ -66,8 +71,8 @@ export const ForceUpdateModal: React.FC<ForceUpdateModalProps> = ({
           </div>
 
           {errorMsg && (
-            <div className="mb-3.5 flex items-start gap-2 rounded-lg border border-amber-400/40 bg-amber-500/15 px-3 py-2.5 text-left text-xs leading-[1.5] text-amber-200">
-              <IconWifiOff className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+            <div className="mb-3.5 flex items-start gap-2 rounded-lg border border-rose-400/40 bg-rose-500/15 px-3 py-2.5 text-left text-xs leading-[1.5] text-rose-200">
+              <IconWifiOff className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" />
               <span>{errorMsg}</span>
             </div>
           )}
@@ -75,13 +80,17 @@ export const ForceUpdateModal: React.FC<ForceUpdateModalProps> = ({
           <div className="flex flex-col gap-2">
             <button
               type="button"
-              disabled={isUpdating}
+              disabled={isBusy}
               onClick={onConfirm}
-              className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border-0 bg-sky-600 px-5 py-3.5 text-base font-bold text-white transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:bg-slate-800 disabled:text-slate-500"
+              className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border-0 bg-sky-600 px-5 py-3.5 text-base font-bold text-white transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:bg-slate-800 disabled:text-slate-400"
             >
-              {isUpdating ? (
+              {updatePhase === 'reloading' ? (
                 <>
-                  <span className="spinner" /> Memperbarui aplikasi...
+                  <span className="spinner" /> Memuat ulang...
+                </>
+              ) : updatePhase === 'updating' ? (
+                <>
+                  <span className="spinner" /> Memperbarui...
                 </>
               ) : errorMsg ? (
                 <>
@@ -94,7 +103,7 @@ export const ForceUpdateModal: React.FC<ForceUpdateModalProps> = ({
               )}
             </button>
 
-            {!isUpdating && (
+            {!isBusy && (
               <button
                 type="button"
                 onClick={onDismiss}

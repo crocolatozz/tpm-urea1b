@@ -2,6 +2,18 @@
 
 Semua perubahan penting pada aplikasi **Dashboard & Kolase Foto TPM Urea 1B** dicatat di file ini mengikuti standar [Semantic Versioning](https://semver.org/).
 
+## [2.10.1] - 2026-11-17
+
+### Diperbaiki
+- **Pembaruan PWA 1x Klik Anti-Flicker (`useAppUpdater.ts`, `ForceUpdateModal.tsx`, `vite.config.js`):** Menahan reload hingga Service Worker baru resmi mengambil alih kontrol halaman (`controllerchange` + `clientsClaim: true`), mengirim sinyal `SKIP_WAITING` ke worker yang menunggu/baru selesai diinstal, memastikan `version.json` selalu `NetworkOnly` & anti-cache, serta menyediakan *fallback* pembersihan cache (`3500ms`) dan status tombol **`Memperbarui...`** → **`Memuat ulang...`**.
+
+### Ditambahkan
+- **Transisi Halus `fade-in` & `fade-out` `250ms` (`App.tsx`, `index.css`):** Menambahkan animasi masuk cepat (`appFadeIn` `250ms ease-out`) sejak *cold start* maupun setelah *reload*, serta efek meredup (`fade-out` `250ms`) sebelum halaman dimuat ulang agar transisi pembaruan terasa mulus tanpa kedip.
+- **Validasi Status Update + Pengaman 30 Detik (`App.tsx`, `useAppUpdater.ts`):** Memverifikasi perubahan versi secara nyata via `sessionStorage` dengan batas waktu kedaluwarsa `30 detik` untuk menampilkan **Toast Hijau** saat versi berhasil diperbarui, atau **Toast Merah** bila pembaruan gagal karena koneksi maupun gagal memuat *bundle* baru.
+
+### Diubah
+- **Sinkronisasi Versi Patch `2.10.1` (`package.json`, `tpmData.ts`, `version.json`, `vite.config.js`, `GuideModal.tsx`):** Menyelaraskan versi aplikasi, badge Panduan Aplikasi, metadata `version.json`, serta `cacheId` Service Worker ke `v2.10.1`.
+
 ## [2.10.0] - 2026-11-16
 
 ### Ditambahkan

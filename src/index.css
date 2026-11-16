@@ -174,3 +174,16 @@
     transform: translateX(0);
   }
 }
+
+.app-fade-in {
+  animation: appFadeIn 250ms ease-out;
+}
+
+@keyframes appFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

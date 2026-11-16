@@ -23,7 +23,11 @@ import {
 import { useNativeTouchGuard } from './hooks/useNativeTouchGuard';
 import { hasActiveModalLock } from './hooks/useModalScrollLock';
 import { usePWAInstall } from './hooks/usePWAInstall';
-import { useAppUpdater } from './hooks/useAppUpdater';
+import {
+  UPDATE_VALIDATION_TTL_MS,
+  UPDATING_FROM_STORAGE_KEY,
+  useAppUpdater,
+} from './hooks/useAppUpdater';
 import {
   publishShiftReport,
   reloadShiftReportsFromFirestore,
@@ -180,6 +184,7 @@ export const App: React.FC = () => {
   const [iosModalOpen, setIosModalOpen] = useState(false);
   const [devModeActive, setDevModeActive] = useState(false);
   const [devModalOpen, setDevModalOpen] = useState(false);
+  const [isFadingOut, setIsFadingOut] = useState(false);
 
   const gearTapCountRef = useRef(0);
   const gearLastTapRef = useRef(0);
@@ -230,18 +235,6 @@ export const App: React.FC = () => {
   const hasAnyStoredPhotos = beforeSlots.some(Boolean) || afterSlots.some(Boolean);
   const effectiveHasFilledPhotos = hasAnyStoredPhotos && !isReportSubmitted;
 
-  const { isInstallable, isIOS, showInstallButton, install } = usePWAInstall();
-  const {
-    modalState,
-    isUpdating,
-    isCheckingUpdate,
-    errorMsg,
-    confirmUpdate,
-    dismissUpdate,
-    checkForUpdatesManual,
-    simulateUpdatePrompt,
-  } = useAppUpdater(effectiveHasFilledPhotos);
-
   const clearToastTimer = useCallback(() => {
     if (toastTimerRef.current !== null) {
       window.clearTimeout(toastTimerRef.current);
@@ -271,6 +264,86 @@ export const App: React.FC = () => {
   const dismissLoadingToast = useCallback(() => {
     setToast((prev) => (prev?.kind === 'loading' ? null : prev));
   }, []);
+
+  const handleBeforeReloadFadeOut = useCallback(() => {
+    setIsFadingOut(true);
+  }, []);
+
+  const handleCancelFadeOut = useCallback(() => {
+    setIsFadingOut(false);
+  }, []);
+
+  const handleUpdateErrorToast = useCallback(
+    (msg: string) => {
+      showToast(msg, 'error', 4500);
+    },
+    [showToast]
+  );
+
+  const { isInstallable, isIOS, showInstallButton, install } = usePWAInstall();
+  const {
+    modalState,
+    updatePhase,
+    isCheckingUpdate,
+    errorMsg,
+    confirmUpdate,
+    dismissUpdate,
+    checkForUpdatesManual,
+    simulateUpdatePrompt,
+  } = useAppUpdater({
+    suppressPrompt: effectiveHasFilledPhotos,
+    onBeforeReloadFadeOut: handleBeforeReloadFadeOut,
+    onCancelFadeOut: handleCancelFadeOut,
+    onUpdateError: handleUpdateErrorToast,
+  });
+
+  // Validasi hasil pembaruan PWA pasca-reload dengan pengaman kedaluwarsa 30 detik
+  useEffect(() => {
+    const checkTimerId = window.setTimeout(() => {
+      try {
+        const rawUpdateState = window.sessionStorage.getItem(UPDATING_FROM_STORAGE_KEY);
+        if (!rawUpdateState) return;
+        window.sessionStorage.removeItem(UPDATING_FROM_STORAGE_KEY);
+
+        const parsed = JSON.parse(rawUpdateState) as {
+          version?: unknown;
+          timestamp?: unknown;
+        };
+        if (
+          typeof parsed?.version !== 'string' ||
+          typeof parsed?.timestamp !== 'number' ||
+          !Number.isFinite(parsed.timestamp)
+        ) {
+          return;
+        }
+
+        const elapsed = Date.now() - parsed.timestamp;
+        if (elapsed < 0 || elapsed > UPDATE_VALIDATION_TTL_MS) {
+          return;
+        }
+
+        if (parsed.version !== APP_VERSION) {
+          showToast(`Aplikasi berhasil diperbarui ke v${APP_VERSION}!`, 'success', 4500);
+        } else {
+          showToast(
+            'Pembaruan belum terpasang, masih versi lama. Silakan coba lagi.',
+            'error',
+            5000
+          );
+        }
+      } catch {
+        try {
+          window.sessionStorage.removeItem(UPDATING_FROM_STORAGE_KEY);
+        } catch {
+          // Ignore storage errors
+        }
+      }
+    }, 50);
+
+    return () => {
+      window.clearTimeout(checkTimerId);
+    };
+  }, [showToast]);
 
   // Simpan preferensi grid hanya di luar Developer Mode
   useEffect(() => {
@@ -746,7 +819,11 @@ export const App: React.FC = () => {
   }, [clearTestToastSequence, showToast]);
 
   return (
-    <div className="flex w-full max-w-[800px] flex-1 flex-col gap-4">
+    <div
+      className={`flex w-full max-w-[800px] flex-1 flex-col gap-4 transition-opacity duration-250 ${
+        isFadingOut ? 'pointer-events-none opacity-0' : 'app-fade-in opacity-100'
+      }`}
+    >
       <header className="flex flex-col items-center text-center">
         <h1 className="mb-1 flex items-center justify-center gap-2 text-[21px] font-bold tracking-tight text-white sm:text-[22px]">
           <button
@@ -926,7 +1003,7 @@ export const App: React.FC = () => {
       <IosInstallModal isOpen={iosModalOpen} onClose={() => setIosModalOpen(false)} />
       <ForceUpdateModal
         modalState={modalState}
-        isUpdating={isUpdating}
+        updatePhase={updatePhase}
         errorMsg={errorMsg}
         onConfirm={confirmUpdate}
         onDismiss={dismissUpdate}

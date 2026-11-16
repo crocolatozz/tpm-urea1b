@@ -95,7 +95,7 @@ export default defineConfig(({ command }) => {
           name: 'Dashboard TPM Urea 1B',
           short_name: 'TPM Urea 1B',
           description:
-            'Monitoring jadwal inspeksi mesin dan kolase foto dokumentasi Before & After TPM Urea 1B (v2.10.0).',
+            'Monitoring jadwal inspeksi mesin dan kolase foto dokumentasi Before & After TPM Urea 1B (v2.10.1).',
           start_url: basePath,
           scope: basePath,
           display: 'standalone',
@@ -123,11 +123,12 @@ export default defineConfig(({ command }) => {
           ],
         },
         workbox: {
-          cacheId: 'tpm-urea1b-v2.10.0',
+          cacheId: 'tpm-urea1b-v2.10.1',
           skipWaiting: false,
-          clientsClaim: false,
+          clientsClaim: true,
           cleanupOutdatedCaches: true,
           navigateFallback: isBuild ? 'index.html' : null,
+          navigateFallbackDenylist: isBuild ? [/version\.json/i] : undefined,
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,webmanifest}'],
           globIgnores: ['**/version.json'],
           runtimeCaching: [
@@ -139,7 +140,7 @@ export default defineConfig(({ command }) => {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
               handler: 'StaleWhileRevalidate',
               options: {
-                cacheName: 'google-fonts-stylesheets-v2.10.0',
+                cacheName: 'google-fonts-stylesheets-v2.10.1',
                 cacheableResponse: {
                   statuses: [0, 200],
                 },
@@ -153,7 +154,7 @@ export default defineConfig(({ command }) => {
               urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
               handler: 'CacheFirst',
               options: {
-                cacheName: 'google-fonts-webfonts-v2.10.0',
+                cacheName: 'google-fonts-webfonts-v2.10.1',
                 cacheableResponse: {
                   statuses: [0, 200],
                 },

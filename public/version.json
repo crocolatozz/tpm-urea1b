@@ -1,8 +1,8 @@
 {
-  "version": "2.10.1",
+  "version": "2.10.2",
   "notes": [
-    "Perbaikan pembaruan PWA agar cukup 1x klik tombol Update Sekarang di Android Chrome tanpa flicker dan pop-up berulang",
-    "Animasi transisi cepat fade-in & fade-out (250ms) saat membuka aplikasi maupun saat reload pembaruan",
-    "Notifikasi status hasil pembaruan otomatis (Toast Hijau bila berhasil, Toast Merah bila gagal) dengan pengaman waktu 30 detik"
+    "Penyeragaman seluruh tipografi kolase (BEFORE, AFTER, pil caption, dan pil footer) menggunakan font Rajdhani yang selaras dengan aplikasi",
+    "Pembaruan desain pil kolase bergaya dark-tinted + garis tepi 1px bernuansa cyan dan emerald neon beserta perataan vertikal presisi",
+    "Penyeragaman format SHIFT, ikon, jarak vertikal, dan gaya badge pada kartu ringkasan pop-up laporan"
   ]
 }

@@ -186,8 +186,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
                   </strong>
                   ) untuk memilih <strong className="text-white">banyak foto sekaligus</strong>{' '}
                   (<em>multi-select</em>) yang otomatis terisi berurutan mengikuti nomor watermark{' '}
-                  <strong className="text-white">1–6</strong> (foto{' '}
-                  <strong className="text-white">.heic</strong> dikonversi otomatis).
+                  <strong className="text-white">1–6</strong>.
                 </li>
                 <li>
                   Untuk menukar posisi foto antar-slot,{' '}

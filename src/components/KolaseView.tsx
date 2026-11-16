@@ -10,6 +10,7 @@ import {
 } from '../data/tpmData';
 import {
   COLLAGE_PREVIEW_SPEC,
+  computeCaptionPillFontCqw,
   computeFooterFontCqw,
   copyTextToClipboard,
   disposeSlotCanvases,
@@ -260,12 +261,14 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
     }
   }, [onDragLockChange]);
 
-  // Pastikan font kustom Barlow Condensed selesai dimuat agar kalkulasi footer Preview 1:1 presisi
+  // Pastikan font kustom Rajdhani selesai dimuat agar kalkulasi Preview & Export 1:1 presisi
   useEffect(() => {
     let active = true;
     if (typeof document !== 'undefined' && document.fonts) {
-      void document.fonts
-        .load('700 20px "Barlow Condensed"')
+      void Promise.all([
+        document.fonts.load('600 20px "Rajdhani"'),
+        document.fonts.load('700 20px "Rajdhani"'),
+      ])
         .then(() => document.fonts.ready)
         .then(() => {
           if (active) setFontReadyTick((t) => t + 1);
@@ -1031,11 +1034,12 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
 
     const exportCanvas = document.createElement('canvas');
     try {
-      // Pastikan font kustom termuat sebelum merender kanvas ekspor
-      if (typeof document !== 'undefined' && document.fonts?.load) {
+      // Pastikan font kustom Rajdhani termuat penuh sebelum merender kanvas ekspor
+      if (typeof document !== 'undefined' && document.fonts) {
         await Promise.all([
+          document.fonts.load('600 20px "Rajdhani"'),
           document.fonts.load('700 20px "Rajdhani"'),
-          document.fonts.load('700 20px "Barlow Condensed"'),
+          document.fonts.ready,
         ]).catch(() => {});
       }
 
@@ -1157,7 +1161,8 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
       : '';
 
   const displayAreaStamp = tpmArea.trim() || '-';
-  const footerPreviewText = `TPM ${displayAreaStamp}   •   SHIFT ${tpmShift}   •   ${formatDateIndo(effectiveDate)}`;
+  const formattedFooterDate = formatDateIndo(effectiveDate);
+  const footerPreviewText = `TPM ${displayAreaStamp}  •  SHIFT ${tpmShift}  •  ${formattedFooterDate}`;
   const footerFontCqw = useMemo(
     () => computeFooterFontCqw(footerPreviewText),
     [footerPreviewText, fontReadyTick]
@@ -1415,14 +1420,14 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
             </div>
           </div>
 
-          {/* Frame Kolase Live Preview 1:1 (Deep Slate #0F172A, Barlow Condensed 700 Monokrom Putih) */}
+          {/* Frame Kolase Live Preview 1:1 (Deep Slate #0F172A, Rajdhani, Dark-Tinted Pills) */}
           <div
             className="w-full max-w-full overflow-hidden rounded-xl border border-slate-700/80 bg-[#0F172A] [container-type:inline-size]"
             style={{ padding: COLLAGE_PREVIEW_SPEC.paddingCqw }}
           >
-            {/* 1. Header Kolom: BEFORE | AFTER (Barlow Condensed 700, Monokrom Putih #FFFFFF, 7.4cqw) */}
+            {/* 1. Header Pil Kolom: BEFORE (Cyan) | AFTER (Emerald Neon) */}
             <div
-              className="grid w-full grid-cols-2 items-center text-center"
+              className="grid w-full grid-cols-2 items-center justify-items-center text-center"
               style={{
                 marginTop: COLLAGE_PREVIEW_SPEC.subHeaderTopGapCqw,
                 height: COLLAGE_PREVIEW_SPEC.subHeaderHeightCqw,
@@ -1430,18 +1435,48 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
                 gap: COLLAGE_PREVIEW_SPEC.gapCqw,
               }}
             >
-              <span
-                className="font-collage truncate font-bold tracking-[0.05em] text-white"
-                style={{ fontSize: COLLAGE_PREVIEW_SPEC.subHeaderFontCqw, lineHeight: 1.15 }}
+              <div
+                className="font-equipment inline-flex max-w-[90%] items-center justify-center rounded-full border border-[#38BDF8]/45 bg-[#0E293D] font-bold leading-none tracking-[0.08em] text-[#F8FAFC]"
+                style={{
+                  fontSize: COLLAGE_PREVIEW_SPEC.subHeaderFontCqw,
+                  paddingLeft: COLLAGE_PREVIEW_SPEC.headerPillPadXCqw,
+                  paddingRight: COLLAGE_PREVIEW_SPEC.headerPillPadXCqw,
+                  paddingTop: COLLAGE_PREVIEW_SPEC.headerPillPadYCqw,
+                  paddingBottom: COLLAGE_PREVIEW_SPEC.headerPillPadYCqw,
+                  gap: COLLAGE_PREVIEW_SPEC.headerDotGapCqw,
+                }}
               >
-                BEFORE
-              </span>
-              <span
-                className="font-collage truncate font-bold tracking-[0.05em] text-white"
-                style={{ fontSize: COLLAGE_PREVIEW_SPEC.subHeaderFontCqw, lineHeight: 1.15 }}
+                <span
+                  aria-hidden="true"
+                  className="shrink-0 rounded-full bg-[#38BDF8]"
+                  style={{
+                    width: COLLAGE_PREVIEW_SPEC.headerDotSizeCqw,
+                    height: COLLAGE_PREVIEW_SPEC.headerDotSizeCqw,
+                  }}
+                />
+                <span>BEFORE</span>
+              </div>
+              <div
+                className="font-equipment inline-flex max-w-[90%] items-center justify-center rounded-full border border-[#34D399]/45 bg-[#0B2E2B] font-bold leading-none tracking-[0.08em] text-[#F8FAFC]"
+                style={{
+                  fontSize: COLLAGE_PREVIEW_SPEC.subHeaderFontCqw,
+                  paddingLeft: COLLAGE_PREVIEW_SPEC.headerPillPadXCqw,
+                  paddingRight: COLLAGE_PREVIEW_SPEC.headerPillPadXCqw,
+                  paddingTop: COLLAGE_PREVIEW_SPEC.headerPillPadYCqw,
+                  paddingBottom: COLLAGE_PREVIEW_SPEC.headerPillPadYCqw,
+                  gap: COLLAGE_PREVIEW_SPEC.headerDotGapCqw,
+                }}
               >
-                AFTER
-              </span>
+                <span
+                  aria-hidden="true"
+                  className="shrink-0 rounded-full bg-[#34D399]"
+                  style={{
+                    width: COLLAGE_PREVIEW_SPEC.headerDotSizeCqw,
+                    height: COLLAGE_PREVIEW_SPEC.headerDotSizeCqw,
+                  }}
+                />
+                <span>AFTER</span>
+              </div>
             </div>
 
             {/* 2. Grid Baris 1..N (Sudut 8px, Kapsul bawah-tengah, Drag-and-Drop antar-slot) */}
@@ -1587,7 +1622,7 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
                                 <>
                                   <span
                                     aria-hidden="true"
-                                    className="font-collage pointer-events-none absolute inset-0 flex select-none items-center justify-center text-[62cqw] font-bold leading-none text-white/[0.06]"
+                                    className="font-equipment pointer-events-none absolute inset-0 flex select-none items-center justify-center text-[62cqw] font-bold leading-none text-white/[0.06]"
                                   >
                                     {slotNumber}
                                   </span>
@@ -1600,14 +1635,13 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
                       );
                     })}
 
-                    {/* Kapsul Keterangan Tengah Tiap Baris (Barlow Condensed 700, Monokrom Putih #FFFFFF, 4.9cqw, maks 85%) */}
+                    {/* Pil Caption Tengah Tiap Baris (Rajdhani 700, gelap pekat rgba(11,17,32,0.88), border 1px, optical center) */}
                     {rowOverlayText && (
-                      <div className="pointer-events-none absolute bottom-2.5 left-1/2 z-10 flex max-w-[85%] -translate-x-1/2 justify-center">
+                      <div className="pointer-events-none absolute bottom-2.5 left-1/2 z-10 flex max-w-[86%] -translate-x-1/2 justify-center">
                         <span
-                          className="font-collage max-w-full truncate whitespace-nowrap rounded-full border border-slate-400/45 bg-[#0F172A] font-bold text-white shadow-sm"
+                          className="font-equipment inline-flex items-center justify-center whitespace-nowrap rounded-full border border-slate-400/35 bg-[#0B1120]/88 font-bold leading-none text-white shadow-sm"
                           style={{
-                            fontSize: COLLAGE_PREVIEW_SPEC.pillFontCqw,
-                            lineHeight: 1.18,
+                            fontSize: computeCaptionPillFontCqw(rowOverlayText),
                             paddingLeft: COLLAGE_PREVIEW_SPEC.pillPadXCqw,
                             paddingRight: COLLAGE_PREVIEW_SPEC.pillPadXCqw,
                             paddingTop: COLLAGE_PREVIEW_SPEC.pillPadYCqw,
@@ -1623,19 +1657,29 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
               })}
             </div>
 
-            {/* 3. Footer 1 Baris Terpusat: TPM [TAG]   •   SHIFT   •   TANGGAL (Auto-scale 1:1 dengan ekspor JPEG, tanpa elipsis) */}
+            {/* 3. Pil Footer Terpusat: TPM [ALAT] • SHIFT [WAKTU] • [TANGGAL] (Rajdhani 600, #111C2E, border cyan, titik emerald #34D399) */}
             <div
-              className="flex w-full items-center justify-center px-1 text-center"
+              className="flex w-full items-center justify-center text-center"
               style={{
                 marginTop: COLLAGE_PREVIEW_SPEC.footerTopGapCqw,
                 height: COLLAGE_PREVIEW_SPEC.footerHeightCqw,
               }}
             >
               <div
-                className="font-collage max-w-[90%] whitespace-pre! font-bold leading-[1.2] text-white"
-                style={{ fontSize: footerFontCqw }}
+                className="font-equipment inline-flex max-w-[94%] items-center justify-center whitespace-nowrap rounded-full border border-[#38BDF8]/32 bg-[#111C2E] font-semibold leading-none text-[#F8FAFC]"
+                style={{
+                  fontSize: footerFontCqw,
+                  paddingLeft: COLLAGE_PREVIEW_SPEC.footerPadXCqw,
+                  paddingRight: COLLAGE_PREVIEW_SPEC.footerPadXCqw,
+                  paddingTop: COLLAGE_PREVIEW_SPEC.footerPadYCqw,
+                  paddingBottom: COLLAGE_PREVIEW_SPEC.footerPadYCqw,
+                }}
               >
-                {footerPreviewText}
+                <span>TPM {displayAreaStamp}</span>
+                <span className="whitespace-pre text-[#34D399]">  •  </span>
+                <span>SHIFT {tpmShift}</span>
+                <span className="whitespace-pre text-[#34D399]">  •  </span>
+                <span>{formattedFooterDate}</span>
               </div>
             </div>
           </div>
@@ -1845,19 +1889,19 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
               </strong>{' '}
               &amp; bersihkan foto serta keterangan form?
             </p>
-            <div className="mb-4 rounded-lg border border-slate-700/80 bg-slate-800/80 px-3 py-2 text-xs">
+            <div className="mb-4 flex flex-col gap-2 rounded-xl border border-slate-700/80 bg-[#0F172A]/90 px-3.5 py-3 text-xs">
               <div className="flex items-center justify-between gap-2 font-bold tabular-nums text-sky-300">
                 <span className="inline-flex items-center gap-1.5">
-                  <ShiftWeatherIcon shift={postSendModal.shift} className="h-3.5 w-3.5" />
+                  <ShiftWeatherIcon shift={postSendModal.shift} className="h-4 w-4" />
                   <span>
-                    {postSendModal.shift} • {formatDateIndo(postSendModal.dateStr)}
+                    SHIFT {postSendModal.shift} • {formatDateIndo(postSendModal.dateStr)}
                   </span>
                 </span>
-                <span className="rounded-md border border-emerald-500/35 bg-emerald-500/15 px-1.5 py-0.5 text-[11px] font-bold tabular-nums text-emerald-300">
+                <span className="rounded-full border border-[#34D399]/40 bg-[#0B2E2B] px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-[#34D399]">
                   {formatFileSizeCompact(postSendModal.fileSizeBytes)}
                 </span>
               </div>
-              <div className="font-equipment mt-1 truncate text-[15px] font-bold text-white">
+              <div className="font-equipment truncate text-[17px] font-bold leading-tight tracking-wide text-white">
                 {postSendModal.areaStr}
               </div>
             </div>

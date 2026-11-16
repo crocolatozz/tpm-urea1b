@@ -4,7 +4,6 @@
   --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     Roboto, sans-serif;
   --font-equipment: "Rajdhani", "Plus Jakarta Sans", system-ui, sans-serif;
-  --font-collage: "Barlow Condensed", "Plus Jakarta Sans", system-ui, sans-serif;
 }
 
 :root {
@@ -65,10 +64,6 @@
 @layer utilities {
   .font-equipment {
     font-family: "Rajdhani", "Plus Jakarta Sans", system-ui, sans-serif;
-  }
-
-  .font-collage {
-    font-family: "Barlow Condensed", "Plus Jakarta Sans", system-ui, sans-serif;
   }
 }
 

@@ -657,18 +657,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 ? 'Laporan tersimpan di perangkat (menunggu sinkronisasi saat koneksi internet kembali stabil).'
                 : 'Laporan ini sudah tercatat & tersinkronisasi real-time ke semua HP operator lain.'}
             </p>
-            <div className="mb-4 rounded-lg border border-slate-700/80 bg-slate-800/80 px-3 py-2.5 text-xs">
+            <div className="mb-4 flex flex-col gap-2 rounded-xl border border-slate-700/80 bg-[#0F172A]/90 px-3.5 py-3 text-xs">
               <div className="flex items-center justify-between gap-2 font-bold tabular-nums text-sky-300">
-                <span>
-                  {statusTarget.shift} • {formatDateIndo(statusTarget.date)}
+                <span className="inline-flex items-center gap-1.5">
+                  <ShiftWeatherIcon shift={statusTarget.shift} className="h-4 w-4" />
+                  <span>
+                    SHIFT {statusTarget.shift} • {formatDateIndo(statusTarget.date)}
+                  </span>
                 </span>
                 {statusTarget.entry?.ts && (
-                  <span className="text-slate-300">
+                  <span className="rounded-full border border-[#38BDF8]/40 bg-[#0E293D] px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-[#38BDF8]">
                     Pukul {formatReportedTime(statusTarget.entry.ts)}
                   </span>
                 )}
               </div>
-              <div className="font-equipment mt-1 truncate text-[16px] font-bold text-white">
+              <div className="font-equipment truncate text-[17px] font-bold leading-tight tracking-wide text-white">
                 {statusTarget.area}
               </div>
             </div>

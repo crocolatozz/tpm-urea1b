@@ -2,6 +2,14 @@
 
 Semua perubahan penting pada aplikasi **Dashboard & Kolase Foto TPM Urea 1B** dicatat di file ini mengikuti standar [Semantic Versioning](https://semver.org/).
 
+## [2.10.2] - 2026-11-17
+
+### Diubah
+- **Penyeragaman Tipografi `Rajdhani` pada Kolase & Pembersihan `Barlow Condensed` (`index.html`, `index.css`, `KolaseView.tsx`, `imageCollage.ts`):** Mengganti seluruh teks pada **Preview** maupun **Export JPEG** kolase (`BEFORE`, `AFTER`, pil caption foto, dan pil footer) menggunakan font `Rajdhani` (`600`/`700`), mengkalibrasi ukuran font dan pengaman `ctx.measureText()` agar 30 karakter caption serta 45 karakter footer tetap muat 1 baris utuh, dan menghapus import/utilitas `Barlow Condensed`.
+- **Desain Pil Kolase Dark-Tinted + Hairline Border & Perataan Vertikal Optis (`KolaseView.tsx`, `imageCollage.ts`):** Mengubah header `BEFORE` (biru cyan `#38BDF8`, `#0E293D`) dan `AFTER` (emerald neon `#34D399`, `#0B2E2B`), pil caption foto (`rgba(11, 17, 32, 0.88)`), serta pil footer (`#111C2E` dengan titik pemisah `#34D399`) bergaya *dark-tinted* bertepi `1px` halus lengkap dengan kalibrasi posisi vertikal optis agar teks presisi di tengah pil.
+- **Penyeragaman Kartu Ringkasan Pop-up Laporan (`DashboardView.tsx`, `KolaseView.tsx`):** Menyamakan format `SHIFT PAGI`/`SORE`/`MALAM` lengkap dengan ikon cuaca shift, jarak vertikal baris yang lebih lega, dan gaya badge pil *dark-tinted* (`Pukul HH:MM` bernuansa cyan dan ukuran file bernuansa emerald) di modal **Kolase TPM Berhasil Dibuat!** dan **Status Dilaporkan**.
+- **Penyederhanaan Teks Panduan & Sinkronisasi Versi `2.10.2` (`GuideModal.tsx`, `package.json`, `tpmData.ts`, `version.json`, `vite.config.js`):** Menghapus keterangan teknis konversi `.heic` pada Tab 2 Panduan Aplikasi serta menyelaraskan versi aplikasi dan `cacheId` Service Worker ke `v2.10.2`.
+
 ## [2.10.1] - 2026-11-17
 
 ### Diperbaiki

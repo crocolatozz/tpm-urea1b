@@ -1,11 +1,14 @@
 # ⚙️ Dashboard & Kolase Foto TPM Urea 1B
 
-![Version](https://img.shields.io/badge/version-2.10.4-10b981?style=flat-square)
-![PWA](https://img.shields.io/badge/PWA-Ready-0ea5e9?style=flat-square)
+[![Live App](https://img.shields.io/badge/Live_App-GitHub_Pages-10b981?style=flat-square&logo=github)](https://crocolatozz.github.io/tpm-urea1b/)
+![Version](https://img.shields.io/badge/version-2.10.4-0ea5e9?style=flat-square)
+![PWA](https://img.shields.io/badge/PWA-Ready-6366f1?style=flat-square)
 ![React](https://img.shields.io/badge/React-TypeScript-3b82f6?style=flat-square)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS-06b6d4?style=flat-square)
 
 Aplikasi **Progressive Web App** berbasis *mobile-first* untuk membantu operator lapangan memantau jadwal **Total Productive Maintenance** pada unit Urea 1B sekaligus menyusun dokumentasi kolase foto **Before & After** yang siap dibagikan dalam hitungan detik.
+
+🔗 **Buka Aplikasi:** [crocolatozz.github.io/tpm-urea1b](https://crocolatozz.github.io/tpm-urea1b/)
 
 ---
 
@@ -40,10 +43,10 @@ Aplikasi **Progressive Web App** berbasis *mobile-first* untuk membantu operator
 
 ```bash
 # 1. Clone repositori ini
-git clone [https://github.com/crocolatozz/nama-repo-kamu.git](https://github.com/crocolatozz/nama-repo-kamu.git)
+git clone [https://github.com/crocolatozz/tpm-urea1b.git](https://github.com/crocolatozz/tpm-urea1b.git)
 
 # 2. Masuk ke direktori project
-cd nama-repo-kamu
+cd tpm-urea1b
 
 # 3. Install dependensi
 npm install

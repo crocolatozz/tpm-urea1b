@@ -1,8 +1,8 @@
 {
-  "version": "2.10.3",
+  "version": "2.10.4",
   "notes": [
-    "Pembaruan header BEFORE dan AFTER dengan ukuran teks lebih tegas tanpa simbol titik dan jarak atas-bawah yang seimbang",
-    "Penambahan kartu wadah gelap berbingkai tipis di sekeliling grid foto kolase agar tampilan terpisah rapi tanpa garis pemisah",
-    "Pembaruan pil footer kolase berwarna dark emerald dengan teks hijau emerald neon yang lebih jelas dan proporsional"
+    "Perombakan navigasi menjadi dual-panel CSS Scroll-Snap dengan 1 header dan 1 tab bar tunggal yang ikut bergulung bersama halaman serta indikator tab real-time",
+    "Pengaman tinggi dinamis pada tab Jadwal agar bebas ruang kosong, tampilan utama tanpa scrollbar visual, dan transisi halus dari kartu jadwal ke Kolase",
+    "Pembaruan isi Panduan Aplikasi sesuai alur navigasi terbaru serta pembersihan kode redundan"
   ]
 }

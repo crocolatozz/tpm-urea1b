@@ -21,7 +21,7 @@ import {
   type LoadedPhotoSlot,
 } from './utils/imageCollage';
 import { useNativeTouchGuard } from './hooks/useNativeTouchGuard';
-import { hasActiveModalLock } from './hooks/useModalScrollLock';
+import { useIsAnyModalOpen } from './hooks/useModalScrollLock';
 import { usePWAInstall } from './hooks/usePWAInstall';
 import {
   UPDATE_VALIDATION_TTL_MS,
@@ -131,37 +131,6 @@ function buildInitialKolaseContext(parsed: ParsedHashRoute): KolaseContextState 
   return { date, shift, area };
 }
 
-function hasHorizontalScrollAncestor(
-  target: EventTarget | null,
-  boundary: HTMLElement | null
-): boolean {
-  let node = target instanceof HTMLElement ? target : null;
-  while (node && node !== boundary) {
-    const tag = node.tagName.toUpperCase();
-    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
-      return true;
-    }
-    const role = node.getAttribute('role');
-    if (role === 'dialog' || role === 'listbox' || role === 'slider') {
-      return true;
-    }
-    if (
-      node.classList.contains('overflow-x-auto') ||
-      node.classList.contains('overflow-x-scroll')
-    ) {
-      return true;
-    }
-    if (node.scrollWidth > node.clientWidth + 1) {
-      const overflowX = window.getComputedStyle(node).overflowX;
-      if (overflowX === 'auto' || overflowX === 'scroll') {
-        return true;
-      }
-    }
-    node = node.parentElement;
-  }
-  return false;
-}
-
 export const App: React.FC = () => {
   useNativeTouchGuard();
 
@@ -204,32 +173,29 @@ export const App: React.FC = () => {
   const toastTimerRef = useRef<number | null>(null);
   const testToastSeqTimersRef = useRef<number[]>([]);
 
-  // Memori posisi scroll independen & gestur swipe antar-tab
-  const mainContainerRef = useRef<HTMLElement | null>(null);
+  // Wadah dual-panel horizontal CSS Scroll-Snap + dua panel vertikal independen + header tunggal melayang
+  const dualPanelRef = useRef<HTMLElement | null>(null);
+  const jadwalPanelRef = useRef<HTMLElement | null>(null);
+  const kolasePanelRef = useRef<HTMLElement | null>(null);
+  const jadwalInnerRef = useRef<HTMLDivElement | null>(null);
+  const kolaseInnerRef = useRef<HTMLDivElement | null>(null);
+  const headerWrapperRef = useRef<HTMLDivElement | null>(null);
+  const headerHeightRef = useRef<number>(0);
+  const indicatorTrackRef = useRef<HTMLDivElement | null>(null);
+  const indicatorBarRef = useRef<HTMLDivElement | null>(null);
   const routeRef = useRef<AppRoute>(route);
   routeRef.current = route;
-  const scrollPositionsRef = useRef<Record<AppRoute, number>>({ jadwal: 0, kolase: 0 });
-  const transitionDirRef = useRef<'none' | 'to-kolase' | 'to-jadwal'>('none');
-  const [swipeDragX, setSwipeDragX] = useState(0);
-  const isSwipeLockedRef = useRef(false);
-  const swipeGestureRef = useRef<{
-    active: boolean;
-    startX: number;
-    startY: number;
-    lockedAxis: 'x' | 'y' | null;
-  }>({
-    active: false,
-    startX: 0,
-    startY: 0,
-    lockedAxis: null,
+  const programmaticSlideRef = useRef<{ target: AppRoute | null; timerId: number | null }>({
+    target: null,
+    timerId: null,
   });
+  const isModalLocked = useIsAnyModalOpen();
+  const [isDragLocked, setIsDragLocked] = useState(false);
+  const isSwipeLockedRef = useRef(false);
+  isSwipeLockedRef.current = isModalLocked || isDragLocked;
 
   const handleDragLockChange = useCallback((locked: boolean) => {
-    isSwipeLockedRef.current = locked;
-    if (locked) {
-      swipeGestureRef.current.active = false;
-      setSwipeDragX(0);
-    }
+    setIsDragLocked(locked);
   }, []);
 
   const hasAnyStoredPhotos = beforeSlots.some(Boolean) || afterSlots.some(Boolean);
@@ -375,11 +341,95 @@ export const App: React.FC = () => {
     activeBlobUrlsRef.current = nextUrls;
   }, [beforeSlots, afterSlots]);
 
+  const updateTabIndicator = useCallback((progress: number) => {
+    const track = indicatorTrackRef.current;
+    const bar = indicatorBarRef.current;
+    if (!track || !bar) return;
+    const clamped = Math.min(1, Math.max(0, progress));
+    const maxShift = Math.max(0, track.clientWidth - bar.offsetWidth);
+    bar.style.transform = `translate3d(${clamped * maxShift}px, 0, 0)`;
+  }, []);
+
+  const syncHeaderTransform = useCallback(() => {
+    const header = headerWrapperRef.current;
+    const dual = dualPanelRef.current;
+    const jadwal = jadwalPanelRef.current;
+    const kolase = kolasePanelRef.current;
+    const headerHeight = headerHeightRef.current;
+    if (!header || !dual || !jadwal || !kolase || headerHeight <= 0) return;
+
+    const progress =
+      dual.clientWidth > 0 ? Math.min(1, Math.max(0, dual.scrollLeft / dual.clientWidth)) : 0;
+    const effectiveScroll = jadwal.scrollTop * (1 - progress) + kolase.scrollTop * progress;
+    const headerY = -Math.min(effectiveScroll, headerHeight);
+    header.style.transform = `translate3d(0, ${headerY}px, 0)`;
+    header.style.visibility = Math.abs(headerY) >= headerHeight - 0.5 ? 'hidden' : 'visible';
+  }, []);
+
+  const measureAndApplyHeaderHeight = useCallback(() => {
+    const header = headerWrapperRef.current;
+    if (!header) return;
+    const nextHeight = Math.ceil(header.getBoundingClientRect().height);
+    if (nextHeight > 0) {
+      headerHeightRef.current = nextHeight;
+      if (jadwalInnerRef.current) {
+        jadwalInnerRef.current.style.paddingTop = `${nextHeight}px`;
+      }
+      if (kolaseInnerRef.current) {
+        kolaseInnerRef.current.style.paddingTop = `${nextHeight}px`;
+      }
+    }
+    syncHeaderTransform();
+  }, [syncHeaderTransform]);
+
+  const clearProgrammaticSlide = useCallback(() => {
+    if (programmaticSlideRef.current.timerId !== null) {
+      window.clearTimeout(programmaticSlideRef.current.timerId);
+      programmaticSlideRef.current.timerId = null;
+    }
+    programmaticSlideRef.current.target = null;
+  }, []);
+
+  const slideToPanel = useCallback(
+    (target: AppRoute, behavior: ScrollBehavior = 'smooth') => {
+      const container = dualPanelRef.current;
+      if (!container) return;
+
+      clearProgrammaticSlide();
+      if (behavior === 'smooth') {
+        programmaticSlideRef.current.target = target;
+        programmaticSlideRef.current.timerId = window.setTimeout(() => {
+          programmaticSlideRef.current.target = null;
+          programmaticSlideRef.current.timerId = null;
+        }, 650);
+      }
+
+      const runScroll = () => {
+        const currentContainer = dualPanelRef.current;
+        if (!currentContainer) return;
+        const targetLeft = target === 'kolase' ? currentContainer.clientWidth : 0;
+        currentContainer.scrollTo({ left: targetLeft, behavior });
+        if (behavior !== 'smooth') {
+          updateTabIndicator(target === 'kolase' ? 1 : 0);
+          syncHeaderTransform();
+        }
+      };
+
+      if (behavior === 'smooth') {
+        window.requestAnimationFrame(runScroll);
+      } else {
+        runScroll();
+      }
+    },
+    [clearProgrammaticSlide, syncHeaderTransform, updateTabIndicator]
+  );
+
   // Jalankan Storage Version Guard & pembersihan legacy key saat aplikasi dimuat, bersihkan memori hanya saat App unmount
   useEffect(() => {
     ensureStorageVersionGuard();
     return () => {
       setFirestoreWriteBlocked(false);
+      clearProgrammaticSlide();
       clearToastTimer();
       clearTestToastSequence();
       pendingRevokeTimersRef.current.forEach((tid) => window.clearTimeout(tid));
@@ -395,7 +445,7 @@ export const App: React.FC = () => {
       slotsCleanupRef.current.before.forEach(disposeSlotCanvases);
       slotsCleanupRef.current.after.forEach(disposeSlotCanvases);
     };
-  }, [clearTestToastSequence, clearToastTimer]);
+  }, [clearProgrammaticSlide, clearTestToastSequence, clearToastTimer]);
 
   // Real-time Firestore + localStorage sync for reported shift badges
   useEffect(() => {
@@ -415,20 +465,65 @@ export const App: React.FC = () => {
     return () => unsubscribe();
   }, [showToast]);
 
+  // Ukur tinggi header tunggal & posisikan panel awal sebelum paint, pantau via ResizeObserver
+  useLayoutEffect(() => {
+    measureAndApplyHeaderHeight();
+    const container = dualPanelRef.current;
+    if (!container) return;
+    const isKolase = routeRef.current === 'kolase';
+    container.scrollLeft = isKolase ? container.clientWidth : 0;
+    updateTabIndicator(isKolase ? 1 : 0);
+    syncHeaderTransform();
+  }, [measureAndApplyHeaderHeight, syncHeaderTransform, updateTabIndicator]);
+
+  useEffect(() => {
+    const headerEl = headerWrapperRef.current;
+    let observer: ResizeObserver | null = null;
+    if (headerEl && typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(() => {
+        measureAndApplyHeaderHeight();
+      });
+      observer.observe(headerEl);
+    }
+
+    const handleResize = () => {
+      measureAndApplyHeaderHeight();
+      const container = dualPanelRef.current;
+      if (!container) return;
+      const isKolase = routeRef.current === 'kolase';
+      container.scrollLeft = isKolase ? container.clientWidth : 0;
+      updateTabIndicator(isKolase ? 1 : 0);
+      syncHeaderTransform();
+    };
+    window.addEventListener('resize', handleResize);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [measureAndApplyHeaderHeight, syncHeaderTransform, updateTabIndicator]);
+
+  // Pastikan posisi scrollLeft, indikator, & transform header tetap sinkron setelah kunci horizontal (modal/drag) dilepas
+  useLayoutEffect(() => {
+    if (isModalLocked || isDragLocked) return;
+    const container = dualPanelRef.current;
+    if (!container) return;
+    const isKolase = routeRef.current === 'kolase';
+    const expectedLeft = isKolase ? container.clientWidth : 0;
+    if (Math.abs(container.scrollLeft - expectedLeft) > 2) {
+      container.scrollLeft = expectedLeft;
+    }
+    updateTabIndicator(isKolase ? 1 : 0);
+    syncHeaderTransform();
+  }, [isDragLocked, isModalLocked, syncHeaderTransform, updateTabIndicator]);
+
   useEffect(() => {
     const handleHashChange = () => {
       const parsed = parseLocationToRouteState();
-      const prevRoute = routeRef.current;
-      if (prevRoute !== parsed.route) {
-        scrollPositionsRef.current[prevRoute] =
-          window.scrollY || document.documentElement.scrollTop || 0;
-        transitionDirRef.current = parsed.route === 'kolase' ? 'to-kolase' : 'to-jadwal';
-      }
       if (
         parsed.route === 'kolase' &&
         (parsed.date !== undefined || parsed.shift !== undefined || parsed.area !== undefined)
       ) {
-        scrollPositionsRef.current.kolase = 0;
+        kolasePanelRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
         setKolaseContext((prev) => {
           const nextDate = parsed.date || prev.date;
           const nextShift = parsed.shift || prev.shift;
@@ -444,151 +539,91 @@ export const App: React.FC = () => {
         });
         setKolaseSelectionKey((k) => k + 1);
       }
+      routeRef.current = parsed.route;
       setRoute(parsed.route);
+      slideToPanel(parsed.route, 'smooth');
     };
 
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
+  }, [slideToPanel]);
 
   useEffect(() => {
     document.title = route === 'kolase' ? 'Kolase Foto TPM' : 'Dashboard TPM Urea 1B';
   }, [route]);
 
-  useLayoutEffect(() => {
-    const targetY = scrollPositionsRef.current[route] ?? 0;
-    window.scrollTo(0, targetY);
-  }, [route, kolaseSelectionKey]);
+  const handleDualPanelScroll = useCallback(() => {
+    if (isSwipeLockedRef.current) return;
+    const container = dualPanelRef.current;
+    if (!container) return;
+    const width = container.clientWidth;
+    if (width <= 0) return;
+
+    const progress = Math.min(1, Math.max(0, container.scrollLeft / width));
+    updateTabIndicator(progress);
+    syncHeaderTransform();
+
+    const lockedTarget = programmaticSlideRef.current.target;
+    if (lockedTarget) {
+      const targetLeft = lockedTarget === 'kolase' ? width : 0;
+      if (Math.abs(container.scrollLeft - targetLeft) <= 2) {
+        clearProgrammaticSlide();
+      } else {
+        return;
+      }
+    }
+
+    const nextRoute: AppRoute = progress >= 0.5 ? 'kolase' : 'jadwal';
+    if (nextRoute !== routeRef.current) {
+      routeRef.current = nextRoute;
+      setRoute(nextRoute);
+      const targetHash = nextRoute === 'kolase' ? '#kolase' : '#jadwal';
+      if (window.location.hash !== targetHash) {
+        window.history.replaceState(null, '', targetHash);
+      }
+    }
+  }, [clearProgrammaticSlide, syncHeaderTransform, updateTabIndicator]);
 
   const navigateToJadwal = useCallback(() => {
     if (routeRef.current === 'jadwal') return;
-    scrollPositionsRef.current[routeRef.current] =
-      window.scrollY || document.documentElement.scrollTop || 0;
-    transitionDirRef.current = 'to-jadwal';
-    window.location.hash = '#jadwal';
+    routeRef.current = 'jadwal';
     setRoute('jadwal');
-  }, []);
+    window.history.replaceState(null, '', '#jadwal');
+    slideToPanel('jadwal', 'smooth');
+  }, [slideToPanel]);
 
   const navigateToKolase = useCallback(
     (params?: { date: string; shift: ShiftName; area: string }) => {
-      if (routeRef.current !== 'kolase') {
-        scrollPositionsRef.current[routeRef.current] =
-          window.scrollY || document.documentElement.scrollTop || 0;
-        transitionDirRef.current = 'to-kolase';
-      }
       if (params) {
-        // Khusus dari tap kartu jadwal: reset posisi scroll Kolase ke 0 agar Data Laporan langsung terlihat
-        scrollPositionsRef.current.kolase = 0;
+        // Ketuk kartu jadwal: pertahankan scroll jadwalPanelRef, gulir kolasePanelRef ke atas & geser mulus
         const search = new URLSearchParams({
           date: params.date,
           shift: params.shift,
           area: params.area,
         });
-        window.location.hash = `#kolase?${search.toString()}`;
+        window.history.replaceState(null, '', `#kolase?${search.toString()}`);
         setKolaseContext({
           date: params.date,
           shift: params.shift,
           area: params.area,
         });
         setKolaseSelectionKey((k) => k + 1);
-      } else if (routeRef.current !== 'kolase') {
-        window.location.hash = '#kolase';
+        routeRef.current = 'kolase';
+        setRoute('kolase');
+        kolasePanelRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+        slideToPanel('kolase', 'smooth');
+        return;
       }
+
+      if (routeRef.current === 'kolase') return;
+
+      routeRef.current = 'kolase';
       setRoute('kolase');
+      window.history.replaceState(null, '', '#kolase');
+      slideToPanel('kolase', 'smooth');
     },
-    []
+    [slideToPanel]
   );
-
-  const handleMainTouchStart = useCallback((e: React.TouchEvent<HTMLElement>) => {
-    if (e.touches.length !== 1 || hasActiveModalLock() || isSwipeLockedRef.current) {
-      swipeGestureRef.current.active = false;
-      return;
-    }
-    if (hasHorizontalScrollAncestor(e.target, mainContainerRef.current)) {
-      swipeGestureRef.current.active = false;
-      return;
-    }
-    const touch = e.touches[0];
-    swipeGestureRef.current = {
-      active: true,
-      startX: touch.clientX,
-      startY: touch.clientY,
-      lockedAxis: null,
-    };
-  }, []);
-
-  const handleMainTouchMove = useCallback((e: React.TouchEvent<HTMLElement>) => {
-    const gesture = swipeGestureRef.current;
-    if (
-      !gesture.active ||
-      e.touches.length !== 1 ||
-      hasActiveModalLock() ||
-      isSwipeLockedRef.current
-    ) {
-      if (gesture.active) {
-        gesture.active = false;
-        setSwipeDragX(0);
-      }
-      return;
-    }
-
-    const touch = e.touches[0];
-    const dx = touch.clientX - gesture.startX;
-    const dy = touch.clientY - gesture.startY;
-
-    if (gesture.lockedAxis === null) {
-      if (Math.abs(dy) > 10 && Math.abs(dy) >= Math.abs(dx)) {
-        gesture.lockedAxis = 'y';
-        gesture.active = false;
-        return;
-      }
-      if (Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-        gesture.lockedAxis = 'x';
-      }
-    }
-
-    if (gesture.lockedAxis === 'x') {
-      const canSwipeTarget =
-        (routeRef.current === 'jadwal' && dx < 0) || (routeRef.current === 'kolase' && dx > 0);
-      if (canSwipeTarget) {
-        const damped = Math.max(-44, Math.min(44, dx * 0.25));
-        setSwipeDragX(damped);
-      } else {
-        setSwipeDragX(0);
-      }
-    }
-  }, []);
-
-  const handleMainTouchEnd = useCallback(
-    (e: React.TouchEvent<HTMLElement>) => {
-      setSwipeDragX(0);
-      const gesture = swipeGestureRef.current;
-      if (!gesture.active || hasActiveModalLock() || isSwipeLockedRef.current) {
-        gesture.active = false;
-        return;
-      }
-      gesture.active = false;
-
-      const touch = e.changedTouches[0];
-      if (!touch) return;
-      const dx = touch.clientX - gesture.startX;
-      const dy = touch.clientY - gesture.startY;
-
-      if (Math.abs(dx) >= 55 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-        if (routeRef.current === 'jadwal' && dx < 0) {
-          navigateToKolase();
-        } else if (routeRef.current === 'kolase' && dx > 0) {
-          navigateToJadwal();
-        }
-      }
-    },
-    [navigateToJadwal, navigateToKolase]
-  );
-
-  const handleMainTouchCancel = useCallback(() => {
-    swipeGestureRef.current.active = false;
-    setSwipeDragX(0);
-  }, []);
 
   const handleReportSubmitted = useCallback(
     async (dateStr: string, shift: ShiftName, area: string) => {
@@ -715,20 +750,12 @@ export const App: React.FC = () => {
     const op = getOperationalShiftInfo();
     setDevModalOpen(false);
     setKolaseGridType('2x3');
-    // Putuskan tautan jadwal operasional hari ini agar dummy test selalu netral
-    setKolaseContext({
+    setRowCaptions([...DEV_TEST_ROWS]);
+    navigateToKolase({
       date: op.dateStr,
       shift: op.shift,
       area: extremeTag,
     });
-    scrollPositionsRef.current[routeRef.current] =
-      window.scrollY || document.documentElement.scrollTop || 0;
-    scrollPositionsRef.current.kolase = 0;
-    transitionDirRef.current = 'to-kolase';
-    setKolaseSelectionKey((k) => k + 1);
-    setRowCaptions([...DEV_TEST_ROWS]);
-    window.location.hash = '#kolase';
-    setRoute('kolase');
 
     const specs = [
       { color: '#F8FAFC', striped: false },
@@ -759,7 +786,7 @@ export const App: React.FC = () => {
     prevBefore.forEach(disposeSlotCanvases);
     prevAfter.forEach(disposeSlotCanvases);
     setIsReportSubmitted(false);
-  }, []);
+  }, [navigateToKolase]);
 
   const handleDevTestToasts = useCallback(() => {
     clearTestToastSequence();
@@ -818,180 +845,205 @@ export const App: React.FC = () => {
     showToast('Data dummy dibersihkan & jadwal shift aktif dipulihkan.', 'success', 2500);
   }, [clearTestToastSequence, showToast]);
 
+  const renderPanelFooter = () => (
+    <footer className="mt-1 flex w-full flex-col items-center gap-3 pt-2 text-center">
+      {showInstallButton && (
+        <button
+          type="button"
+          onClick={handleInstallClick}
+          className="flex cursor-pointer items-center gap-2 rounded-full border border-sky-400/40 bg-gradient-to-br from-sky-500 to-sky-700 px-6 py-3 text-[15px] font-bold text-white shadow-[0_4px_14px_rgba(14,165,233,0.35)] transition active:scale-[0.96]"
+        >
+          <IconDownload className="h-5 w-5" /> Install Aplikasi
+        </button>
+      )}
+
+      <div className="text-xs leading-[1.6] tracking-[0.2px] text-slate-300">
+        <p>Dibuat untuk mempermudah laporan TPM Urea 1B</p>
+        <p className="mt-0.5 font-medium text-slate-400">© 2026 — Developed by FIKRI</p>
+        <button
+          type="button"
+          onClick={() => setChangelogOpen(true)}
+          aria-label={`Lihat riwayat pembaruan Versi ${APP_VERSION}`}
+          className="mt-1.5 inline-flex cursor-pointer items-center gap-1 rounded-xl border border-slate-700/80 bg-slate-900 px-2.5 py-0.5 font-mono text-xs font-semibold tracking-tight text-sky-300 transition hover:border-sky-400/60 active:scale-95"
+        >
+          v{APP_VERSION}
+        </button>
+      </div>
+    </footer>
+  );
+
   return (
     <div
-      className={`flex w-full max-w-[800px] flex-1 flex-col gap-4 transition-opacity duration-250 ${
+      className={`relative flex h-[100dvh] w-full max-w-[800px] flex-col overflow-hidden pl-[calc(14px+env(safe-area-inset-left))] pr-[calc(14px+env(safe-area-inset-right))] pt-[env(safe-area-inset-top)] transition-opacity duration-250 ${
         isFadingOut ? 'pointer-events-none opacity-0' : 'app-fade-in opacity-100'
       }`}
     >
-      <header className="flex flex-col items-center text-center">
-        <h1 className="mb-1 flex items-center justify-center gap-2 text-[21px] font-bold tracking-tight text-white sm:text-[22px]">
-          <button
-            type="button"
-            onPointerDown={handleSettingsGearTap}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                handleSettingsGearTap();
-              }
-            }}
-            aria-label="Ikon Pengaturan Dashboard TPM"
-            className="inline-flex select-none touch-manipulation cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-sky-400 transition active:scale-90"
-          >
-            <IconSettings className="h-5 w-5" />
-          </button>
-          <span>Dashboard TPM Urea 1B</span>
-        </h1>
-        <p className="text-sm text-slate-300">Monitoring Jadwal &amp; Pembuatan Kolase Foto</p>
-        <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2">
-          <button
-            type="button"
-            onClick={() => setGuideOpen(true)}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-sky-500/40 bg-sky-500/15 px-[18px] py-[7px] text-[13px] font-semibold text-sky-300 transition hover:bg-sky-500/25 active:scale-[0.96]"
-          >
-            <IconHelpCircle className="h-4 w-4" /> Panduan
-          </button>
-          {devModeActive && (
-            <button
-              type="button"
-              onClick={() => setDevModalOpen(true)}
-              className="inline-flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-full border border-amber-500/40 bg-amber-500/15 px-3 py-[7px] text-[11px] font-bold tracking-wider text-amber-400 transition hover:bg-amber-500/25 active:scale-95"
-            >
-              <IconWrench className="h-3 w-3" />
-              <span>TEST MODE</span>
-            </button>
-          )}
-        </div>
-      </header>
-
-      {/* Navigasi */}
-      <nav className="grid grid-cols-2 gap-2.5 sm:gap-3" aria-label="Navigasi utama">
-        <a
-          href="#jadwal"
-          onClick={(e) => {
-            e.preventDefault();
-            navigateToJadwal();
-          }}
-          className={`flex min-w-0 items-center justify-center gap-2.5 rounded-xl border p-3 text-white no-underline transition sm:gap-3 sm:p-3.5 ${
-            route === 'jadwal'
-              ? 'border-sky-500/70 bg-sky-950/60 shadow-[0_0_0_1px_rgba(56,189,248,0.2)]'
-              : 'border-slate-800 bg-slate-900 hover:border-slate-700'
-          }`}
-        >
-          <IconCalendar className="h-5 w-5 shrink-0 text-sky-400" />
-          <div className="min-w-0 text-left">
-            <h3 className="truncate text-[16px] font-bold text-white">Jadwal TPM</h3>
-            <p className="truncate text-xs text-slate-300">Monitoring Rutin</p>
-          </div>
-        </a>
-
-        <a
-          href="#kolase"
-          onClick={(e) => {
-            e.preventDefault();
-            navigateToKolase();
-          }}
-          className={`flex min-w-0 items-center justify-center gap-2.5 rounded-xl border p-3 text-white no-underline transition sm:gap-3 sm:p-3.5 ${
-            route === 'kolase'
-              ? 'border-sky-500/70 bg-sky-950/60 shadow-[0_0_0_1px_rgba(56,189,248,0.2)]'
-              : 'border-slate-800 bg-slate-900 hover:border-slate-700'
-          }`}
-        >
-          <IconCamera className="h-5 w-5 shrink-0 text-sky-400" />
-          <div className="min-w-0 text-left">
-            <h3 className="truncate text-[16px] font-bold text-white">Kolase Foto</h3>
-            <p className="truncate text-xs text-slate-300">Before &amp; After</p>
-          </div>
-        </a>
-      </nav>
-
-      {/* Main View dengan Navigasi Swipe Horizontal + Transisi Halus */}
-      <main
-        ref={mainContainerRef}
-        onTouchStart={handleMainTouchStart}
-        onTouchMove={handleMainTouchMove}
-        onTouchEnd={handleMainTouchEnd}
-        onTouchCancel={handleMainTouchCancel}
-        className="w-full min-w-0 touch-pan-y overflow-x-clip"
-      >
+      <div className="relative min-h-0 w-full flex-1 overflow-hidden">
+        {/* 1 Header & 1 Tab Bar Tunggal Melayang (Tergulung GPU translate3d & Berinterpolasi Antar-Panel) */}
         <div
-          key={route}
-          style={
-            swipeDragX !== 0
-              ? { transform: `translateX(${swipeDragX}px)`, transition: 'none' }
-              : undefined
-          }
-          className={
-            transitionDirRef.current === 'to-kolase'
-              ? 'tab-enter-from-right'
-              : transitionDirRef.current === 'to-jadwal'
-                ? 'tab-enter-from-left'
-                : undefined
-          }
+          ref={headerWrapperRef}
+          className="pointer-events-none absolute top-0 right-0 left-0 z-20 flex flex-col gap-3.5 pt-5 pb-3.5 will-change-transform"
         >
-          {route === 'jadwal' ? (
-            <DashboardView
-              reportedLog={reportedLog}
-              devModeActive={devModeActive}
-              onSelectShift={(params) => navigateToKolase(params)}
-              onUndoReport={handleReportUndo}
-              onShowToast={showToast}
-            />
-          ) : (
-            <KolaseView
-              date={kolaseContext.date}
-              shift={kolaseContext.shift}
-              area={kolaseContext.area}
-              selectionKey={kolaseSelectionKey}
-              reportedLog={reportedLog}
-              devModeActive={devModeActive}
-              gridType={kolaseGridType}
-              beforeSlots={beforeSlots}
-              afterSlots={afterSlots}
-              rowCaptions={rowCaptions}
-              onGridTypeChange={setKolaseGridType}
-              onBeforeSlotsChange={setBeforeSlots}
-              onAfterSlotsChange={setAfterSlots}
-              onRowCaptionsChange={setRowCaptions}
-              onReportSubmittedStateChange={setIsReportSubmitted}
-              onDateChange={handleKolaseDateChange}
-              onShiftChange={handleKolaseShiftChange}
-              onAreaChange={handleKolaseAreaChange}
-              onReportSubmitted={handleReportSubmitted}
-              onRestoreReport={handleReportRestore}
-              onShowToast={showToast}
-              onDismissLoadingToast={dismissLoadingToast}
-              onDragLockChange={handleDragLockChange}
-            />
-          )}
-        </div>
-      </main>
+          <header className="flex flex-col items-center text-center">
+            <h1 className="mb-1 flex items-center justify-center gap-2 text-[21px] font-bold tracking-tight text-white sm:text-[22px]">
+              <button
+                type="button"
+                onPointerDown={handleSettingsGearTap}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleSettingsGearTap();
+                  }
+                }}
+                aria-label="Ikon Pengaturan Dashboard TPM"
+                className="pointer-events-auto inline-flex select-none touch-manipulation cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-sky-400 transition active:scale-90"
+              >
+                <IconSettings className="h-5 w-5" />
+              </button>
+              <span>Dashboard TPM Urea 1B</span>
+            </h1>
+            <p className="text-sm text-slate-300">Monitoring Jadwal &amp; Pembuatan Kolase Foto</p>
+            <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => setGuideOpen(true)}
+                className="pointer-events-auto inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-sky-500/40 bg-sky-500/15 px-[18px] py-[7px] text-[13px] font-semibold text-sky-300 transition hover:bg-sky-500/25 active:scale-[0.96]"
+              >
+                <IconHelpCircle className="h-4 w-4" /> Panduan
+              </button>
+              {devModeActive && (
+                <button
+                  type="button"
+                  onClick={() => setDevModalOpen(true)}
+                  className="pointer-events-auto inline-flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-full border border-amber-500/40 bg-amber-500/15 px-3 py-[7px] text-[11px] font-bold tracking-wider text-amber-400 transition hover:bg-amber-500/25 active:scale-95"
+                >
+                  <IconWrench className="h-3 w-3" />
+                  <span>TEST MODE</span>
+                </button>
+              )}
+            </div>
+          </header>
 
-      {/* Footer dengan Smart Install, Credit & Versi */}
-      <footer className="mt-1 flex w-full flex-col items-center gap-3 pt-2 text-center">
-        {showInstallButton && (
-          <button
-            type="button"
-            onClick={handleInstallClick}
-            className="flex cursor-pointer items-center gap-2 rounded-full border border-sky-400/40 bg-gradient-to-br from-sky-500 to-sky-700 px-6 py-3 text-[15px] font-bold text-white shadow-[0_4px_14px_rgba(14,165,233,0.35)] transition active:scale-[0.96]"
-          >
-            <IconDownload className="h-5 w-5" /> Install Aplikasi
-          </button>
-        )}
+          <nav className="flex flex-col gap-1.5" aria-label="Navigasi utama">
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+              <a
+                href="#jadwal"
+                aria-current={route === 'jadwal' ? 'page' : undefined}
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigateToJadwal();
+                }}
+                className={`pointer-events-auto flex min-w-0 items-center justify-center gap-2.5 rounded-xl border p-3 text-white no-underline transition sm:gap-3 sm:p-3.5 ${
+                  route === 'jadwal'
+                    ? 'border-sky-500/70 bg-sky-950/60 shadow-[0_0_0_1px_rgba(56,189,248,0.2)]'
+                    : 'border-slate-800 bg-slate-900 hover:border-slate-700'
+                }`}
+              >
+                <IconCalendar className="h-5 w-5 shrink-0 text-sky-400" />
+                <div className="min-w-0 text-left">
+                  <h3 className="truncate text-[16px] font-bold text-white">Jadwal TPM</h3>
+                  <p className="truncate text-xs text-slate-300">Monitoring Rutin</p>
+                </div>
+              </a>
 
-        <div className="text-xs leading-[1.6] tracking-[0.2px] text-slate-300">
-          <p>Dibuat untuk mempermudah laporan TPM Urea 1B</p>
-          <p className="mt-0.5 font-medium text-slate-400">© 2026 — Developed by FIKRI</p>
-          <button
-            type="button"
-            onClick={() => setChangelogOpen(true)}
-            aria-label={`Lihat riwayat pembaruan Versi ${APP_VERSION}`}
-            className="mt-1.5 inline-flex cursor-pointer items-center gap-1 rounded-xl border border-slate-700/80 bg-slate-900 px-2.5 py-0.5 font-mono text-xs font-semibold tracking-tight text-sky-300 transition hover:border-sky-400/60 active:scale-95"
-          >
-            v{APP_VERSION}
-          </button>
+              <a
+                href="#kolase"
+                aria-current={route === 'kolase' ? 'page' : undefined}
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigateToKolase();
+                }}
+                className={`pointer-events-auto flex min-w-0 items-center justify-center gap-2.5 rounded-xl border p-3 text-white no-underline transition sm:gap-3 sm:p-3.5 ${
+                  route === 'kolase'
+                    ? 'border-sky-500/70 bg-sky-950/60 shadow-[0_0_0_1px_rgba(56,189,248,0.2)]'
+                    : 'border-slate-800 bg-slate-900 hover:border-slate-700'
+                }`}
+              >
+                <IconCamera className="h-5 w-5 shrink-0 text-sky-400" />
+                <div className="min-w-0 text-left">
+                  <h3 className="truncate text-[16px] font-bold text-white">Kolase Foto</h3>
+                  <p className="truncate text-xs text-slate-300">Before &amp; After</p>
+                </div>
+              </a>
+            </div>
+
+            <div
+              ref={indicatorTrackRef}
+              aria-hidden="true"
+              className="relative h-[3px] w-full overflow-hidden rounded-full bg-slate-800/85"
+            >
+              <div
+                ref={indicatorBarRef}
+                className="h-full w-[calc(50%-0.3125rem)] rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.6)] will-change-transform sm:w-[calc(50%-0.375rem)]"
+              />
+            </div>
+          </nav>
         </div>
-      </footer>
+
+        {/* Wadah Dual-Panel CSS Scroll-Snap Horizontal dengan 2 Panel Scroll Vertikal Independen */}
+        <main
+          ref={dualPanelRef}
+          onScroll={handleDualPanelScroll}
+          onTouchStart={clearProgrammaticSlide}
+          className={`no-scrollbar grid h-full w-full grid-flow-col grid-rows-1 auto-cols-[100%] snap-x snap-mandatory overflow-y-hidden overscroll-x-contain ${
+            isModalLocked || isDragLocked ? 'overflow-x-hidden' : 'overflow-x-auto'
+          }`}
+        >
+          <section
+            ref={jadwalPanelRef}
+            onScroll={syncHeaderTransform}
+            aria-label="Panel Jadwal TPM"
+            className="no-scrollbar h-full w-full snap-start snap-always overflow-y-auto overscroll-y-contain pb-[calc(1.25rem+env(safe-area-inset-bottom))]"
+          >
+            <div ref={jadwalInnerRef} className="flex flex-col gap-4">
+              <DashboardView
+                reportedLog={reportedLog}
+                devModeActive={devModeActive}
+                onSelectShift={(params) => navigateToKolase(params)}
+                onUndoReport={handleReportUndo}
+                onShowToast={showToast}
+              />
+              {renderPanelFooter()}
+            </div>
+          </section>
+
+          <section
+            ref={kolasePanelRef}
+            onScroll={syncHeaderTransform}
+            aria-label="Panel Kolase Foto"
+            className="no-scrollbar h-full w-full snap-start snap-always overflow-y-auto overscroll-y-contain pb-[calc(1.25rem+env(safe-area-inset-bottom))]"
+          >
+            <div ref={kolaseInnerRef} className="flex flex-col gap-4">
+              <KolaseView
+                date={kolaseContext.date}
+                shift={kolaseContext.shift}
+                area={kolaseContext.area}
+                selectionKey={kolaseSelectionKey}
+                reportedLog={reportedLog}
+                devModeActive={devModeActive}
+                gridType={kolaseGridType}
+                beforeSlots={beforeSlots}
+                afterSlots={afterSlots}
+                rowCaptions={rowCaptions}
+                onGridTypeChange={setKolaseGridType}
+                onBeforeSlotsChange={setBeforeSlots}
+                onAfterSlotsChange={setAfterSlots}
+                onRowCaptionsChange={setRowCaptions}
+                onReportSubmittedStateChange={setIsReportSubmitted}
+                onDateChange={handleKolaseDateChange}
+                onShiftChange={handleKolaseShiftChange}
+                onAreaChange={handleKolaseAreaChange}
+                onReportSubmitted={handleReportSubmitted}
+                onRestoreReport={handleReportRestore}
+                onShowToast={showToast}
+                onDismissLoadingToast={dismissLoadingToast}
+                onDragLockChange={handleDragLockChange}
+              />
+              {renderPanelFooter()}
+            </div>
+          </section>
+        </main>
+      </div>
 
       <GuideModal isOpen={guideOpen} onClose={() => setGuideOpen(false)} />
       <ChangelogModal

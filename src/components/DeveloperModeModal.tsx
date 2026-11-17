@@ -85,7 +85,7 @@ export const DeveloperModeModal: React.FC<DeveloperModeModalProps> = ({
             <div className="min-w-0 flex-1">
               <div className="text-[14px] font-bold text-white">Auto-Fill Uji Ekstrem</div>
               <div className="text-xs text-slate-300">
-                Grid 2x3, 6 foto kontras 1080px, tag panjang &amp; 30 karakter A-Z/0-9
+                Grid 2x3, 6 foto kontras 1080px, tag TEST-TAG-9999 &amp; 30 karakter A-Z/0-9
               </div>
             </div>
           </button>
@@ -115,7 +115,7 @@ export const DeveloperModeModal: React.FC<DeveloperModeModalProps> = ({
             <div className="min-w-0 flex-1">
               <div className="text-[14px] font-bold text-white">Simulasi Pop-up Update PWA</div>
               <div className="text-xs text-slate-300">
-                Tampilkan modal pembaruan aplikasi tanpa memuat ulang
+                Jalankan alur update &amp; animasi fade layar penuh tanpa reload browser
               </div>
             </div>
           </button>

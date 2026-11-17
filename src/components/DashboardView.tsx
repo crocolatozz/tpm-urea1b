@@ -424,12 +424,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 name="tpm_q_f1"
                 autoComplete="off"
                 autoCorrect="off"
-                autoCapitalize="off"
+                autoCapitalize="characters"
                 spellCheck={false}
                 data-form-type="other"
                 data-lpignore="true"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => setSearchQuery(e.target.value.toUpperCase())}
                 placeholder="Misal: GA101, FLARE..."
                 className="tpm-input pr-10! font-semibold text-white placeholder:font-normal placeholder:text-slate-400 placeholder:normal-case"
               />

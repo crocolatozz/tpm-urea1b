@@ -42,22 +42,25 @@
     touch-action: manipulation;
     -webkit-text-size-adjust: 100%;
     overscroll-behavior-y: none;
+    overscroll-behavior-x: none;
     -webkit-overflow-scrolling: touch;
+    height: 100%;
+    overflow: hidden;
   }
 
   body {
     background-color: var(--bg-color);
     color: var(--text-color);
     font-size: 16px;
-    padding: calc(28px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right))
-      calc(44px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left));
+    margin: 0;
+    padding: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-height: 100vh;
-    min-height: 100dvh;
+    height: 100vh;
+    height: 100dvh;
     width: 100%;
-    overflow-x: hidden;
+    overflow: hidden;
   }
 }
 
@@ -65,14 +68,24 @@
   .font-equipment {
     font-family: "Rajdhani", "Plus Jakarta Sans", system-ui, sans-serif;
   }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 #root {
   width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  flex: 1;
+  overflow: hidden;
 }
 
 /* Native Dark Form Controls (Industrial Slate) + Anti-iOS-Auto-Zoom (16px) */
@@ -137,36 +150,6 @@
   to {
     transform: scale(1);
     opacity: 1;
-  }
-}
-
-.tab-enter-from-right {
-  animation: tpmTabEnterRight 0.22s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.tab-enter-from-left {
-  animation: tpmTabEnterLeft 0.22s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-@keyframes tpmTabEnterRight {
-  from {
-    opacity: 0.72;
-    transform: translateX(26px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes tpmTabEnterLeft {
-  from {
-    opacity: 0.72;
-    transform: translateX(-26px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
   }
 }
 

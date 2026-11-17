@@ -2,6 +2,13 @@
 
 Semua perubahan penting pada aplikasi **Dashboard & Kolase Foto TPM Urea 1B** dicatat di file ini mengikuti standar [Semantic Versioning](https://semver.org/).
 
+## [2.10.4] - 2026-11-17
+
+### Diubah
+- **Arsitektur Navigasi *Dual-Panel CSS Scroll-Snap* dengan Memori *Scroll* Independen (`App.tsx`, `index.css`):** Menggunakan **1 Header dan 1 Tab Bar tunggal** yang tergulung mulus via `translate3d` berbasis `ResizeObserver` serta berinterpolasi mengikuti rasio geseran jari antar-panel, dipadukan dengan dua panel *scroll* vertikal independen (`h-full overflow-y-auto overscroll-y-contain`) yang menyimpan posisi *scroll* terakhir **Jadwal TPM** maupun **Kolase Foto** secara terpisah di dalam kontainer `100dvh` bebas *double scrollbar*.
+- **Tampilan Utama Bebas Scrollbar, Kapitalisasi Keyboard & Transisi Kartu Jadwal (`App.tsx`, `DashboardView.tsx`, `KolaseView.tsx`, `index.css`):** Menerapkan `.no-scrollbar` khusus halaman utama (modal tetap memakai scrollbar), mengunci gestur horizontal otomatis selama modal atau *drag* slot foto aktif, menempatkan credit footer di masing-masing panel dengan ruang aman *gesture bar*, menjaga posisi *scroll* Jadwal sambil menggulir panel Kolase ke atas saat mengetuk kartu jadwal, serta menerapkan `autoCapitalize="characters"` + `.toUpperCase()` otomatis pada input pencarian alat dan input manual Tag Equipment/Area (dengan `placeholder:normal-case`) serta `autoCapitalize="sentences"` pada input keterangan kegiatan.
+- **Pembaruan Panduan Aplikasi & Sinkronisasi Versi `2.10.4` (`GuideModal.tsx`, `package.json`, `tpmData.ts`, `version.json`, `vite.config.js`):** Menyelaraskan isi Panduan Aplikasi dengan alur navigasi usap antar-panel dan ketuk kartu jadwal secara seragam, membersihkan *handler* swipe manual lama serta animasi CSS yang tidak lagi terpakai, dan menyelaraskan versi aplikasi serta `cacheId` Service Worker ke `v2.10.4`.
+
 ## [2.10.3] - 2026-11-17
 
 ### Ditambahkan

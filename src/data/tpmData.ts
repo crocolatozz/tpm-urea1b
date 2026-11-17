@@ -1,5 +1,5 @@
-export const APP_VERSION = '2.10.3';
-export const STORAGE_VERSION = '2.10.3';
+export const APP_VERSION = '2.10.4';
+export const STORAGE_VERSION = '2.10.4';
 
 export type ShiftName = 'PAGI' | 'SORE' | 'MALAM';
 export type GridType = '2x1' | '2x2' | '2x3';
@@ -47,19 +47,7 @@ export const masterTPMUrea1B: Record<number, DayRotation> = {
 };
 
 export function buildExtremeDummyTag(): string {
-  let maxLen = 13;
-  Object.values(masterTPMUrea1B).forEach((day) => {
-    (['PAGI', 'SORE', 'MALAM'] as const).forEach((shift) => {
-      const len = day[shift]?.trim().length || 0;
-      if (len > maxLen) maxLen = len;
-    });
-  });
-  const base = 'TEST-TAG-999-EXTREME';
-  if (maxLen <= base.length) {
-    const sliced = base.slice(0, maxLen);
-    return sliced.endsWith('-') ? `${sliced.slice(0, -1)}X` : sliced;
-  }
-  return base.padEnd(maxLen, 'X');
+  return 'TEST-TAG-9999';
 }
 
 export const SHIFT_TIME_RANGES: Record<ShiftName, string> = {

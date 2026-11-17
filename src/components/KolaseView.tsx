@@ -413,7 +413,7 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
 
   const handleAreaInputChange = (nextArea: string) => {
     if (isDataLocked) return;
-    onAreaChange(nextArea);
+    onAreaChange(nextArea.toUpperCase());
   };
 
   const handleRowCaptionChange = (rowIdx: number, value: string) => {
@@ -1358,13 +1358,13 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
                 aria-label="Area / Equipment TPM"
                 autoComplete="off"
                 autoCorrect="off"
-                autoCapitalize="off"
+                autoCapitalize="characters"
                 spellCheck={false}
                 data-form-type="other"
                 data-lpignore="true"
                 readOnly={isDataLocked}
                 value={tpmArea}
-                onChange={(e) => handleAreaInputChange(e.target.value)}
+                onChange={(e) => handleAreaInputChange(e.target.value.toUpperCase())}
                 placeholder="Misal: GA101A, FLARE..."
                 className={`tpm-input font-equipment min-h-[42px]! w-full py-1.5! text-center text-xl! font-bold tracking-wider text-white placeholder:font-sans placeholder:text-base! placeholder:font-normal placeholder:tracking-normal placeholder:text-slate-400 placeholder:normal-case ${
                   isDataLocked ? 'cursor-not-allowed opacity-80' : ''
@@ -1719,7 +1719,7 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
                     aria-label={cfg.ariaLabel}
                     autoComplete="off"
                     autoCorrect="off"
-                    autoCapitalize="off"
+                    autoCapitalize="sentences"
                     spellCheck={false}
                     data-form-type="other"
                     data-lpignore="true"

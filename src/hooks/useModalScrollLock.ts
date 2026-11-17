@@ -1,9 +1,25 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 
 const activeLockIds = new Set<symbol>();
+const listeners = new Set<() => void>();
 
 export function hasActiveModalLock(): boolean {
   return activeLockIds.size > 0;
+}
+
+function subscribeModalLock(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+function getModalLockSnapshot(): boolean {
+  return activeLockIds.size > 0;
+}
+
+export function useIsAnyModalOpen(): boolean {
+  return useSyncExternalStore(subscribeModalLock, getModalLockSnapshot, () => false);
 }
 
 function syncDocumentScrollLock(): void {
@@ -17,6 +33,7 @@ function syncDocumentScrollLock(): void {
     html.classList.remove('overflow-hidden', 'touch-none', 'overscroll-contain');
     body.classList.remove('overflow-hidden', 'touch-none', 'overscroll-contain');
   }
+  listeners.forEach((listener) => listener());
 }
 
 export function useModalScrollLock(isLocked: boolean): void {

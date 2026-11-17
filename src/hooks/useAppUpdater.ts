@@ -318,10 +318,10 @@ export function useAppUpdater(options: UseAppUpdaterOptions = {}) {
     setUpdatePhase('idle');
     setModalState({
       mode: 'prompt',
-      remoteVersion: '2.10.3',
+      remoteVersion: '2.10.4',
       releaseNotes: [
-        'Simulasi pratinjau pop-up pembaruan PWA (mode uji lokal, tidak memuat ulang aplikasi).',
-        'Memastikan tata letak modal update, badge versi, dan tombol aksi tampil presisi di layar mobile.',
+        'Simulasi pratinjau pop-up pembaruan PWA dengan alur animasi asli (tanpa reload browser).',
+        'Memastikan transisi overlay fade-out/fade-in, badge versi, dan tombol aksi tampil persis seperti update nyata.',
       ],
       swDriven: false,
       manualTriggered: true,
@@ -344,12 +344,18 @@ export function useAppUpdater(options: UseAppUpdaterOptions = {}) {
 
     if (modalState.simulated) {
       window.setTimeout(() => {
+        if (isReloadingRef.current) return;
+        isReloadingRef.current = true;
         setUpdatePhase('reloading');
+        onBeforeReloadFadeOutRef.current?.();
+
         window.setTimeout(() => {
+          isReloadingRef.current = false;
           setUpdatePhase('idle');
           setModalState({ mode: 'closed' });
-        }, 350);
-      }, 650);
+          onCancelFadeOutRef.current?.();
+        }, RELOAD_FADE_DELAY_MS);
+      }, 450);
       return;
     }
 

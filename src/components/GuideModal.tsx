@@ -156,8 +156,15 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
                   di-tap untuk melihat info sinkronisasi atau membatalkan/reset tanda.
                 </li>
                 <li>
-                  Tap <strong className="text-white">kartu jadwal</strong> untuk langsung membuka tab{' '}
-                  <strong className="text-white">Kolase Foto</strong> dan menyusun kolase.
+                  Tap <strong className="text-white">kartu jadwal</strong> untuk mengisi otomatis
+                  Tanggal, Shift, dan Tag Equipment lalu bergeser mulus ke panel{' '}
+                  <strong className="text-white">Kolase Foto</strong>.
+                </li>
+                <li>
+                  Usap layar ke kiri/kanan dari posisi mana saja untuk berpindah antar-panel{' '}
+                  <strong className="text-white">Jadwal TPM</strong> dan{' '}
+                  <strong className="text-white">Kolase Foto</strong> tanpa menghapus foto maupun
+                  keterangan.
                 </li>
               </ul>
             </div>
@@ -235,8 +242,10 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
                     <IconDownload className="h-3.5 w-3.5" /> Install Aplikasi
                   </strong>{' '}
                   atau buka menu browser{' '}
-                  <IconArrowRight className="h-3.5 w-3.5 text-sky-400" /> pilih{' '}
-                  <strong className="text-white">Install app / Tambahkan ke layar utama</strong>.
+                  <strong className="inline-flex items-center text-sky-400">
+                    <IconArrowRight className="h-3.5 w-3.5" />
+                  </strong>{' '}
+                  pilih <strong className="text-white">Install app / Tambahkan ke layar utama</strong>.
                   Jika muncul peringatan Play Protect di Samsung Browser, pilih{' '}
                   <strong className="text-white">Install anyway / Tetap install</strong>.
                 </li>
@@ -245,8 +254,11 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
                   <strong className="inline-flex items-center gap-1 text-sky-400">
                     Share <IconShareIos className="h-3.5 w-3.5" />
                   </strong>{' '}
-                  <IconArrowRight className="h-3.5 w-3.5 text-sky-400" /> pilih{' '}
-                  <strong className="text-white">
+                  <strong className="inline-flex items-center text-sky-400">
+                    <IconArrowRight className="h-3.5 w-3.5" />
+                  </strong>{' '}
+                  pilih{' '}
+                  <strong className="inline-flex items-center gap-1 text-white">
                     Tambah ke Layar Utama{' '}
                     <IconPlusSquare className="h-3.5 w-3.5 text-sky-400" />
                   </strong>

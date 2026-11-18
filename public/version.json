@@ -1,8 +1,7 @@
 {
-  "version": "2.11.0",
+  "version": "2.11.1",
   "notes": [
-    "Optimalisasi padding bawah dan jarak footer di tab Jadwal TPM serta Kolase Foto agar ringkas dan bebas ruang kosong berlebih",
-    "Pembaruan catatan modal konfirmasi Buka Kunci Data Laporan, toast petunjuk saat mengetuk kotak Caption WhatsApp, serta transisi fade-in pasca-loading yang lebih mulus",
-    "Optimasi performa render dengan memoization komponen dan stabilisasi handler agar interaksi lebih responsif"
+    "Pemangkasan ruang kosong di bawah pil versi footer pada tab Jadwal TPM dan Kolase Foto menjadi calc(16px + env(safe-area-inset-bottom)) agar lebih ringkas di iPhone maupun Android",
+    "Penyelarasan pembungkus kontainer scroll independen agar safe-area bawah tidak terpasang ganda"
   ]
 }

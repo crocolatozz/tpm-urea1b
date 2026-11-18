@@ -2,6 +2,14 @@
 
 Semua perubahan penting pada aplikasi **Dashboard & Kolase Foto TPM Urea 1B** dicatat di file ini mengikuti standar [Semantic Versioning](https://semver.org/).
 
+## [2.11.1] - 2026-11-18
+
+### Diperbaiki
+- **Pemangkasan Ruang Kosong di Bawah Pil Badge Versi Footer (`App.tsx`):** Memindahkan dan menyetel `padding-bottom: calc(16px + env(safe-area-inset-bottom))` secara presisi pada pembungkus dalam masing-masing panel *scroll* independen (**Jadwal TPM** & **Kolase Foto**) sehingga jarak di bawah pil versi tetap ringkas di iPhone maupun Android tanpa ruang kosong berlebih maupun duplikasi `env(safe-area-inset-bottom)`, serta mempertahankan jarak header, tab bar, dan spasi atas footer.
+
+### Diubah
+- **Sinkronisasi Versi Patch `2.11.1` (`package.json`, `tpmData.ts`, `version.json`, `vite.config.js`):** Menyelaraskan nomor versi aplikasi, pil badge footer, metadata pembaruan, serta `cacheId` Service Worker ke `v2.11.1`.
+
 ## [2.11.0] - 2026-11-18
 
 ### Ditambahkan

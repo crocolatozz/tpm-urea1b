@@ -1023,9 +1023,12 @@ export const App: React.FC = () => {
             ref={jadwalPanelRef}
             onScroll={syncHeaderTransform}
             aria-label="Panel Jadwal TPM"
-            className="no-scrollbar h-full w-full snap-start snap-always overflow-y-auto overscroll-y-contain pb-[calc(0.75rem+env(safe-area-inset-bottom))]"
+            className="no-scrollbar h-full w-full snap-start snap-always overflow-y-auto overscroll-y-contain"
           >
-            <div ref={jadwalInnerRef} className="flex flex-col gap-3">
+            <div
+              ref={jadwalInnerRef}
+              className="flex flex-col gap-3 pb-[calc(16px+env(safe-area-inset-bottom))]"
+            >
               <DashboardView
                 reportedLog={reportedLog}
                 devModeActive={devModeActive}
@@ -1041,9 +1044,12 @@ export const App: React.FC = () => {
             ref={kolasePanelRef}
             onScroll={syncHeaderTransform}
             aria-label="Panel Kolase Foto"
-            className="no-scrollbar h-full w-full snap-start snap-always overflow-y-auto overscroll-y-contain pb-[calc(0.75rem+env(safe-area-inset-bottom))]"
+            className="no-scrollbar h-full w-full snap-start snap-always overflow-y-auto overscroll-y-contain"
           >
-            <div ref={kolaseInnerRef} className="flex flex-col gap-3">
+            <div
+              ref={kolaseInnerRef}
+              className="flex flex-col gap-3 pb-[calc(16px+env(safe-area-inset-bottom))]"
+            >
               <KolaseView
                 date={kolaseContext.date}
                 shift={kolaseContext.shift}

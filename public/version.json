@@ -1,7 +1,8 @@
 {
-  "version": "2.11.2",
+  "version": "2.11.0",
   "notes": [
-    "Perbaikan tampilan iOS Safari/PWA (viewport-fit=cover) agar konten gulir membentang penuh sampai tepi bawah layar tanpa blok potong di area Home Indicator",
-    "Penyelarasan ukuran kontainer luar non-scroll (h-full & fixed inset: 0) dengan ruang aman env(safe-area-inset-bottom) khusus di akhir konten scroll"
+    "Menambahkan notifikasi petunjuk interaktif saat mengetuk kotak pratinjau Caption WhatsApp serta pembaruan catatan modal Buka Kunci Data Laporan",
+    "Menyempurnakan transisi opacity fade-in pasca-hidrasi sejak aplikasi terbuka agar selalu mulus sejak frame pertama",
+    "Optimasi performa render dengan memoization komponen dan stabilisasi handler tanpa mengubah tata letak"
   ]
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   SHIFT_TIME_RANGES,
   formatDateIndo,
@@ -65,7 +65,7 @@ interface ScheduleCardProps {
   onBadgeClick?: () => void;
 }
 
-const ScheduleCard: React.FC<ScheduleCardProps> = React.memo(({
+const ScheduleCard: React.FC<ScheduleCardProps> = memo(({
   shift,
   areaText,
   isOff = false,
@@ -213,7 +213,7 @@ function readOperationalClock(): OperationalClockSnapshot {
   };
 }
 
-export const DashboardView: React.FC<DashboardViewProps> = React.memo(({
+const DashboardViewComponent: React.FC<DashboardViewProps> = ({
   reportedLog,
   devModeActive = false,
   onSelectShift,
@@ -321,23 +321,26 @@ export const DashboardView: React.FC<DashboardViewProps> = React.memo(({
     return matches;
   }, [trimmedQuery]);
 
-  const handleStepDate = (offset: number) => {
-    const nextDate = getOffsetDateStr(offset, selectedDate);
-    setSelectedDate(nextDate);
-    if (searchQuery.trim()) {
-      setSearchQuery('');
-    }
-  };
+  const handleStepDate = useCallback((offset: number) => {
+    setSelectedDate((prev) => getOffsetDateStr(offset, prev));
+    setSearchQuery((prev) => (prev.trim() ? '' : prev));
+  }, []);
 
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value || getLocalTodayStr();
     setSelectedDate(val);
-    if (searchQuery.trim()) {
-      setSearchQuery('');
-    }
-  };
+    setSearchQuery((prev) => (prev.trim() ? '' : prev));
+  }, []);
 
-  const handleConfirmUndo = async () => {
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value.toUpperCase());
+  }, []);
+
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery('');
+  }, []);
+
+  const handleConfirmUndo = useCallback(async () => {
     if (!statusTarget || isUndoing) return;
     setIsUndoing(true);
     try {
@@ -351,7 +354,7 @@ export const DashboardView: React.FC<DashboardViewProps> = React.memo(({
     } finally {
       setIsUndoing(false);
     }
-  };
+  }, [isUndoing, onShowToast, onUndoReport, statusTarget]);
 
   return (
     <>
@@ -429,14 +432,14 @@ export const DashboardView: React.FC<DashboardViewProps> = React.memo(({
                 data-form-type="other"
                 data-lpignore="true"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value.toUpperCase())}
+                onChange={handleSearchChange}
                 placeholder="Misal: GA101, FLARE..."
                 className="tpm-input pr-10! font-semibold text-white placeholder:font-normal placeholder:text-slate-400 placeholder:normal-case"
               />
               {searchQuery.trim() && (
                 <button
                   type="button"
-                  onClick={() => setSearchQuery('')}
+                  onClick={handleClearSearch}
                   aria-label="Hapus pencarian"
                   className="absolute right-2.5 flex h-[28px] w-[28px] cursor-pointer items-center justify-center rounded-full border border-slate-600 bg-slate-700 text-[13px] text-white transition hover:bg-slate-600"
                 >
@@ -706,4 +709,6 @@ export const DashboardView: React.FC<DashboardViewProps> = React.memo(({
       )}
     </>
   );
-});
+};
+
+export const DashboardView = memo(DashboardViewComponent);

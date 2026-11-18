@@ -2,32 +2,16 @@
 
 Semua perubahan penting pada aplikasi **Dashboard & Kolase Foto TPM Urea 1B** dicatat di file ini mengikuti standar [Semantic Versioning](https://semver.org/).
 
-## [2.11.2] - 2026-11-18
-
-### Diperbaiki
-- **Tampilan Penuh Sampai Tepi Bawah Layar di iOS Safari / PWA (`App.tsx`, `index.css`):** Menghapus penggunaan `100vh`/`100dvh` pada kontainer luar non-scroll (`body` dan pembungkus utama `App.tsx`) serta mengunci `#root` secara penuh (`position: fixed; inset: 0; height: 100%`) dengan pembungkus utama `h-full` tanpa `padding-bottom`, sehingga area *scroll* vertikal **Jadwal TPM** dan **Kolase Foto** membentang 100% hingga tepi paling bawah layar (`bottom: 0`) tanpa terpotong blok gelap di area *Home Indicator* iPhone sementara `padding-bottom: calc(16px + env(safe-area-inset-bottom))` tetap terjaga khusus di akhir konten yang ikut di-*scroll*.
-
-### Diubah
-- **Sinkronisasi Versi Patch `2.11.2` (`package.json`, `tpmData.ts`, `version.json`, `vite.config.js`):** Menyelaraskan versi aplikasi, pil badge footer, metadata pembaruan, serta `cacheId` Service Worker ke `v2.11.2`.
-
-## [2.11.1] - 2026-11-18
-
-### Diperbaiki
-- **Pemangkasan Ruang Kosong di Bawah Pil Badge Versi Footer (`App.tsx`):** Memindahkan dan menyetel `padding-bottom: calc(16px + env(safe-area-inset-bottom))` secara presisi pada pembungkus dalam masing-masing panel *scroll* independen (**Jadwal TPM** & **Kolase Foto**) sehingga jarak di bawah pil versi tetap ringkas di iPhone maupun Android tanpa ruang kosong berlebih maupun duplikasi `env(safe-area-inset-bottom)`, serta mempertahankan jarak header, tab bar, dan spasi atas footer.
-
-### Diubah
-- **Sinkronisasi Versi Patch `2.11.1` (`package.json`, `tpmData.ts`, `version.json`, `vite.config.js`):** Menyelaraskan nomor versi aplikasi, pil badge footer, metadata pembaruan, serta `cacheId` Service Worker ke `v2.11.1`.
-
 ## [2.11.0] - 2026-11-18
 
 ### Ditambahkan
-- **Toast Petunjuk Interaktif pada Kotak Caption WhatsApp (`KolaseView.tsx`):** Mengetuk kotak pratinjau **Caption WhatsApp** (*read-only*) kini menampilkan notifikasi toast informatif bahwa caption terisi otomatis dari data laporan dan pengisian teks dilakukan lewat kolom **Keterangan Kegiatan** di atas, dilengkapi jeda anti-spam ketukan berulang tanpa memengaruhi tombol **Salin** maupun **Kirim ke WhatsApp**.
+- **Notifikasi Toast Interaktif pada Kotak Caption WhatsApp (`KolaseView.tsx`):** Mengetuk kotak pratinjau *read-only* **Caption WhatsApp** kini menampilkan notifikasi petunjuk (*toast* kuning dengan pengaman *anti-spam* `1500ms`) tanpa memicu seleksi teks biru di iOS Safari dan tanpa mengganggu fungsi tombol **Salin** maupun **Kirim ke WhatsApp**.
 
 ### Diubah
-- **Optimalisasi Spasi Bawah & Jarak Footer di Kedua Tab (`App.tsx`, `KolaseView.tsx`):** Memangkas ruang kosong berlebih di bawah daftar kartu **Jadwal TPM** dan di bawah tombol **Kirim ke WhatsApp** pada **Kolase Foto** agar proporsional dan ringkas sambil mempertahankan ruang aman `env(safe-area-inset-bottom)`.
-- **Pembaruan Catatan Modal Konfirmasi Buka Kunci (`KolaseView.tsx`):** Memperbarui redaksi **Catatan** pada dialog **Buka Kunci Data Laporan?** agar selaras dengan perilaku navigasi *dual-panel* (data tetap terbuka saat berpindah tab atau digeser, dan terkunci otomatis saat memilih jadwal baru atau menekan **Kirim ke WhatsApp**).
-- **Transisi *Fade-In* Sinkron Pasca-Loading & Optimasi Performa (`App.tsx`, `index.css`, `DashboardView.tsx`, `KolaseView.tsx`):** Menyinkronkan animasi *fade-in* `250ms` agar baru dimulai setelah hidrasi dan pengukuran tata letak awal selesai, membersihkan kelas CSS animasi yang tidak lagi dipakai, serta menambahkan `React.memo`, `useMemo`, dan `useCallback` guna menekan *re-render* berlebih.
-- **Sinkronisasi Versi Minor `2.11.0` (`package.json`, `tpmData.ts`, `version.json`, `vite.config.js`):** Menyelaraskan versi aplikasi, badge antarmuka, metadata pembaruan, serta `cacheId` Service Worker ke `v2.11.0`.
+- **Penyelarasan Catatan Modal Buka Kunci Data Laporan (`KolaseView.tsx`):** Memperbarui bagian **Catatan** pada modal konfirmasi **"Buka Kunci Data Laporan?"** agar selaras dengan perilaku navigasi tab (data tetap terbuka saat berpindah tab atau digeser, dan hanya terkunci kembali otomatis saat memilih jadwal baru dari tab Jadwal atau menekan **Kirim ke WhatsApp**).
+- **Transisi `opacity` Fade-In Pasca-Hidrasi (`App.tsx`, `index.css`):** Menunda animasi *fade-in* `250ms` hingga komponen terpasang, `useLayoutEffect` selesai mengukur tinggi header dan posisi panel, serta *frame* awal `opacity-0` ter-paint sempurna via *double* `requestAnimationFrame` sehingga animasi masuk selalu terlihat mulus sejak *cold start*.
+- **Optimasi Performa Render (`App.tsx`, `DashboardView.tsx`, `KolaseView.tsx`):** Membungkus `DashboardView`, `ScheduleCard`, dan `KolaseView` dengan `React.memo`, menstabilkan *handler* dengan `useCallback`, serta memoize *footer* panel via `useMemo` agar interaksi modal dan *toast* tidak memicu *re-render* yang tidak perlu tanpa mengubah sedikit pun tata letak visual.
+- **Sinkronisasi Versi Minor `2.11.0` (`package.json`, `tpmData.ts`, `version.json`, `vite.config.js`):** Menyelaraskan nomor versi aplikasi, `STORAGE_VERSION`, metadata `version.json`, serta `cacheId` Service Worker ke `v2.11.0`.
 
 ## [2.10.4] - 2026-11-17
 

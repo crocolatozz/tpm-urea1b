@@ -477,7 +477,7 @@ export const App: React.FC = () => {
     syncHeaderTransform();
   }, [measureAndApplyHeaderHeight, syncHeaderTransform, updateTabIndicator]);
 
-  // Mulai transisi fade-in hanya setelah hidrasi, pengukuran header, & posisi awal dual-panel selesai
+  // Mulai fade-in opacity 250ms hanya setelah mount + useLayoutEffect selesai dan frame awal opacity-0 ter-paint
   useEffect(() => {
     let raf1 = 0;
     let raf2 = 0;
@@ -861,20 +861,20 @@ export const App: React.FC = () => {
     showToast('Data dummy dibersihkan & jadwal shift aktif dipulihkan.', 'success', 2500);
   }, [clearTestToastSequence, showToast]);
 
-  const openGuideModal = useCallback(() => setGuideOpen(true), []);
-  const closeGuideModal = useCallback(() => setGuideOpen(false), []);
-  const openChangelogModal = useCallback(() => setChangelogOpen(true), []);
-  const closeChangelogModal = useCallback(() => setChangelogOpen(false), []);
-  const closeIosModal = useCallback(() => setIosModalOpen(false), []);
-  const openDevModal = useCallback(() => setDevModalOpen(true), []);
-  const closeDevModal = useCallback(() => setDevModalOpen(false), []);
-  const triggerDevAutoFill = useCallback(() => {
+  const handleOpenGuide = useCallback(() => setGuideOpen(true), []);
+  const handleCloseGuide = useCallback(() => setGuideOpen(false), []);
+  const handleOpenChangelog = useCallback(() => setChangelogOpen(true), []);
+  const handleCloseChangelog = useCallback(() => setChangelogOpen(false), []);
+  const handleCloseIosModal = useCallback(() => setIosModalOpen(false), []);
+  const handleOpenDevModal = useCallback(() => setDevModalOpen(true), []);
+  const handleCloseDevModal = useCallback(() => setDevModalOpen(false), []);
+  const handleTriggerDevAutoFill = useCallback(() => {
     void handleDevAutoFill();
   }, [handleDevAutoFill]);
 
   const panelFooter = useMemo(
     () => (
-      <footer className="flex w-full flex-col items-center gap-2.5 pt-0.5 text-center">
+      <footer className="mt-1 flex w-full flex-col items-center gap-3 pt-2 text-center">
         {showInstallButton && (
           <button
             type="button"
@@ -885,12 +885,12 @@ export const App: React.FC = () => {
           </button>
         )}
 
-        <div className="text-xs leading-[1.55] tracking-[0.2px] text-slate-300">
+        <div className="text-xs leading-[1.6] tracking-[0.2px] text-slate-300">
           <p>Dibuat untuk mempermudah laporan TPM Urea 1B</p>
           <p className="mt-0.5 font-medium text-slate-400">© 2026 — Developed by FIKRI</p>
           <button
             type="button"
-            onClick={openChangelogModal}
+            onClick={handleOpenChangelog}
             aria-label={`Lihat riwayat pembaruan Versi ${APP_VERSION}`}
             className="mt-1.5 inline-flex cursor-pointer items-center gap-1 rounded-xl border border-slate-700/80 bg-slate-900 px-2.5 py-0.5 font-mono text-xs font-semibold tracking-tight text-sky-300 transition hover:border-sky-400/60 active:scale-95"
           >
@@ -899,13 +899,17 @@ export const App: React.FC = () => {
         </div>
       </footer>
     ),
-    [handleInstallClick, openChangelogModal, showInstallButton]
+    [handleInstallClick, handleOpenChangelog, showInstallButton]
   );
 
   return (
     <div
-      className={`relative flex h-full w-full max-w-[800px] flex-col overflow-hidden pl-[calc(14px+env(safe-area-inset-left))] pr-[calc(14px+env(safe-area-inset-right))] pt-[env(safe-area-inset-top)] transition-opacity duration-250 ease-out ${
-        isFadingOut || !isAppReady ? 'pointer-events-none opacity-0' : 'opacity-100'
+      className={`relative flex h-[100dvh] w-full max-w-[800px] flex-col overflow-hidden pl-[calc(14px+env(safe-area-inset-left))] pr-[calc(14px+env(safe-area-inset-right))] pt-[env(safe-area-inset-top)] transition-opacity duration-250 ${
+        isFadingOut
+          ? 'pointer-events-none opacity-0'
+          : isAppReady
+            ? 'opacity-100'
+            : 'opacity-0'
       }`}
     >
       <div className="relative min-h-0 w-full flex-1 overflow-hidden">
@@ -936,7 +940,7 @@ export const App: React.FC = () => {
             <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2">
               <button
                 type="button"
-                onClick={openGuideModal}
+                onClick={handleOpenGuide}
                 className="pointer-events-auto inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-sky-500/40 bg-sky-500/15 px-[18px] py-[7px] text-[13px] font-semibold text-sky-300 transition hover:bg-sky-500/25 active:scale-[0.96]"
               >
                 <IconHelpCircle className="h-4 w-4" /> Panduan
@@ -944,7 +948,7 @@ export const App: React.FC = () => {
               {devModeActive && (
                 <button
                   type="button"
-                  onClick={openDevModal}
+                  onClick={handleOpenDevModal}
                   className="pointer-events-auto inline-flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-full border border-amber-500/40 bg-amber-500/15 px-3 py-[7px] text-[11px] font-bold tracking-wider text-amber-400 transition hover:bg-amber-500/25 active:scale-95"
                 >
                   <IconWrench className="h-3 w-3" />
@@ -1023,12 +1027,9 @@ export const App: React.FC = () => {
             ref={jadwalPanelRef}
             onScroll={syncHeaderTransform}
             aria-label="Panel Jadwal TPM"
-            className="no-scrollbar h-full w-full snap-start snap-always overflow-y-auto overscroll-y-contain"
+            className="no-scrollbar h-full w-full snap-start snap-always overflow-y-auto overscroll-y-contain pb-[calc(1.25rem+env(safe-area-inset-bottom))]"
           >
-            <div
-              ref={jadwalInnerRef}
-              className="flex flex-col gap-3 pb-[calc(16px+env(safe-area-inset-bottom))]"
-            >
+            <div ref={jadwalInnerRef} className="flex flex-col gap-4">
               <DashboardView
                 reportedLog={reportedLog}
                 devModeActive={devModeActive}
@@ -1044,12 +1045,9 @@ export const App: React.FC = () => {
             ref={kolasePanelRef}
             onScroll={syncHeaderTransform}
             aria-label="Panel Kolase Foto"
-            className="no-scrollbar h-full w-full snap-start snap-always overflow-y-auto overscroll-y-contain"
+            className="no-scrollbar h-full w-full snap-start snap-always overflow-y-auto overscroll-y-contain pb-[calc(1.25rem+env(safe-area-inset-bottom))]"
           >
-            <div
-              ref={kolaseInnerRef}
-              className="flex flex-col gap-3 pb-[calc(16px+env(safe-area-inset-bottom))]"
-            >
+            <div ref={kolaseInnerRef} className="flex flex-col gap-4">
               <KolaseView
                 date={kolaseContext.date}
                 shift={kolaseContext.shift}
@@ -1081,14 +1079,14 @@ export const App: React.FC = () => {
         </main>
       </div>
 
-      <GuideModal isOpen={guideOpen} onClose={closeGuideModal} />
+      <GuideModal isOpen={guideOpen} onClose={handleCloseGuide} />
       <ChangelogModal
         isOpen={changelogOpen}
-        onClose={closeChangelogModal}
+        onClose={handleCloseChangelog}
         onCheckUpdate={handleCheckUpdate}
         isCheckingUpdate={isCheckingUpdate}
       />
-      <IosInstallModal isOpen={iosModalOpen} onClose={closeIosModal} />
+      <IosInstallModal isOpen={iosModalOpen} onClose={handleCloseIosModal} />
       <ForceUpdateModal
         modalState={modalState}
         updatePhase={updatePhase}
@@ -1098,8 +1096,8 @@ export const App: React.FC = () => {
       />
       <DeveloperModeModal
         isOpen={devModalOpen}
-        onClose={closeDevModal}
-        onAutoFillExtreme={triggerDevAutoFill}
+        onClose={handleCloseDevModal}
+        onAutoFillExtreme={handleTriggerDevAutoFill}
         onTestToasts={handleDevTestToasts}
         onSimulatePwaUpdate={handleDevSimulateUpdate}
         onCleanupAndExit={handleDevCleanupAndExit}

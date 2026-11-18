@@ -904,7 +904,7 @@ export const App: React.FC = () => {
 
   return (
     <div
-      className={`relative flex h-[100dvh] w-full max-w-[800px] flex-col overflow-hidden pl-[calc(14px+env(safe-area-inset-left))] pr-[calc(14px+env(safe-area-inset-right))] pt-[env(safe-area-inset-top)] transition-opacity duration-250 ease-out ${
+      className={`relative flex h-full w-full max-w-[800px] flex-col overflow-hidden pl-[calc(14px+env(safe-area-inset-left))] pr-[calc(14px+env(safe-area-inset-right))] pt-[env(safe-area-inset-top)] transition-opacity duration-250 ease-out ${
         isFadingOut || !isAppReady ? 'pointer-events-none opacity-0' : 'opacity-100'
       }`}
     >

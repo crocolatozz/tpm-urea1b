@@ -2,6 +2,14 @@
 
 Semua perubahan penting pada aplikasi **Dashboard & Kolase Foto TPM Urea 1B** dicatat di file ini mengikuti standar [Semantic Versioning](https://semver.org/).
 
+## [2.11.2] - 2026-11-18
+
+### Diperbaiki
+- **Tampilan Penuh Sampai Tepi Bawah Layar di iOS Safari / PWA (`App.tsx`, `index.css`):** Menghapus penggunaan `100vh`/`100dvh` pada kontainer luar non-scroll (`body` dan pembungkus utama `App.tsx`) serta mengunci `#root` secara penuh (`position: fixed; inset: 0; height: 100%`) dengan pembungkus utama `h-full` tanpa `padding-bottom`, sehingga area *scroll* vertikal **Jadwal TPM** dan **Kolase Foto** membentang 100% hingga tepi paling bawah layar (`bottom: 0`) tanpa terpotong blok gelap di area *Home Indicator* iPhone sementara `padding-bottom: calc(16px + env(safe-area-inset-bottom))` tetap terjaga khusus di akhir konten yang ikut di-*scroll*.
+
+### Diubah
+- **Sinkronisasi Versi Patch `2.11.2` (`package.json`, `tpmData.ts`, `version.json`, `vite.config.js`):** Menyelaraskan versi aplikasi, pil badge footer, metadata pembaruan, serta `cacheId` Service Worker ke `v2.11.2`.
+
 ## [2.11.1] - 2026-11-18
 
 ### Diperbaiki

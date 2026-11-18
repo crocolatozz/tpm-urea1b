@@ -1,7 +1,7 @@
 {
-  "version": "2.11.1",
+  "version": "2.11.2",
   "notes": [
-    "Pemangkasan ruang kosong di bawah pil versi footer pada tab Jadwal TPM dan Kolase Foto menjadi calc(16px + env(safe-area-inset-bottom)) agar lebih ringkas di iPhone maupun Android",
-    "Penyelarasan pembungkus kontainer scroll independen agar safe-area bawah tidak terpasang ganda"
+    "Perbaikan tampilan iOS Safari/PWA (viewport-fit=cover) agar konten gulir membentang penuh sampai tepi bawah layar tanpa blok potong di area Home Indicator",
+    "Penyelarasan ukuran kontainer luar non-scroll (h-full & fixed inset: 0) dengan ruang aman env(safe-area-inset-bottom) khusus di akhir konten scroll"
   ]
 }

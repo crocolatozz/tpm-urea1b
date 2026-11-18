@@ -190,6 +190,7 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
 
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle');
   const copyTimerRef = useRef<number | null>(null);
+  const lastCaptionToastAtRef = useRef<number>(0);
 
   const [exportStatus, setExportStatus] = useState<'idle' | 'exporting'>('idle');
 
@@ -919,6 +920,16 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
     setActiveConfirm(null);
     setRowCaptions(['', '', '']);
     onShowToast('Keterangan kegiatan berhasil dikosongkan.', 'success', 2200);
+  };
+
+  const handleCaptionPreviewClick = () => {
+    const now = Date.now();
+    if (now - lastCaptionToastAtRef.current < 1500) return;
+    lastCaptionToastAtRef.current = now;
+    onShowToast(
+      'Kotak caption WhatsApp otomatis terisi dari data laporan. Silakan isi atau ubah teks melalui kolom Keterangan Kegiatan di atas.',
+      'warning'
+    );
   };
 
   const handleCopyCaption = async () => {
@@ -1743,7 +1754,10 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
               </span>
               <button
                 type="button"
-                onClick={handleCopyCaption}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void handleCopyCaption();
+                }}
                 aria-label="Salin Caption"
                 title="Salin Caption"
                 className={`flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border transition active:scale-90 ${
@@ -1759,7 +1773,10 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
                 )}
               </button>
             </div>
-            <div className="w-full whitespace-pre-wrap break-words rounded-lg border border-slate-700 bg-slate-800/80 p-3 font-mono text-[13px] text-emerald-300">
+            <div
+              onClick={handleCaptionPreviewClick}
+              className="w-full cursor-pointer select-none whitespace-pre-wrap break-words rounded-lg border border-slate-700 bg-slate-800/80 p-3 font-mono text-[13px] text-emerald-300"
+            >
               {captionText}
             </div>
           </div>
@@ -1768,7 +1785,10 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
           <button
             type="button"
             disabled={!hasVisiblePhotos || exportStatus === 'exporting'}
-            onClick={() => void handleExportCollage()}
+            onClick={(e) => {
+              e.stopPropagation();
+              void handleExportCollage();
+            }}
             className="mt-0.5 inline-flex min-h-[50px] w-full cursor-pointer items-center justify-center gap-2 rounded-lg border-0 bg-emerald-600 px-5 py-3.5 text-base font-extrabold text-white shadow-[0_4px_14px_rgba(16,185,129,0.28)] transition hover:bg-emerald-500 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-800 disabled:text-slate-500 disabled:shadow-none"
           >
             {exportStatus === 'exporting' ? (
@@ -1815,8 +1835,9 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
           mengaktifkan mode input manual untuk mengubah Tanggal, Shift, atau Tag Equipment.
         </p>
         <p className="mb-4 text-xs leading-[1.45] text-slate-400">
-          Catatan: Data akan otomatis terkunci kembali saat memilih jadwal baru, berpindah tab, atau
-          menekan Kirim ke WhatsApp.
+          Catatan: Data akan tetap terbuka saat berpindah tab atau digeser, dan hanya akan terkunci
+          kembali secara otomatis saat memilih jadwal baru dari tab Jadwal atau menekan tombol Kirim
+          ke WhatsApp.
         </p>
       </ConfirmModal>
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   SHIFT_TIME_RANGES,
   formatDateIndo,
@@ -54,6 +54,7 @@ interface ReportedStatusTarget {
 interface ScheduleCardProps {
   shift: ShiftName | 'INFO';
   areaText: string;
+  dateStr?: string;
   isOff?: boolean;
   isHighlighted?: boolean;
   highlightLabel?: string;
@@ -61,13 +62,14 @@ interface ScheduleCardProps {
   reportedEntry: ReportedLogEntry | null;
   subtext?: string;
   subtextWithCalendarIcon?: boolean;
-  onCardClick?: () => void;
-  onBadgeClick?: () => void;
+  onSelectCard?: (params: { date: string; shift: ShiftName; area: string }) => void;
+  onInspectStatus?: (target: ReportedStatusTarget) => void;
 }
 
-const ScheduleCard: React.FC<ScheduleCardProps> = ({
+const ScheduleCard: React.FC<ScheduleCardProps> = React.memo(({
   shift,
   areaText,
+  dateStr,
   isOff = false,
   isHighlighted = false,
   highlightLabel,
@@ -75,15 +77,22 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
   reportedEntry,
   subtext,
   subtextWithCalendarIcon = false,
-  onCardClick,
-  onBadgeClick,
+  onSelectCard,
+  onInspectStatus,
 }) => {
-  const reported = Boolean(reportedEntry) && !isOff && shift !== 'INFO';
-  const shiftRange = !isOff && shift !== 'INFO' ? SHIFT_TIME_RANGES[shift] : null;
+  const shiftName: ShiftName | null = !isOff && shift !== 'INFO' ? shift : null;
+  const reported = Boolean(reportedEntry) && shiftName !== null;
+  const shiftRange = shiftName !== null ? SHIFT_TIME_RANGES[shiftName] : null;
+  const isInteractive = shiftName !== null && Boolean(dateStr);
+
+  const handleCardClick = () => {
+    if (!shiftName || !dateStr || !onSelectCard) return;
+    onSelectCard({ date: dateStr, shift: shiftName, area: areaText });
+  };
 
   return (
     <div
-      onClick={onCardClick}
+      onClick={isInteractive ? handleCardClick : undefined}
       className={`relative flex items-stretch overflow-hidden rounded-[10px] border border-l-4 transition ${
         isOff
           ? 'border-amber-500/35 border-l-amber-400 bg-amber-950/30'
@@ -137,13 +146,18 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
             {areaText}
           </div>
 
-          {reported && onBadgeClick && (
+          {reported && dateStr && onInspectStatus && shiftName !== null && (
             <button
               type="button"
-              aria-label={`Lihat status dilaporkan SHIFT ${shift}`}
+              aria-label={`Lihat status dilaporkan SHIFT ${shiftName}`}
               onClick={(e) => {
                 e.stopPropagation();
-                onBadgeClick();
+                onInspectStatus({
+                  date: dateStr,
+                  shift: shiftName,
+                  area: areaText,
+                  entry: reportedEntry,
+                });
               }}
               className="relative z-20 inline-flex shrink-0 cursor-pointer items-center justify-center rounded-full transition hover:brightness-125 active:scale-90"
             >
@@ -184,7 +198,8 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
       )}
     </div>
   );
-};
+});
+ScheduleCard.displayName = 'ScheduleCard';
 
 function formatReportedTime(ts?: number): string {
   if (!ts || !Number.isFinite(ts)) return '-';
@@ -213,7 +228,7 @@ function readOperationalClock(): OperationalClockSnapshot {
   };
 }
 
-export const DashboardView: React.FC<DashboardViewProps> = ({
+const DashboardViewBase: React.FC<DashboardViewProps> = ({
   reportedLog,
   devModeActive = false,
   onSelectShift,
@@ -238,6 +253,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [isUndoing, setIsUndoing] = useState(false);
 
   useModalScrollLock(statusTarget !== null || cycleInfoOpen);
+
+  const handleInspectStatus = useCallback((target: ReportedStatusTarget) => {
+    setStatusTarget(target);
+  }, []);
 
   // Saat keluar dari Developer Mode, kembalikan tanggal jadwal ke shift aktif saat ini
   useEffect(() => {
@@ -494,6 +513,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     key={`${m.cycleDay}-${m.shift}-${m.areaName}`}
                     shift={m.shift}
                     areaText={m.areaName}
+                    dateStr={m.nextDateStr}
                     isHighlighted={isTodayMatch}
                     highlightLabel="HARI INI"
                     highlightDot={true}
@@ -504,21 +524,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         : `Terdekat: ${formatDateIndo(m.nextDateStr)} • Hari ${m.cycleDay}`
                     }
                     subtextWithCalendarIcon={true}
-                    onCardClick={() =>
-                      onSelectShift({
-                        date: m.nextDateStr,
-                        shift: m.shift,
-                        area: m.areaName,
-                      })
-                    }
-                    onBadgeClick={() =>
-                      setStatusTarget({
-                        date: m.nextDateStr,
-                        shift: m.shift,
-                        area: m.areaName,
-                        entry,
-                      })
-                    }
+                    onSelectCard={onSelectShift}
+                    onInspectStatus={handleInspectStatus}
                   />
                 );
               })
@@ -540,32 +547,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   key={`${task.shift}-${task.text}`}
                   shift={task.shift}
                   areaText={task.text}
+                  dateStr={!task.isOff && task.shift !== 'INFO' ? selectedDate : undefined}
                   isOff={task.isOff}
                   isHighlighted={isCurrentShift}
                   highlightLabel="AKTIF"
                   highlightDot={true}
                   reportedEntry={entry}
                   subtext={task.subtext}
-                  onCardClick={
-                    !task.isOff && task.shift !== 'INFO'
-                      ? () =>
-                          onSelectShift({
-                            date: selectedDate,
-                            shift: task.shift as ShiftName,
-                            area: task.text,
-                          })
-                      : undefined
+                  onSelectCard={
+                    !task.isOff && task.shift !== 'INFO' ? onSelectShift : undefined
                   }
-                  onBadgeClick={
-                    !task.isOff && task.shift !== 'INFO'
-                      ? () =>
-                          setStatusTarget({
-                            date: selectedDate,
-                            shift: task.shift as ShiftName,
-                            area: task.text,
-                            entry,
-                          })
-                      : undefined
+                  onInspectStatus={
+                    !task.isOff && task.shift !== 'INFO' ? handleInspectStatus : undefined
                   }
                 />
               );
@@ -707,3 +700,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     </>
   );
 };
+
+export const DashboardView = React.memo(DashboardViewBase);
+DashboardView.displayName = 'DashboardView';

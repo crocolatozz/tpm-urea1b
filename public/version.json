@@ -1,8 +1,8 @@
 {
-  "version": "2.10.4",
+  "version": "2.11.0",
   "notes": [
-    "Perombakan navigasi menjadi dual-panel CSS Scroll-Snap dengan 1 header dan 1 tab bar tunggal yang ikut bergulung bersama halaman serta indikator tab real-time",
-    "Pengaman tinggi dinamis pada tab Jadwal agar bebas ruang kosong, tampilan utama tanpa scrollbar visual, dan transisi halus dari kartu jadwal ke Kolase",
-    "Pembaruan isi Panduan Aplikasi sesuai alur navigasi terbaru serta pembersihan kode redundan"
+    "Perbaikan layar penuh iOS Safari / PWA bebas balok warna di tepi bawah serta splash screen khusus iOS",
+    "Validasi ketat pembaruan PWA anti-bypass yang hanya muncul setelah seluruh aset versi baru selesai diunduh dan siap",
+    "Toast peringatan interaktif pada kotak Caption WhatsApp, pembaruan catatan buka kunci data laporan, animasi masuk CSS 200ms, dan optimasi performa jadwal"
   ]
 }

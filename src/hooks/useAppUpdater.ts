@@ -39,7 +39,7 @@ const DEFAULT_RELEASE_NOTES: string[] = [
 
 const INITIAL_CHECK_DELAY_MS = 2000;
 const FALLBACK_RELOAD_TIMEOUT_MS = 3500;
-const RELOAD_FADE_DELAY_MS = 260;
+const RELOAD_FADE_DELAY_MS = 200;
 
 export function normalizeReleaseNotes(rawNotes: unknown): string[] {
   if (Array.isArray(rawNotes)) {
@@ -88,19 +88,6 @@ async function fetchRemoteVersionJson(): Promise<VersionJsonPayload | null> {
   }
 }
 
-async function checkServiceWorkersForWaiting(): Promise<boolean> {
-  if (import.meta.env.DEV || !('serviceWorker' in navigator)) {
-    return false;
-  }
-  try {
-    const regs = await navigator.serviceWorker.getRegistrations();
-    await Promise.all(regs.map((r) => r.update().catch(() => {})));
-    return regs.some((r) => Boolean(r.waiting));
-  } catch {
-    return false;
-  }
-}
-
 async function clearAllBrowserCaches(): Promise<void> {
   if (typeof window === 'undefined' || !('caches' in window)) return;
   try {
@@ -113,7 +100,7 @@ async function clearAllBrowserCaches(): Promise<void> {
 
 function waitForInstalledWorker(
   reg: ServiceWorkerRegistration,
-  timeoutMs = 5000
+  timeoutMs = 6000
 ): Promise<ServiceWorker | null> {
   if (reg.waiting) {
     return Promise.resolve(reg.waiting);
@@ -183,6 +170,31 @@ function waitForInstalledWorker(
   });
 }
 
+async function checkServiceWorkersForWaiting(waitIfInstalling = false): Promise<boolean> {
+  if (import.meta.env.DEV || !('serviceWorker' in navigator)) {
+    return false;
+  }
+  try {
+    let regs = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(regs.map((r) => r.update().catch(() => {})));
+    regs = await navigator.serviceWorker.getRegistrations();
+    if (regs.some((r) => Boolean(r.waiting))) {
+      return true;
+    }
+    if (waitIfInstalling) {
+      const installingRegs = regs.filter((r) => Boolean(r.installing));
+      if (installingRegs.length > 0) {
+        await Promise.all(installingRegs.map((r) => waitForInstalledWorker(r, 6000)));
+        regs = await navigator.serviceWorker.getRegistrations();
+        return regs.some((r) => Boolean(r.waiting));
+      }
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 export function useAppUpdater(options: UseAppUpdaterOptions = {}) {
   const {
     suppressPrompt = false,
@@ -195,11 +207,12 @@ export function useAppUpdater(options: UseAppUpdaterOptions = {}) {
   const [updatePhase, setUpdatePhase] = useState<UpdatePhase>('idle');
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [initialDelayDone, setInitialDelayDone] = useState(false);
 
   // Pure in-memory postpone state for the current app session only (resets on cold start)
   const isDismissedRef = useRef(false);
-  const coldStartCheckedRef = useRef(false);
   const isReloadingRef = useRef(false);
+  const modalOpenTriggeredRef = useRef(false);
 
   const onBeforeReloadFadeOutRef = useRef(onBeforeReloadFadeOut);
   onBeforeReloadFadeOutRef.current = onBeforeReloadFadeOut;
@@ -210,11 +223,15 @@ export function useAppUpdater(options: UseAppUpdaterOptions = {}) {
 
   const {
     needRefresh: [needRefresh],
+    updateServiceWorker,
   } = useRegisterSW({
     onRegisteredSW(_swUrl, registration) {
       if (!import.meta.env.DEV && registration) {
         registration.update().catch(() => {});
       }
+    },
+    onNeedReload() {
+      // Reload ditangani terkontrol via listener controllerchange + transisi fade-out
     },
     onRegisterError(err) {
       if (!import.meta.env.DEV) {
@@ -226,91 +243,101 @@ export function useAppUpdater(options: UseAppUpdaterOptions = {}) {
   const needRefreshRef = useRef(needRefresh);
   needRefreshRef.current = needRefresh;
 
-  const probeForUpdate = useCallback(async (withMinDelay = false) => {
-    const tasks: [Promise<boolean>, Promise<VersionJsonPayload | null>, Promise<void>?] = [
-      checkServiceWorkersForWaiting(),
-      fetchRemoteVersionJson(),
-    ];
-    if (withMinDelay) {
-      tasks.push(
-        new Promise<void>((resolve) => {
-          window.setTimeout(resolve, 600);
-        })
-      );
-    }
+  useEffect(() => {
+    const timerId = window.setTimeout(() => {
+      setInitialDelayDone(true);
+    }, INITIAL_CHECK_DELAY_MS);
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, []);
 
-    const [hasWaitingSw, data] = await Promise.all(tasks);
+  const openPromptWithMetadata = useCallback(async (manualTriggered: boolean) => {
+    const data = await fetchRemoteVersionJson();
     const hasNewerVersion = Boolean(
       data?.version && compareSemver(APP_VERSION, data.version) > 0
     );
-    const swUpdateReady = (needRefreshRef.current || hasWaitingSw) && !import.meta.env.DEV;
-
-    return { data, hasNewerVersion, swUpdateReady };
+    setErrorMsg(null);
+    setModalState({
+      mode: 'prompt',
+      remoteVersion: hasNewerVersion && data?.version ? data.version : APP_VERSION,
+      releaseNotes: normalizeReleaseNotes(data?.notes),
+      swDriven: true,
+      manualTriggered,
+    });
   }, []);
 
-  // Kondisi (a): Cek otomatis HANYA sekali setelah jeda 2 detik saat aplikasi dibuka (cold load)
+  // Kondisi (a): Tampilkan pop-up HANYA setelah aset baru selesai terunduh & SW resmi berada di status registration.waiting (onNeedRefresh)
   useEffect(() => {
-    if (coldStartCheckedRef.current) return;
-    coldStartCheckedRef.current = true;
+    if (!initialDelayDone || import.meta.env.DEV) return;
+    if (isDismissedRef.current || modalState.mode !== 'closed') return;
 
     let cancelled = false;
 
-    const runColdStartCheck = async () => {
-      if (cancelled || isDismissedRef.current) return;
+    const verifyAndOpenIfWaiting = async () => {
+      let swReady = needRefreshRef.current;
+      if (!swReady) {
+        swReady = await checkServiceWorkersForWaiting(false);
+      }
+      if (
+        cancelled ||
+        !swReady ||
+        isDismissedRef.current ||
+        modalOpenTriggeredRef.current
+      ) {
+        return;
+      }
+      modalOpenTriggeredRef.current = true;
+      await openPromptWithMetadata(false);
+    };
 
-      const { data, hasNewerVersion, swUpdateReady } = await probeForUpdate(false);
+    void verifyAndOpenIfWaiting();
 
-      if (cancelled || isDismissedRef.current) return;
+    return () => {
+      cancelled = true;
+    };
+  }, [initialDelayDone, needRefresh, modalState.mode, openPromptWithMetadata]);
 
-      if ((hasNewerVersion && data?.version) || swUpdateReady) {
+  // Kondisi (b): Cek manual lewat tombol bundar hijau Cek Update (hanya membuka modal bila SW benar-benar berstatus waiting)
+  const checkForUpdatesManual = useCallback(async (): Promise<ManualCheckResult> => {
+    setIsCheckingUpdate(true);
+    try {
+      const [hasWaitingSw, data] = await Promise.all([
+        checkServiceWorkersForWaiting(true),
+        fetchRemoteVersionJson(),
+        new Promise<void>((resolve) => {
+          window.setTimeout(resolve, 600);
+        }),
+      ]);
+
+      const swUpdateReady = (needRefreshRef.current || hasWaitingSw) && !import.meta.env.DEV;
+
+      if (swUpdateReady) {
+        isDismissedRef.current = false;
+        modalOpenTriggeredRef.current = true;
+        const hasNewerVersion = Boolean(
+          data?.version && compareSemver(APP_VERSION, data.version) > 0
+        );
+        setErrorMsg(null);
         setModalState({
           mode: 'prompt',
           remoteVersion: hasNewerVersion && data?.version ? data.version : APP_VERSION,
           releaseNotes: normalizeReleaseNotes(data?.notes),
-          swDriven: swUpdateReady,
-          manualTriggered: false,
-        });
-      }
-    };
-
-    const initialTimerId = window.setTimeout(() => {
-      void runColdStartCheck();
-    }, INITIAL_CHECK_DELAY_MS);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(initialTimerId);
-    };
-  }, [probeForUpdate]);
-
-  // Kondisi (b): Cek manual lewat tombol bundar hijau Cek Update
-  const checkForUpdatesManual = useCallback(async (): Promise<ManualCheckResult> => {
-    setIsCheckingUpdate(true);
-    try {
-      const { data, hasNewerVersion, swUpdateReady } = await probeForUpdate(true);
-
-      if (!data) {
-        return 'offline';
-      }
-
-      if (hasNewerVersion || swUpdateReady) {
-        isDismissedRef.current = false;
-        setErrorMsg(null);
-        setModalState({
-          mode: 'prompt',
-          remoteVersion: hasNewerVersion && data.version ? data.version : APP_VERSION,
-          releaseNotes: normalizeReleaseNotes(data.notes),
-          swDriven: swUpdateReady,
+          swDriven: true,
           manualTriggered: true,
         });
         return 'update-available';
+      }
+
+      if (!data) {
+        return 'offline';
       }
 
       return 'up-to-date';
     } finally {
       setIsCheckingUpdate(false);
     }
-  }, [probeForUpdate]);
+  }, []);
 
   const simulateUpdatePrompt = useCallback(() => {
     isDismissedRef.current = false;
@@ -318,7 +345,7 @@ export function useAppUpdater(options: UseAppUpdaterOptions = {}) {
     setUpdatePhase('idle');
     setModalState({
       mode: 'prompt',
-      remoteVersion: '2.10.4',
+      remoteVersion: '2.11.0',
       releaseNotes: [
         'Simulasi pratinjau pop-up pembaruan PWA dengan alur animasi asli (tanpa reload browser).',
         'Memastikan transisi overlay fade-out/fade-in, badge versi, dan tombol aksi tampil persis seperti update nyata.',
@@ -332,6 +359,7 @@ export function useAppUpdater(options: UseAppUpdaterOptions = {}) {
   const dismissUpdate = useCallback(() => {
     if (updatePhase !== 'idle' || isReloadingRef.current) return;
     isDismissedRef.current = true;
+    modalOpenTriggeredRef.current = false;
     setErrorMsg(null);
     setUpdatePhase('idle');
     setModalState({ mode: 'closed' });
@@ -425,61 +453,37 @@ export function useAppUpdater(options: UseAppUpdaterOptions = {}) {
       }
 
       if (swContainer && !import.meta.env.DEV) {
-        let registrations = await swContainer.getRegistrations();
-        let waitingWorkers = registrations
-          .map((reg) => reg.waiting)
-          .filter((w): w is ServiceWorker => w !== null);
+        await new Promise<void>((resolve) => {
+          const handleControllerChange = () => {
+            cleanupControllerListener();
+            executeSmoothReload();
+            resolve();
+          };
+          activeControllerHandler = handleControllerChange;
+          swContainer.addEventListener('controllerchange', handleControllerChange, { once: true });
 
-        if (waitingWorkers.length === 0) {
-          const probe = await fetchRemoteVersionJson();
-          if (!probe) {
-            throw new Error('offline');
-          }
-
-          await Promise.all(registrations.map((reg) => reg.update()));
-          registrations = await swContainer.getRegistrations();
-          waitingWorkers = registrations
-            .map((reg) => reg.waiting)
-            .filter((w): w is ServiceWorker => w !== null);
-
-          if (waitingWorkers.length === 0) {
-            const installedWorkers = await Promise.all(
-              registrations.map((reg) => waitForInstalledWorker(reg, 4500))
-            );
-            waitingWorkers = installedWorkers.filter((w): w is ServiceWorker => w !== null);
-          }
-        }
-
-        if (waitingWorkers.length > 0) {
-          await new Promise<void>((resolve) => {
-            const handleControllerChange = () => {
-              cleanupControllerListener();
+          fallbackTimerId = window.setTimeout(() => {
+            fallbackTimerId = null;
+            void clearAllBrowserCaches().finally(() => {
               executeSmoothReload();
               resolve();
-            };
-            activeControllerHandler = handleControllerChange;
-            swContainer.addEventListener('controllerchange', handleControllerChange, { once: true });
-
-            fallbackTimerId = window.setTimeout(() => {
-              fallbackTimerId = null;
-              void clearAllBrowserCaches().finally(() => {
-                executeSmoothReload();
-                resolve();
-              });
-            }, FALLBACK_RELOAD_TIMEOUT_MS);
-
-            waitingWorkers.forEach((worker) => {
-              worker.postMessage({ type: 'SKIP_WAITING' });
             });
-          });
-          return;
-        }
-      }
+          }, FALLBACK_RELOAD_TIMEOUT_MS);
 
-      // Jika belum ada waiting worker setelah update(), verifikasi koneksi lalu bersihkan cache & reload halus
-      const probe = await fetchRemoteVersionJson();
-      if (!probe) {
-        throw new Error('offline');
+          void updateServiceWorker(true)
+            .then(async () => {
+              const regs = await swContainer.getRegistrations().catch(() => []);
+              regs.forEach((reg) => {
+                if (reg.waiting) {
+                  reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                }
+              });
+            })
+            .catch(() => {
+              // Fallback timer tetap menjamin recovery bila Workbox gagal mengirim SKIP_WAITING
+            });
+        });
+        return;
       }
 
       await clearAllBrowserCaches();
@@ -489,7 +493,7 @@ export function useAppUpdater(options: UseAppUpdaterOptions = {}) {
         'Gagal memperbarui aplikasi. Periksa koneksi internet Anda—cache offline tetap aman.'
       );
     }
-  }, [modalState, updatePhase]);
+  }, [modalState, updatePhase, updateServiceWorker]);
 
   const visibleModalState: UpdateModalState =
     modalState.mode === 'prompt' && suppressPrompt && !modalState.manualTriggered

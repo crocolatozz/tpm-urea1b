@@ -131,6 +131,133 @@ function buildInitialKolaseContext(parsed: ParsedHashRoute): KolaseContextState 
   return { date, shift, area };
 }
 
+interface AppHeaderNavProps {
+  headerWrapperRef: React.RefObject<HTMLDivElement | null>;
+  indicatorTrackRef: React.RefObject<HTMLDivElement | null>;
+  indicatorBarRef: React.RefObject<HTMLDivElement | null>;
+  route: AppRoute;
+  devModeActive: boolean;
+  onSettingsGearTap: () => void;
+  onOpenGuide: () => void;
+  onOpenDevModal: () => void;
+  onNavigateJadwal: () => void;
+  onNavigateKolase: () => void;
+}
+
+const AppHeaderNav: React.FC<AppHeaderNavProps> = React.memo(({
+  headerWrapperRef,
+  indicatorTrackRef,
+  indicatorBarRef,
+  route,
+  devModeActive,
+  onSettingsGearTap,
+  onOpenGuide,
+  onOpenDevModal,
+  onNavigateJadwal,
+  onNavigateKolase,
+}) => (
+  <div
+    ref={headerWrapperRef}
+    className="pointer-events-none absolute top-0 right-0 left-0 z-20 flex flex-col gap-3.5 pt-5 pb-3.5 will-change-transform"
+  >
+    <header className="flex flex-col items-center text-center">
+      <h1 className="mb-1 flex items-center justify-center gap-2 text-[21px] font-bold tracking-tight text-white sm:text-[22px]">
+        <button
+          type="button"
+          onPointerDown={onSettingsGearTap}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onSettingsGearTap();
+            }
+          }}
+          aria-label="Ikon Pengaturan Dashboard TPM"
+          className="pointer-events-auto inline-flex select-none touch-manipulation cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-sky-400 transition active:scale-90"
+        >
+          <IconSettings className="h-5 w-5" />
+        </button>
+        <span>Dashboard TPM Urea 1B</span>
+      </h1>
+      <p className="text-sm text-slate-300">Monitoring Jadwal &amp; Pembuatan Kolase Foto</p>
+      <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2">
+        <button
+          type="button"
+          onClick={onOpenGuide}
+          className="pointer-events-auto inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-sky-500/40 bg-sky-500/15 px-[18px] py-[7px] text-[13px] font-semibold text-sky-300 transition hover:bg-sky-500/25 active:scale-[0.96]"
+        >
+          <IconHelpCircle className="h-4 w-4" /> Panduan
+        </button>
+        {devModeActive && (
+          <button
+            type="button"
+            onClick={onOpenDevModal}
+            className="pointer-events-auto inline-flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-full border border-amber-500/40 bg-amber-500/15 px-3 py-[7px] text-[11px] font-bold tracking-wider text-amber-400 transition hover:bg-amber-500/25 active:scale-95"
+          >
+            <IconWrench className="h-3 w-3" />
+            <span>TEST MODE</span>
+          </button>
+        )}
+      </div>
+    </header>
+
+    <nav className="flex flex-col gap-1.5" aria-label="Navigasi utama">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+        <a
+          href="#jadwal"
+          aria-current={route === 'jadwal' ? 'page' : undefined}
+          onClick={(e) => {
+            e.preventDefault();
+            onNavigateJadwal();
+          }}
+          className={`pointer-events-auto flex min-w-0 items-center justify-center gap-2.5 rounded-xl border p-3 text-white no-underline transition sm:gap-3 sm:p-3.5 ${
+            route === 'jadwal'
+              ? 'border-sky-500/70 bg-sky-950/60 shadow-[0_0_0_1px_rgba(56,189,248,0.2)]'
+              : 'border-slate-800 bg-slate-900 hover:border-slate-700'
+          }`}
+        >
+          <IconCalendar className="h-5 w-5 shrink-0 text-sky-400" />
+          <div className="min-w-0 text-left">
+            <h3 className="truncate text-[16px] font-bold text-white">Jadwal TPM</h3>
+            <p className="truncate text-xs text-slate-300">Monitoring Rutin</p>
+          </div>
+        </a>
+
+        <a
+          href="#kolase"
+          aria-current={route === 'kolase' ? 'page' : undefined}
+          onClick={(e) => {
+            e.preventDefault();
+            onNavigateKolase();
+          }}
+          className={`pointer-events-auto flex min-w-0 items-center justify-center gap-2.5 rounded-xl border p-3 text-white no-underline transition sm:gap-3 sm:p-3.5 ${
+            route === 'kolase'
+              ? 'border-sky-500/70 bg-sky-950/60 shadow-[0_0_0_1px_rgba(56,189,248,0.2)]'
+              : 'border-slate-800 bg-slate-900 hover:border-slate-700'
+          }`}
+        >
+          <IconCamera className="h-5 w-5 shrink-0 text-sky-400" />
+          <div className="min-w-0 text-left">
+            <h3 className="truncate text-[16px] font-bold text-white">Kolase Foto</h3>
+            <p className="truncate text-xs text-slate-300">Before &amp; After</p>
+          </div>
+        </a>
+      </div>
+
+      <div
+        ref={indicatorTrackRef}
+        aria-hidden="true"
+        className="relative h-[3px] w-full overflow-hidden rounded-full bg-slate-800/85"
+      >
+        <div
+          ref={indicatorBarRef}
+          className="h-full w-[calc(50%-0.3125rem)] rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.6)] will-change-transform sm:w-[calc(50%-0.375rem)]"
+        />
+      </div>
+    </nav>
+  </div>
+));
+AppHeaderNav.displayName = 'AppHeaderNav';
+
 export const App: React.FC = () => {
   useNativeTouchGuard();
 
@@ -625,6 +752,21 @@ export const App: React.FC = () => {
     [slideToPanel]
   );
 
+  const handleSelectShiftFromDashboard = useCallback(
+    (params: { date: string; shift: ShiftName; area: string }) => {
+      navigateToKolase(params);
+    },
+    [navigateToKolase]
+  );
+
+  const handleOpenGuide = useCallback(() => {
+    setGuideOpen(true);
+  }, []);
+
+  const handleOpenDevModal = useCallback(() => {
+    setDevModalOpen(true);
+  }, []);
+
   const handleReportSubmitted = useCallback(
     async (dateStr: string, shift: ShiftName, area: string) => {
       // Optimistic local React state update (Firestore & localStorage diblokir penuh saat Test Mode aktif)
@@ -874,111 +1016,24 @@ export const App: React.FC = () => {
 
   return (
     <div
-      className={`relative flex h-[100dvh] w-full max-w-[800px] flex-col overflow-hidden pl-[calc(14px+env(safe-area-inset-left))] pr-[calc(14px+env(safe-area-inset-right))] pt-[env(safe-area-inset-top)] transition-opacity duration-250 ${
-        isFadingOut ? 'pointer-events-none opacity-0' : 'app-fade-in opacity-100'
+      className={`relative flex h-[calc(100dvh+env(safe-area-inset-bottom))] w-full max-w-[800px] flex-col overflow-hidden pl-[calc(14px+env(safe-area-inset-left))] pr-[calc(14px+env(safe-area-inset-right))] pt-[env(safe-area-inset-top)] transition-opacity duration-200 ${
+        isFadingOut ? 'pointer-events-none opacity-0' : 'opacity-100'
       }`}
     >
-      <div className="relative min-h-0 w-full flex-1 overflow-hidden">
+      <div className="app-fade-in relative min-h-0 w-full flex-1 overflow-hidden">
         {/* 1 Header & 1 Tab Bar Tunggal Melayang (Tergulung GPU translate3d & Berinterpolasi Antar-Panel) */}
-        <div
-          ref={headerWrapperRef}
-          className="pointer-events-none absolute top-0 right-0 left-0 z-20 flex flex-col gap-3.5 pt-5 pb-3.5 will-change-transform"
-        >
-          <header className="flex flex-col items-center text-center">
-            <h1 className="mb-1 flex items-center justify-center gap-2 text-[21px] font-bold tracking-tight text-white sm:text-[22px]">
-              <button
-                type="button"
-                onPointerDown={handleSettingsGearTap}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    handleSettingsGearTap();
-                  }
-                }}
-                aria-label="Ikon Pengaturan Dashboard TPM"
-                className="pointer-events-auto inline-flex select-none touch-manipulation cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-sky-400 transition active:scale-90"
-              >
-                <IconSettings className="h-5 w-5" />
-              </button>
-              <span>Dashboard TPM Urea 1B</span>
-            </h1>
-            <p className="text-sm text-slate-300">Monitoring Jadwal &amp; Pembuatan Kolase Foto</p>
-            <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2">
-              <button
-                type="button"
-                onClick={() => setGuideOpen(true)}
-                className="pointer-events-auto inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-sky-500/40 bg-sky-500/15 px-[18px] py-[7px] text-[13px] font-semibold text-sky-300 transition hover:bg-sky-500/25 active:scale-[0.96]"
-              >
-                <IconHelpCircle className="h-4 w-4" /> Panduan
-              </button>
-              {devModeActive && (
-                <button
-                  type="button"
-                  onClick={() => setDevModalOpen(true)}
-                  className="pointer-events-auto inline-flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-full border border-amber-500/40 bg-amber-500/15 px-3 py-[7px] text-[11px] font-bold tracking-wider text-amber-400 transition hover:bg-amber-500/25 active:scale-95"
-                >
-                  <IconWrench className="h-3 w-3" />
-                  <span>TEST MODE</span>
-                </button>
-              )}
-            </div>
-          </header>
-
-          <nav className="flex flex-col gap-1.5" aria-label="Navigasi utama">
-            <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-              <a
-                href="#jadwal"
-                aria-current={route === 'jadwal' ? 'page' : undefined}
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigateToJadwal();
-                }}
-                className={`pointer-events-auto flex min-w-0 items-center justify-center gap-2.5 rounded-xl border p-3 text-white no-underline transition sm:gap-3 sm:p-3.5 ${
-                  route === 'jadwal'
-                    ? 'border-sky-500/70 bg-sky-950/60 shadow-[0_0_0_1px_rgba(56,189,248,0.2)]'
-                    : 'border-slate-800 bg-slate-900 hover:border-slate-700'
-                }`}
-              >
-                <IconCalendar className="h-5 w-5 shrink-0 text-sky-400" />
-                <div className="min-w-0 text-left">
-                  <h3 className="truncate text-[16px] font-bold text-white">Jadwal TPM</h3>
-                  <p className="truncate text-xs text-slate-300">Monitoring Rutin</p>
-                </div>
-              </a>
-
-              <a
-                href="#kolase"
-                aria-current={route === 'kolase' ? 'page' : undefined}
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigateToKolase();
-                }}
-                className={`pointer-events-auto flex min-w-0 items-center justify-center gap-2.5 rounded-xl border p-3 text-white no-underline transition sm:gap-3 sm:p-3.5 ${
-                  route === 'kolase'
-                    ? 'border-sky-500/70 bg-sky-950/60 shadow-[0_0_0_1px_rgba(56,189,248,0.2)]'
-                    : 'border-slate-800 bg-slate-900 hover:border-slate-700'
-                }`}
-              >
-                <IconCamera className="h-5 w-5 shrink-0 text-sky-400" />
-                <div className="min-w-0 text-left">
-                  <h3 className="truncate text-[16px] font-bold text-white">Kolase Foto</h3>
-                  <p className="truncate text-xs text-slate-300">Before &amp; After</p>
-                </div>
-              </a>
-            </div>
-
-            <div
-              ref={indicatorTrackRef}
-              aria-hidden="true"
-              className="relative h-[3px] w-full overflow-hidden rounded-full bg-slate-800/85"
-            >
-              <div
-                ref={indicatorBarRef}
-                className="h-full w-[calc(50%-0.3125rem)] rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.6)] will-change-transform sm:w-[calc(50%-0.375rem)]"
-              />
-            </div>
-          </nav>
-        </div>
+        <AppHeaderNav
+          headerWrapperRef={headerWrapperRef}
+          indicatorTrackRef={indicatorTrackRef}
+          indicatorBarRef={indicatorBarRef}
+          route={route}
+          devModeActive={devModeActive}
+          onSettingsGearTap={handleSettingsGearTap}
+          onOpenGuide={handleOpenGuide}
+          onOpenDevModal={handleOpenDevModal}
+          onNavigateJadwal={navigateToJadwal}
+          onNavigateKolase={navigateToKolase}
+        />
 
         {/* Wadah Dual-Panel CSS Scroll-Snap Horizontal dengan 2 Panel Scroll Vertikal Independen */}
         <main
@@ -993,13 +1048,13 @@ export const App: React.FC = () => {
             ref={jadwalPanelRef}
             onScroll={syncHeaderTransform}
             aria-label="Panel Jadwal TPM"
-            className="no-scrollbar h-full w-full snap-start snap-always overflow-y-auto overscroll-y-contain pb-[calc(1.25rem+env(safe-area-inset-bottom))]"
+            className="no-scrollbar h-full w-full snap-start snap-always overflow-y-auto overscroll-y-contain pb-[calc(16px+env(safe-area-inset-bottom))]"
           >
             <div ref={jadwalInnerRef} className="flex flex-col gap-4">
               <DashboardView
                 reportedLog={reportedLog}
                 devModeActive={devModeActive}
-                onSelectShift={(params) => navigateToKolase(params)}
+                onSelectShift={handleSelectShiftFromDashboard}
                 onUndoReport={handleReportUndo}
                 onShowToast={showToast}
               />
@@ -1011,7 +1066,7 @@ export const App: React.FC = () => {
             ref={kolasePanelRef}
             onScroll={syncHeaderTransform}
             aria-label="Panel Kolase Foto"
-            className="no-scrollbar h-full w-full snap-start snap-always overflow-y-auto overscroll-y-contain pb-[calc(1.25rem+env(safe-area-inset-bottom))]"
+            className="no-scrollbar h-full w-full snap-start snap-always overflow-y-auto overscroll-y-contain pb-[calc(16px+env(safe-area-inset-bottom))]"
           >
             <div ref={kolaseInnerRef} className="flex flex-col gap-4">
               <KolaseView

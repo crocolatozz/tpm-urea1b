@@ -22,7 +22,61 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="TPM Urea 1B" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content="#020617" />
+
+    <!-- Anti-White-Flash Dark Mode Guard sebelum React mount -->
+    <script>
+      (function () {
+        try {
+          var prefersDark =
+            typeof window.matchMedia === 'function'
+              ? window.matchMedia('(prefers-color-scheme: dark)').matches
+              : true;
+          var rootEl = document.documentElement;
+          rootEl.style.backgroundColor = '#020617';
+          rootEl.style.colorScheme = 'dark';
+          if (prefersDark) {
+            rootEl.classList.add('dark');
+          }
+        } catch (e) {
+          document.documentElement.style.backgroundColor = '#020617';
+        }
+      })();
+    </script>
+    <style>
+      html,
+      body {
+        background-color: #020617;
+        margin: 0;
+      }
+      #ios-pwa-splash {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        align-items: center;
+        justify-content: center;
+        background-color: #020617;
+      }
+      #ios-pwa-splash img {
+        width: 80px;
+        height: 80px;
+        border-radius: 22%;
+        object-fit: cover;
+        animation: iosSplashPulse 1.4s ease-in-out infinite;
+      }
+      @keyframes iosSplashPulse {
+        0%,
+        100% {
+          opacity: 0.78;
+          transform: scale(0.97);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1.03);
+        }
+      }
+    </style>
 
     <!-- Google Fonts: Plus Jakarta Sans & Rajdhani -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -38,7 +92,37 @@
     <link rel="apple-touch-icon" sizes="512x512" href="./icon.png" />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="ios-pwa-splash" aria-hidden="true">
+        <img
+          src="%BASE_URL%icon.png"
+          alt="Dashboard TPM Urea 1B"
+          width="80"
+          height="80"
+          decoding="sync"
+        />
+      </div>
+    </div>
+    <script>
+      (function () {
+        try {
+          var ua = navigator.userAgent || '';
+          var isIOSDevice =
+            /iPad|iPhone|iPod/i.test(ua) ||
+            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+          var isStandalone =
+            window.navigator.standalone === true ||
+            (typeof window.matchMedia === 'function' &&
+              window.matchMedia('(display-mode: standalone)').matches);
+          if (isIOSDevice && isStandalone) {
+            var splash = document.getElementById('ios-pwa-splash');
+            if (splash) {
+              splash.style.display = 'flex';
+            }
+          }
+        } catch (e) {}
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

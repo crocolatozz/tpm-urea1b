@@ -2,6 +2,20 @@
 
 Semua perubahan penting pada aplikasi **Dashboard & Kolase Foto TPM Urea 1B** dicatat di file ini mengikuti standar [Semantic Versioning](https://semver.org/).
 
+## [2.11.0] - 2026-11-18
+
+### Ditambahkan
+- **Splash Screen Khusus iOS PWA & Anti-White-Flash (`index.html`):** Menyematkan splash screen ringan langsung di HTML awal yang hanya aktif saat dibuka sebagai PWA terinstal di iPhone/iPad (tersembunyi otomatis di Android/Samsung & browser biasa) dengan logo membulat dan animasi denyut halus tanpa jeda buatan, dilengkapi skrip pelindung warna latar gelap (`#020617`) sejak awal muat agar bebas kilatan layar putih.
+- **Toast Pengingat Interaktif Kotak Caption WhatsApp (`KolaseView.tsx`):** Mengetuk area pratinjau **Caption WhatsApp** kini menampilkan *toast* kuning bertahap (anti-spam `1500ms`) yang mengarahkan pengisian melalui kolom **Keterangan Kegiatan**, dengan teks `select-none` serta isolasi tombol **Salin** dan **Kirim ke WhatsApp** (`stopPropagation`).
+
+### Diperbaiki
+- **Hilangkan Balok Bawah iOS Safari / PWA (`App.tsx`, `index.css`, `index.html`, `vite.config.js`):** Menyelaraskan tinggi pembungkus terluar ke `calc(100dvh + env(safe-area-inset-bottom))`, menjaga panel dalam tetap `h-full` dengan `padding-bottom: calc(16px + env(safe-area-inset-bottom))`, serta menyamakan latar `html`, `body`, dan `theme-color` ke `#020617` agar penuh sempurna hingga tepi *Home Indicator* iPhone.
+- **Mekanisme Update PWA Anti-Bypass (`vite.config.js`, `useAppUpdater.ts`):** Memastikan Service Worker versi baru tertahan di status `waiting` sebelum dikonfirmasi pengguna serta menahan pop-up pembaruan hingga seluruh aset versi baru resmi selesai diunduh (`onNeedRefresh`/`registration.waiting`), lalu memicu `updateServiceWorker(true)` bersama *listener* `controllerchange` untuk reload bersih.
+
+### Diubah
+- **Catatan Modal Buka Kunci Data Laporan (`KolaseView.tsx`):** Memperjelas catatan bahwa data laporan tetap terbuka saat berpindah atau menggeser tab dan hanya terkunci kembali saat memilih jadwal baru dari tab **Jadwal** atau menekan **Kirim ke WhatsApp**.
+- **Animasi Masuk CSS `200ms`, Optimasi Render Jadwal & Sinkronisasi Versi `2.11.0` (`index.css`, `App.tsx`, `DashboardView.tsx`, `package.json`, `tpmData.ts`, `version.json`):** Memindahkan animasi *fade-in* CSS murni (`200ms ease-out`, tanpa `transform`) ke kontainer konten dalam agar pembungkus terluar selalu `opacity: 1` sejak milidetik ke-0, mengoptimalkan render ulang pada `ScheduleCard`, `DashboardView`, dan header navigasi dengan `React.memo`, serta menyelaraskan seluruh metadata versi dan `cacheId` Service Worker ke `v2.11.0`.
+
 ## [2.10.4] - 2026-11-17
 
 ### Diubah

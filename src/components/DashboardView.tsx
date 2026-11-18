@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   SHIFT_TIME_RANGES,
   formatDateIndo,
@@ -65,7 +65,7 @@ interface ScheduleCardProps {
   onBadgeClick?: () => void;
 }
 
-const ScheduleCard: React.FC<ScheduleCardProps> = memo(({
+const ScheduleCard: React.FC<ScheduleCardProps> = ({
   shift,
   areaText,
   isOff = false,
@@ -184,7 +184,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = memo(({
       )}
     </div>
   );
-});
+};
 
 function formatReportedTime(ts?: number): string {
   if (!ts || !Number.isFinite(ts)) return '-';
@@ -213,7 +213,7 @@ function readOperationalClock(): OperationalClockSnapshot {
   };
 }
 
-const DashboardViewComponent: React.FC<DashboardViewProps> = ({
+export const DashboardView: React.FC<DashboardViewProps> = ({
   reportedLog,
   devModeActive = false,
   onSelectShift,
@@ -321,26 +321,23 @@ const DashboardViewComponent: React.FC<DashboardViewProps> = ({
     return matches;
   }, [trimmedQuery]);
 
-  const handleStepDate = useCallback((offset: number) => {
-    setSelectedDate((prev) => getOffsetDateStr(offset, prev));
-    setSearchQuery((prev) => (prev.trim() ? '' : prev));
-  }, []);
+  const handleStepDate = (offset: number) => {
+    const nextDate = getOffsetDateStr(offset, selectedDate);
+    setSelectedDate(nextDate);
+    if (searchQuery.trim()) {
+      setSearchQuery('');
+    }
+  };
 
-  const handleDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value || getLocalTodayStr();
     setSelectedDate(val);
-    setSearchQuery((prev) => (prev.trim() ? '' : prev));
-  }, []);
+    if (searchQuery.trim()) {
+      setSearchQuery('');
+    }
+  };
 
-  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value.toUpperCase());
-  }, []);
-
-  const handleClearSearch = useCallback(() => {
-    setSearchQuery('');
-  }, []);
-
-  const handleConfirmUndo = useCallback(async () => {
+  const handleConfirmUndo = async () => {
     if (!statusTarget || isUndoing) return;
     setIsUndoing(true);
     try {
@@ -354,7 +351,7 @@ const DashboardViewComponent: React.FC<DashboardViewProps> = ({
     } finally {
       setIsUndoing(false);
     }
-  }, [isUndoing, onShowToast, onUndoReport, statusTarget]);
+  };
 
   return (
     <>
@@ -432,14 +429,14 @@ const DashboardViewComponent: React.FC<DashboardViewProps> = ({
                 data-form-type="other"
                 data-lpignore="true"
                 value={searchQuery}
-                onChange={handleSearchChange}
+                onChange={(e) => setSearchQuery(e.target.value.toUpperCase())}
                 placeholder="Misal: GA101, FLARE..."
                 className="tpm-input pr-10! font-semibold text-white placeholder:font-normal placeholder:text-slate-400 placeholder:normal-case"
               />
               {searchQuery.trim() && (
                 <button
                   type="button"
-                  onClick={handleClearSearch}
+                  onClick={() => setSearchQuery('')}
                   aria-label="Hapus pencarian"
                   className="absolute right-2.5 flex h-[28px] w-[28px] cursor-pointer items-center justify-center rounded-full border border-slate-600 bg-slate-700 text-[13px] text-white transition hover:bg-slate-600"
                 >
@@ -710,5 +707,3 @@ const DashboardViewComponent: React.FC<DashboardViewProps> = ({
     </>
   );
 };
-
-export const DashboardView = memo(DashboardViewComponent);

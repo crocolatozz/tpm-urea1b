@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   APP_VERSION,
   buildExtremeDummyTag,
@@ -153,7 +153,6 @@ export const App: React.FC = () => {
   const [iosModalOpen, setIosModalOpen] = useState(false);
   const [devModeActive, setDevModeActive] = useState(false);
   const [devModalOpen, setDevModalOpen] = useState(false);
-  const [isAppReady, setIsAppReady] = useState(false);
   const [isFadingOut, setIsFadingOut] = useState(false);
 
   const gearTapCountRef = useRef(0);
@@ -477,21 +476,6 @@ export const App: React.FC = () => {
     syncHeaderTransform();
   }, [measureAndApplyHeaderHeight, syncHeaderTransform, updateTabIndicator]);
 
-  // Mulai fade-in opacity 250ms hanya setelah mount + useLayoutEffect selesai dan frame awal opacity-0 ter-paint
-  useEffect(() => {
-    let raf1 = 0;
-    let raf2 = 0;
-    raf1 = window.requestAnimationFrame(() => {
-      raf2 = window.requestAnimationFrame(() => {
-        setIsAppReady(true);
-      });
-    });
-    return () => {
-      if (raf1) window.cancelAnimationFrame(raf1);
-      if (raf2) window.cancelAnimationFrame(raf2);
-    };
-  }, []);
-
   useEffect(() => {
     const headerEl = headerWrapperRef.current;
     let observer: ResizeObserver | null = null;
@@ -724,13 +708,13 @@ export const App: React.FC = () => {
     }));
   }, []);
 
-  const handleInstallClick = useCallback(async () => {
+  const handleInstallClick = async () => {
     if (isInstallable) {
       await install();
     } else if (isIOS) {
       setIosModalOpen(true);
     }
-  }, [install, isIOS, isInstallable]);
+  };
 
   const handleCheckUpdate = useCallback(async () => {
     const result = await checkForUpdatesManual();
@@ -861,55 +845,37 @@ export const App: React.FC = () => {
     showToast('Data dummy dibersihkan & jadwal shift aktif dipulihkan.', 'success', 2500);
   }, [clearTestToastSequence, showToast]);
 
-  const handleOpenGuide = useCallback(() => setGuideOpen(true), []);
-  const handleCloseGuide = useCallback(() => setGuideOpen(false), []);
-  const handleOpenChangelog = useCallback(() => setChangelogOpen(true), []);
-  const handleCloseChangelog = useCallback(() => setChangelogOpen(false), []);
-  const handleCloseIosModal = useCallback(() => setIosModalOpen(false), []);
-  const handleOpenDevModal = useCallback(() => setDevModalOpen(true), []);
-  const handleCloseDevModal = useCallback(() => setDevModalOpen(false), []);
-  const handleTriggerDevAutoFill = useCallback(() => {
-    void handleDevAutoFill();
-  }, [handleDevAutoFill]);
+  const renderPanelFooter = () => (
+    <footer className="mt-1 flex w-full flex-col items-center gap-3 pt-2 text-center">
+      {showInstallButton && (
+        <button
+          type="button"
+          onClick={handleInstallClick}
+          className="flex cursor-pointer items-center gap-2 rounded-full border border-sky-400/40 bg-gradient-to-br from-sky-500 to-sky-700 px-6 py-3 text-[15px] font-bold text-white shadow-[0_4px_14px_rgba(14,165,233,0.35)] transition active:scale-[0.96]"
+        >
+          <IconDownload className="h-5 w-5" /> Install Aplikasi
+        </button>
+      )}
 
-  const panelFooter = useMemo(
-    () => (
-      <footer className="mt-1 flex w-full flex-col items-center gap-3 pt-2 text-center">
-        {showInstallButton && (
-          <button
-            type="button"
-            onClick={handleInstallClick}
-            className="flex cursor-pointer items-center gap-2 rounded-full border border-sky-400/40 bg-gradient-to-br from-sky-500 to-sky-700 px-6 py-3 text-[15px] font-bold text-white shadow-[0_4px_14px_rgba(14,165,233,0.35)] transition active:scale-[0.96]"
-          >
-            <IconDownload className="h-5 w-5" /> Install Aplikasi
-          </button>
-        )}
-
-        <div className="text-xs leading-[1.6] tracking-[0.2px] text-slate-300">
-          <p>Dibuat untuk mempermudah laporan TPM Urea 1B</p>
-          <p className="mt-0.5 font-medium text-slate-400">© 2026 — Developed by FIKRI</p>
-          <button
-            type="button"
-            onClick={handleOpenChangelog}
-            aria-label={`Lihat riwayat pembaruan Versi ${APP_VERSION}`}
-            className="mt-1.5 inline-flex cursor-pointer items-center gap-1 rounded-xl border border-slate-700/80 bg-slate-900 px-2.5 py-0.5 font-mono text-xs font-semibold tracking-tight text-sky-300 transition hover:border-sky-400/60 active:scale-95"
-          >
-            v{APP_VERSION}
-          </button>
-        </div>
-      </footer>
-    ),
-    [handleInstallClick, handleOpenChangelog, showInstallButton]
+      <div className="text-xs leading-[1.6] tracking-[0.2px] text-slate-300">
+        <p>Dibuat untuk mempermudah laporan TPM Urea 1B</p>
+        <p className="mt-0.5 font-medium text-slate-400">© 2026 — Developed by FIKRI</p>
+        <button
+          type="button"
+          onClick={() => setChangelogOpen(true)}
+          aria-label={`Lihat riwayat pembaruan Versi ${APP_VERSION}`}
+          className="mt-1.5 inline-flex cursor-pointer items-center gap-1 rounded-xl border border-slate-700/80 bg-slate-900 px-2.5 py-0.5 font-mono text-xs font-semibold tracking-tight text-sky-300 transition hover:border-sky-400/60 active:scale-95"
+        >
+          v{APP_VERSION}
+        </button>
+      </div>
+    </footer>
   );
 
   return (
     <div
       className={`relative flex h-[100dvh] w-full max-w-[800px] flex-col overflow-hidden pl-[calc(14px+env(safe-area-inset-left))] pr-[calc(14px+env(safe-area-inset-right))] pt-[env(safe-area-inset-top)] transition-opacity duration-250 ${
-        isFadingOut
-          ? 'pointer-events-none opacity-0'
-          : isAppReady
-            ? 'opacity-100'
-            : 'opacity-0'
+        isFadingOut ? 'pointer-events-none opacity-0' : 'app-fade-in opacity-100'
       }`}
     >
       <div className="relative min-h-0 w-full flex-1 overflow-hidden">
@@ -940,7 +906,7 @@ export const App: React.FC = () => {
             <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2">
               <button
                 type="button"
-                onClick={handleOpenGuide}
+                onClick={() => setGuideOpen(true)}
                 className="pointer-events-auto inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-sky-500/40 bg-sky-500/15 px-[18px] py-[7px] text-[13px] font-semibold text-sky-300 transition hover:bg-sky-500/25 active:scale-[0.96]"
               >
                 <IconHelpCircle className="h-4 w-4" /> Panduan
@@ -948,7 +914,7 @@ export const App: React.FC = () => {
               {devModeActive && (
                 <button
                   type="button"
-                  onClick={handleOpenDevModal}
+                  onClick={() => setDevModalOpen(true)}
                   className="pointer-events-auto inline-flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-full border border-amber-500/40 bg-amber-500/15 px-3 py-[7px] text-[11px] font-bold tracking-wider text-amber-400 transition hover:bg-amber-500/25 active:scale-95"
                 >
                   <IconWrench className="h-3 w-3" />
@@ -1033,11 +999,11 @@ export const App: React.FC = () => {
               <DashboardView
                 reportedLog={reportedLog}
                 devModeActive={devModeActive}
-                onSelectShift={navigateToKolase}
+                onSelectShift={(params) => navigateToKolase(params)}
                 onUndoReport={handleReportUndo}
                 onShowToast={showToast}
               />
-              {panelFooter}
+              {renderPanelFooter()}
             </div>
           </section>
 
@@ -1073,20 +1039,20 @@ export const App: React.FC = () => {
                 onDismissLoadingToast={dismissLoadingToast}
                 onDragLockChange={handleDragLockChange}
               />
-              {panelFooter}
+              {renderPanelFooter()}
             </div>
           </section>
         </main>
       </div>
 
-      <GuideModal isOpen={guideOpen} onClose={handleCloseGuide} />
+      <GuideModal isOpen={guideOpen} onClose={() => setGuideOpen(false)} />
       <ChangelogModal
         isOpen={changelogOpen}
-        onClose={handleCloseChangelog}
+        onClose={() => setChangelogOpen(false)}
         onCheckUpdate={handleCheckUpdate}
         isCheckingUpdate={isCheckingUpdate}
       />
-      <IosInstallModal isOpen={iosModalOpen} onClose={handleCloseIosModal} />
+      <IosInstallModal isOpen={iosModalOpen} onClose={() => setIosModalOpen(false)} />
       <ForceUpdateModal
         modalState={modalState}
         updatePhase={updatePhase}
@@ -1096,8 +1062,8 @@ export const App: React.FC = () => {
       />
       <DeveloperModeModal
         isOpen={devModalOpen}
-        onClose={handleCloseDevModal}
-        onAutoFillExtreme={handleTriggerDevAutoFill}
+        onClose={() => setDevModalOpen(false)}
+        onAutoFillExtreme={() => void handleDevAutoFill()}
         onTestToasts={handleDevTestToasts}
         onSimulatePwaUpdate={handleDevSimulateUpdate}
         onCleanupAndExit={handleDevCleanupAndExit}

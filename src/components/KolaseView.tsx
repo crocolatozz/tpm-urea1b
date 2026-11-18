@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   formatDateIndo,
   getAreaForDateAndShift,
@@ -138,7 +138,7 @@ interface ActiveDragState {
   initialY: number;
 }
 
-const KolaseViewComponent: React.FC<KolaseViewProps> = ({
+export const KolaseView: React.FC<KolaseViewProps> = ({
   date,
   shift,
   area,
@@ -190,7 +190,6 @@ const KolaseViewComponent: React.FC<KolaseViewProps> = ({
 
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle');
   const copyTimerRef = useRef<number | null>(null);
-  const lastCaptionHintAtRef = useRef<number>(0);
 
   const [exportStatus, setExportStatus] = useState<'idle' | 'exporting'>('idle');
 
@@ -381,11 +380,11 @@ const KolaseViewComponent: React.FC<KolaseViewProps> = ({
     return lines.join('\n');
   }, [effectiveDate, tpmArea, tpmShift, rowCaptions, rows]);
 
-  const handleLockedFieldTap = useCallback(() => {
+  const handleLockedFieldTap = () => {
     onShowToast('Data laporan terkunci. Ketuk tombol Locked untuk edit manual', 'warning');
-  }, [onShowToast]);
+  };
 
-  const handleToggleDataLock = useCallback(() => {
+  const handleToggleDataLock = () => {
     if (isDataLocked) {
       setShiftMenuOpen(false);
       setActiveConfirm('unlock');
@@ -393,69 +392,44 @@ const KolaseViewComponent: React.FC<KolaseViewProps> = ({
       setShiftMenuOpen(false);
       setIsDataLocked(true);
     }
-  }, [isDataLocked]);
+  };
 
-  const handleConfirmUnlock = useCallback(() => {
+  const handleConfirmUnlock = () => {
     setActiveConfirm(null);
     setIsDataLocked(false);
-  }, []);
+  };
 
-  const handleDateChange = useCallback(
-    (newDate: string) => {
-      if (isDataLocked) return;
-      const val = newDate || getOperationalShiftInfo().dateStr;
-      onDateChange(val);
-    },
-    [isDataLocked, onDateChange]
-  );
+  const handleDateChange = (newDate: string) => {
+    if (isDataLocked) return;
+    const val = newDate || getOperationalShiftInfo().dateStr;
+    onDateChange(val);
+  };
 
-  const handleShiftChange = useCallback(
-    (newShift: ShiftName) => {
-      if (isDataLocked) return;
-      onShiftChange(newShift);
-      setShiftMenuOpen(false);
-    },
-    [isDataLocked, onShiftChange]
-  );
+  const handleShiftChange = (newShift: ShiftName) => {
+    if (isDataLocked) return;
+    onShiftChange(newShift);
+    setShiftMenuOpen(false);
+  };
 
-  const handleAreaInputChange = useCallback(
-    (nextArea: string) => {
-      if (isDataLocked) return;
-      onAreaChange(nextArea.toUpperCase());
-    },
-    [isDataLocked, onAreaChange]
-  );
+  const handleAreaInputChange = (nextArea: string) => {
+    if (isDataLocked) return;
+    onAreaChange(nextArea.toUpperCase());
+  };
 
-  const handleRowCaptionChange = useCallback(
-    (rowIdx: number, value: string) => {
-      const clipped = value.slice(0, MAX_CAPTION_LEN);
-      setRowCaptions((prev) => {
-        const next: [string, string, string] = [...prev];
-        next[rowIdx] = clipped;
-        return next;
-      });
-    },
-    [setRowCaptions]
-  );
+  const handleRowCaptionChange = (rowIdx: number, value: string) => {
+    const clipped = value.slice(0, MAX_CAPTION_LEN);
+    setRowCaptions((prev) => {
+      const next: [string, string, string] = [...prev];
+      next[rowIdx] = clipped;
+      return next;
+    });
+  };
 
   // Mode grid hanya mengatur baris yang ditampilkan & dirender (6 slot foto tetap tersimpan permanen)
-  const handleGridSelect = useCallback(
-    (nextGrid: GridType) => {
-      setGridType((prev) => (prev === nextGrid ? prev : nextGrid));
-    },
-    [setGridType]
-  );
-
-  const handleCaptionPreviewTap = useCallback(() => {
-    const now = Date.now();
-    if (now - lastCaptionHintAtRef.current < 1500) return;
-    lastCaptionHintAtRef.current = now;
-    onShowToast(
-      'Kotak caption WhatsApp otomatis terisi dari data laporan. Silakan isi atau ubah teks melalui kolom Keterangan Kegiatan di atas.',
-      'warning',
-      3800
-    );
-  }, [onShowToast]);
+  const handleGridSelect = (nextGrid: GridType) => {
+    if (nextGrid === gridType) return;
+    setGridType(nextGrid);
+  };
 
   const triggerSlotPicker = (
     side: 'before' | 'after',
@@ -903,14 +877,14 @@ const KolaseViewComponent: React.FC<KolaseViewProps> = ({
     ]
   );
 
-  const handleConfirmResetAllPhotos = useCallback(() => {
+  const handleConfirmResetAllPhotos = () => {
     setActiveConfirm(null);
     cancelSlotDrag();
     fileQueueRunIdRef.current += 1;
     setLoadingSlotKeys(new Set());
     setIsPickingFile(false);
-    const prevBefore = slotsCleanupRef.current.before;
-    const prevAfter = slotsCleanupRef.current.after;
+    const prevBefore = beforeSlots;
+    const prevAfter = afterSlots;
     setBeforeSlots([]);
     setAfterSlots([]);
     prevBefore.forEach(disposeSlotCanvases);
@@ -920,49 +894,34 @@ const KolaseViewComponent: React.FC<KolaseViewProps> = ({
     setEditingTarget(null);
     if (slotPickerRef.current) slotPickerRef.current.value = '';
     onShowToast('Semua foto kolase berhasil direset.', 'success', 2200);
-  }, [
-    cancelSlotDrag,
-    onDismissLoadingToast,
-    onShowToast,
-    setAfterSlots,
-    setBeforeSlots,
-    setIsReportSubmitted,
-  ]);
+  };
 
-  const handleSaveEditedSlot = useCallback(
-    (updatedSlot: LoadedPhotoSlot) => {
-      if (!editingTarget) return;
-      const setSlots = editingTarget.side === 'before' ? setBeforeSlots : setAfterSlots;
-      setSlots((prev) => {
-        const next = [...prev];
-        next[editingTarget.index] = updatedSlot;
-        return next;
-      });
-      setIsReportSubmitted(false);
-      setEditingTarget(null);
-    },
-    [editingTarget, setAfterSlots, setBeforeSlots, setIsReportSubmitted]
-  );
+  const handleSaveEditedSlot = (updatedSlot: LoadedPhotoSlot) => {
+    if (!editingTarget) return;
+    const setSlots = editingTarget.side === 'before' ? setBeforeSlots : setAfterSlots;
+    setSlots((prev) => {
+      const next = [...prev];
+      next[editingTarget.index] = updatedSlot;
+      return next;
+    });
+    setIsReportSubmitted(false);
+    setEditingTarget(null);
+  };
 
-  const handleReplaceEditedPhoto = useCallback(() => {
+  const handleReplaceEditedPhoto = () => {
     if (!editingTarget) return;
     const { side, index } = editingTarget;
-    if (!isPickingFile && slotPickerRef.current) {
-      setIsPickerMulti(false);
-      slotPickerRef.current.multiple = false;
-      pendingTargetRef.current = { side, index, mode: 'single' };
-      slotPickerRef.current.click();
-    }
+    triggerSlotPicker(side, index, 'single');
     setEditingTarget(null);
-  }, [editingTarget, isPickingFile]);
+  };
 
-  const handleConfirmClearCaptions = useCallback(() => {
+  const handleConfirmClearCaptions = () => {
     setActiveConfirm(null);
     setRowCaptions(['', '', '']);
     onShowToast('Keterangan kegiatan berhasil dikosongkan.', 'success', 2200);
-  }, [onShowToast, setRowCaptions]);
+  };
 
-  const handleCopyCaption = useCallback(async () => {
+  const handleCopyCaption = async () => {
     const copied = await copyTextToClipboard(captionText);
     if (!isMountedRef.current) return;
     if (copyTimerRef.current !== null) {
@@ -983,7 +942,7 @@ const KolaseViewComponent: React.FC<KolaseViewProps> = ({
         copyTimerRef.current = null;
       }, 2500);
     }
-  }, [captionText, onShowToast]);
+  };
 
   const triggerPostSendConfirmation = useCallback(
     (
@@ -1010,13 +969,13 @@ const KolaseViewComponent: React.FC<KolaseViewProps> = ({
     [onReportSubmitted, setIsReportSubmitted]
   );
 
-  const handleConfirmPostSend = useCallback(() => {
+  const handleConfirmPostSend = () => {
     setPostSendModal(null);
     fileQueueRunIdRef.current += 1;
     setLoadingSlotKeys(new Set());
     setIsPickingFile(false);
-    const prevBefore = slotsCleanupRef.current.before;
-    const prevAfter = slotsCleanupRef.current.after;
+    const prevBefore = beforeSlots;
+    const prevAfter = afterSlots;
     setBeforeSlots([]);
     setAfterSlots([]);
     prevBefore.forEach(disposeSlotCanvases);
@@ -1027,21 +986,15 @@ const KolaseViewComponent: React.FC<KolaseViewProps> = ({
     setIsReportSubmitted(true);
     if (slotPickerRef.current) slotPickerRef.current.value = '';
     // tpmArea (Tag Equipment) dipertahankan!
-  }, [
-    onDismissLoadingToast,
-    setAfterSlots,
-    setBeforeSlots,
-    setIsReportSubmitted,
-    setRowCaptions,
-  ]);
+  };
 
-  const handleCancelPostSend = useCallback(() => {
+  const handleCancelPostSend = () => {
     if (!postSendModal) return;
     const { dateStr, shift: modalShift, previousEntry } = postSendModal;
     setPostSendModal(null);
     setIsReportSubmitted(false);
     void onRestoreReport(dateStr, modalShift, previousEntry);
-  }, [onRestoreReport, postSendModal, setIsReportSubmitted]);
+  };
 
   const handleExportCollage = async () => {
     if (!hasVisiblePhotos || exportStatus === 'exporting') return;
@@ -1806,19 +1759,7 @@ const KolaseViewComponent: React.FC<KolaseViewProps> = ({
                 )}
               </button>
             </div>
-            <div
-              role="button"
-              tabIndex={0}
-              aria-label="Pratinjau Caption WhatsApp otomatis"
-              onClick={handleCaptionPreviewTap}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  handleCaptionPreviewTap();
-                }
-              }}
-              className="w-full cursor-pointer select-none whitespace-pre-wrap break-words rounded-lg border border-slate-700 bg-slate-800/80 p-3 font-mono text-[13px] text-emerald-300"
-            >
+            <div className="w-full whitespace-pre-wrap break-words rounded-lg border border-slate-700 bg-slate-800/80 p-3 font-mono text-[13px] text-emerald-300">
               {captionText}
             </div>
           </div>
@@ -1874,9 +1815,8 @@ const KolaseViewComponent: React.FC<KolaseViewProps> = ({
           mengaktifkan mode input manual untuk mengubah Tanggal, Shift, atau Tag Equipment.
         </p>
         <p className="mb-4 text-xs leading-[1.45] text-slate-400">
-          Catatan: Data akan tetap terbuka saat berpindah tab atau digeser, dan hanya akan terkunci
-          kembali secara otomatis saat memilih jadwal baru dari tab Jadwal atau menekan tombol Kirim
-          ke WhatsApp.
+          Catatan: Data akan otomatis terkunci kembali saat memilih jadwal baru, berpindah tab, atau
+          menekan Kirim ke WhatsApp.
         </p>
       </ConfirmModal>
 
@@ -2007,5 +1947,3 @@ const KolaseViewComponent: React.FC<KolaseViewProps> = ({
     </>
   );
 };
-
-export const KolaseView = memo(KolaseViewComponent);

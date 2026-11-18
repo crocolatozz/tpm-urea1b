@@ -138,7 +138,7 @@ interface ActiveDragState {
   initialY: number;
 }
 
-export const KolaseView: React.FC<KolaseViewProps> = ({
+export const KolaseView: React.FC<KolaseViewProps> = React.memo(({
   date,
   shift,
   area,
@@ -190,6 +190,7 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
 
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle');
   const copyTimerRef = useRef<number | null>(null);
+  const captionTapAtRef = useRef<number>(0);
 
   const [exportStatus, setExportStatus] = useState<'idle' | 'exporting'>('idle');
 
@@ -944,6 +945,17 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
     }
   };
 
+  const handleReadOnlyCaptionTap = useCallback(() => {
+    const now = Date.now();
+    if (now - captionTapAtRef.current < 400) return;
+    captionTapAtRef.current = now;
+    onShowToast(
+      'Kotak caption WhatsApp otomatis terisi dari data laporan. Silakan isi atau ubah teks melalui kolom Keterangan Kegiatan di atas.',
+      'warning',
+      3200
+    );
+  }, [onShowToast]);
+
   const triggerPostSendConfirmation = useCallback(
     (
       dateStr: string,
@@ -1187,7 +1199,7 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
 
   return (
     <>
-      <div className="mb-2 flex w-full flex-col gap-4 overflow-x-clip rounded-xl border border-slate-800 bg-slate-900 p-3.5 shadow-[0_4px_16px_rgba(2,6,23,0.5)] sm:p-5">
+      <div className="flex w-full flex-col gap-4 overflow-x-clip rounded-xl border border-slate-800 bg-slate-900 p-3.5 shadow-[0_4px_16px_rgba(2,6,23,0.5)] sm:p-5">
         {/* File Picker: multiple otomatis pada slot kosong (+), single pada Ganti Foto */}
         <input
           ref={slotPickerRef}
@@ -1759,7 +1771,19 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
                 )}
               </button>
             </div>
-            <div className="w-full whitespace-pre-wrap break-words rounded-lg border border-slate-700 bg-slate-800/80 p-3 font-mono text-[13px] text-emerald-300">
+            <div
+              role="button"
+              tabIndex={0}
+              aria-label="Info pengisian Caption WhatsApp"
+              onClick={handleReadOnlyCaptionTap}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleReadOnlyCaptionTap();
+                }
+              }}
+              className="w-full cursor-pointer whitespace-pre-wrap break-words rounded-lg border border-slate-700 bg-slate-800/80 p-3 font-mono text-[13px] text-emerald-300 transition active:scale-[0.995]"
+            >
               {captionText}
             </div>
           </div>
@@ -1815,8 +1839,9 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
           mengaktifkan mode input manual untuk mengubah Tanggal, Shift, atau Tag Equipment.
         </p>
         <p className="mb-4 text-xs leading-[1.45] text-slate-400">
-          Catatan: Data akan otomatis terkunci kembali saat memilih jadwal baru, berpindah tab, atau
-          menekan Kirim ke WhatsApp.
+          <strong className="font-semibold text-slate-300">Catatan:</strong> Data akan tetap
+          terbuka saat berpindah tab atau digeser, dan hanya akan terkunci kembali secara otomatis
+          saat memilih jadwal baru dari tab Jadwal atau menekan tombol Kirim ke WhatsApp.
         </p>
       </ConfirmModal>
 
@@ -1946,4 +1971,4 @@ export const KolaseView: React.FC<KolaseViewProps> = ({
       )}
     </>
   );
-};
+});

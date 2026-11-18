@@ -2,6 +2,17 @@
 
 Semua perubahan penting pada aplikasi **Dashboard & Kolase Foto TPM Urea 1B** dicatat di file ini mengikuti standar [Semantic Versioning](https://semver.org/).
 
+## [2.11.0] - 2026-11-18
+
+### Ditambahkan
+- **Toast Petunjuk Interaktif pada Kotak Caption WhatsApp (`KolaseView.tsx`):** Mengetuk kotak pratinjau **Caption WhatsApp** (*read-only*) kini menampilkan notifikasi toast informatif bahwa caption terisi otomatis dari data laporan dan pengisian teks dilakukan lewat kolom **Keterangan Kegiatan** di atas, dilengkapi jeda anti-spam ketukan berulang tanpa memengaruhi tombol **Salin** maupun **Kirim ke WhatsApp**.
+
+### Diubah
+- **Optimalisasi Spasi Bawah & Jarak Footer di Kedua Tab (`App.tsx`, `KolaseView.tsx`):** Memangkas ruang kosong berlebih di bawah daftar kartu **Jadwal TPM** dan di bawah tombol **Kirim ke WhatsApp** pada **Kolase Foto** agar proporsional dan ringkas sambil mempertahankan ruang aman `env(safe-area-inset-bottom)`.
+- **Pembaruan Catatan Modal Konfirmasi Buka Kunci (`KolaseView.tsx`):** Memperbarui redaksi **Catatan** pada dialog **Buka Kunci Data Laporan?** agar selaras dengan perilaku navigasi *dual-panel* (data tetap terbuka saat berpindah tab atau digeser, dan terkunci otomatis saat memilih jadwal baru atau menekan **Kirim ke WhatsApp**).
+- **Transisi *Fade-In* Sinkron Pasca-Loading & Optimasi Performa (`App.tsx`, `index.css`, `DashboardView.tsx`, `KolaseView.tsx`):** Menyinkronkan animasi *fade-in* `250ms` agar baru dimulai setelah hidrasi dan pengukuran tata letak awal selesai, membersihkan kelas CSS animasi yang tidak lagi dipakai, serta menambahkan `React.memo`, `useMemo`, dan `useCallback` guna menekan *re-render* berlebih.
+- **Sinkronisasi Versi Minor `2.11.0` (`package.json`, `tpmData.ts`, `version.json`, `vite.config.js`):** Menyelaraskan versi aplikasi, badge antarmuka, metadata pembaruan, serta `cacheId` Service Worker ke `v2.11.0`.
+
 ## [2.10.4] - 2026-11-17
 
 ### Diubah

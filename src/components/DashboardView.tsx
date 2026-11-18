@@ -65,7 +65,7 @@ interface ScheduleCardProps {
   onBadgeClick?: () => void;
 }
 
-const ScheduleCard: React.FC<ScheduleCardProps> = ({
+const ScheduleCard: React.FC<ScheduleCardProps> = React.memo(({
   shift,
   areaText,
   isOff = false,
@@ -184,7 +184,7 @@ const ScheduleCard: React.FC<ScheduleCardProps> = ({
       )}
     </div>
   );
-};
+});
 
 function formatReportedTime(ts?: number): string {
   if (!ts || !Number.isFinite(ts)) return '-';
@@ -213,7 +213,7 @@ function readOperationalClock(): OperationalClockSnapshot {
   };
 }
 
-export const DashboardView: React.FC<DashboardViewProps> = ({
+export const DashboardView: React.FC<DashboardViewProps> = React.memo(({
   reportedLog,
   devModeActive = false,
   onSelectShift,
@@ -706,4 +706,4 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       )}
     </>
   );
-};
+});

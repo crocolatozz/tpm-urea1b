@@ -2,6 +2,16 @@
 
 Semua perubahan penting pada aplikasi **Dashboard & Kolase Foto TPM Urea 1B** dicatat di file ini mengikuti standar [Semantic Versioning](https://semver.org/).
 
+## [2.12.0] - 2026-11-20
+
+### Ditambahkan
+- **11 Resolusi Native Static PNG Splash Screen iOS (`public/splash/`, `index.html`, `vite.config.js`):** Menyediakan file PNG statis berlatar solid `#020617` dengan ikon resmi aplikasi tepat di tengah (~45% lebar layar portrait, tanpa teks tambahan) untuk 11 ukuran layar iPhone (`750×1334` hingga `1320×2868`), didaftarkan via `<link rel="apple-touch-startup-image">` berbasis `%BASE_URL%` serta masuk *precache* offline Service Worker (`includeAssets: ['splash/*.png']`).
+
+### Diubah
+- **Sistem Splash Screen 1 Lapis Tanpa HTML Overlay (`index.html`, `vite.config.js`):** Menghapus seluruh overlay `#ios-pwa-splash` beserta skrip/CSS pendukungnya agar iOS merender *native static PNG splash* dan Android/Samsung memakai *native OS WebAPK splash* (`background_color` & `theme_color` `#020617`) tanpa *double-splash* maupun lompatan ukuran ikon.
+- **Transisi Masuk *Smooth Fade-In* Anti-Bug Safari iOS & `bfcache` (`src/index.css`, `src/App.tsx`):** Memperbarui animasi masuk kontainer konten menjadi `380ms cubic-bezier(0.22, 1, 0.36, 1) both` murni menggunakan properti `opacity` (tanpa `transform` dan tanpa menyembunyikan pembungkus terluar), disertai *listener* `pageshow` (`event.persisted`) agar layar tidak pernah terjebak transparan saat dipulihkan dari `bfcache` Safari iOS.
+- **Sinkronisasi Versi Minor `2.12.0` (`package.json`, `tpmData.ts`, `version.json`, `vite.config.js`):** Menyelaraskan nomor versi aplikasi, badge footer, metadata `version.json`, serta `cacheId` Service Worker ke `v2.12.0`.
+
 ## [2.11.0] - 2026-11-18
 
 ### Ditambahkan

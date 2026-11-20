@@ -345,7 +345,7 @@ export function useAppUpdater(options: UseAppUpdaterOptions = {}) {
     setUpdatePhase('idle');
     setModalState({
       mode: 'prompt',
-      remoteVersion: '2.11.0',
+      remoteVersion: '2.12.0',
       releaseNotes: [
         'Simulasi pratinjau pop-up pembaruan PWA dengan alur animasi asli (tanpa reload browser).',
         'Memastikan transisi overlay fade-out/fade-in, badge versi, dan tombol aksi tampil persis seperti update nyata.',

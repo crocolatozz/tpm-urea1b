@@ -301,6 +301,7 @@ export const App: React.FC = () => {
   const testToastSeqTimersRef = useRef<number[]>([]);
 
   // Wadah dual-panel horizontal CSS Scroll-Snap + dua panel vertikal independen + header tunggal melayang
+  const fadeContainerRef = useRef<HTMLDivElement | null>(null);
   const dualPanelRef = useRef<HTMLElement | null>(null);
   const jadwalPanelRef = useRef<HTMLElement | null>(null);
   const kolasePanelRef = useRef<HTMLElement | null>(null);
@@ -550,6 +551,18 @@ export const App: React.FC = () => {
     },
     [clearProgrammaticSlide, syncHeaderTransform, updateTabIndicator]
   );
+
+  // Pengaman Safari iOS bfcache: pastikan kontainer fade-in tidak pernah terjebak transparan saat dipulihkan dari history cache
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted && fadeContainerRef.current) {
+        fadeContainerRef.current.style.animation = 'none';
+        fadeContainerRef.current.style.opacity = '1';
+      }
+    };
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, []);
 
   // Jalankan Storage Version Guard & pembersihan legacy key saat aplikasi dimuat, bersihkan memori hanya saat App unmount
   useEffect(() => {
@@ -1020,7 +1033,7 @@ export const App: React.FC = () => {
         isFadingOut ? 'pointer-events-none opacity-0' : 'opacity-100'
       }`}
     >
-      <div className="app-fade-in relative min-h-0 w-full flex-1 overflow-hidden">
+      <div ref={fadeContainerRef} className="app-fade-in relative min-h-0 w-full flex-1 overflow-hidden">
         {/* 1 Header & 1 Tab Bar Tunggal Melayang (Tergulung GPU translate3d & Berinterpolasi Antar-Panel) */}
         <AppHeaderNav
           headerWrapperRef={headerWrapperRef}

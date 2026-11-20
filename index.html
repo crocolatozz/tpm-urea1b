@@ -49,33 +49,6 @@
         background-color: #020617;
         margin: 0;
       }
-      #ios-pwa-splash {
-        display: none;
-        position: fixed;
-        inset: 0;
-        z-index: 1;
-        align-items: center;
-        justify-content: center;
-        background-color: #020617;
-      }
-      #ios-pwa-splash img {
-        width: 80px;
-        height: 80px;
-        border-radius: 22%;
-        object-fit: cover;
-        animation: iosSplashPulse 1.4s ease-in-out infinite;
-      }
-      @keyframes iosSplashPulse {
-        0%,
-        100% {
-          opacity: 0.78;
-          transform: scale(0.97);
-        }
-        50% {
-          opacity: 1;
-          transform: scale(1.03);
-        }
-      }
     </style>
 
     <!-- Google Fonts: Plus Jakarta Sans & Rajdhani -->
@@ -90,39 +63,66 @@
     <link rel="icon" type="image/png" sizes="192x192" href="./favicon.png" />
     <link rel="shortcut icon" href="./favicon.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="./icon.png" />
+
+    <!-- iOS Native Static PNG Splash Screens (11 Resolusi Portrait iPhone) -->
+    <link
+      rel="apple-touch-startup-image"
+      href="%BASE_URL%splash/apple-splash-1320x2868.png"
+      media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+    />
+    <link
+      rel="apple-touch-startup-image"
+      href="%BASE_URL%splash/apple-splash-1290x2796.png"
+      media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+    />
+    <link
+      rel="apple-touch-startup-image"
+      href="%BASE_URL%splash/apple-splash-1206x2622.png"
+      media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+    />
+    <link
+      rel="apple-touch-startup-image"
+      href="%BASE_URL%splash/apple-splash-1179x2556.png"
+      media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+    />
+    <link
+      rel="apple-touch-startup-image"
+      href="%BASE_URL%splash/apple-splash-1284x2778.png"
+      media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+    />
+    <link
+      rel="apple-touch-startup-image"
+      href="%BASE_URL%splash/apple-splash-1170x2532.png"
+      media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+    />
+    <link
+      rel="apple-touch-startup-image"
+      href="%BASE_URL%splash/apple-splash-1125x2436.png"
+      media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+    />
+    <link
+      rel="apple-touch-startup-image"
+      href="%BASE_URL%splash/apple-splash-1242x2688.png"
+      media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+    />
+    <link
+      rel="apple-touch-startup-image"
+      href="%BASE_URL%splash/apple-splash-828x1792.png"
+      media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+    />
+    <link
+      rel="apple-touch-startup-image"
+      href="%BASE_URL%splash/apple-splash-1242x2208.png"
+      media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+    />
+    <link
+      rel="apple-touch-startup-image"
+      href="%BASE_URL%splash/apple-splash-750x1334.png"
+      media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+    />
   </head>
   <body>
-    <div id="root">
-      <div id="ios-pwa-splash" aria-hidden="true">
-        <img
-          src="%BASE_URL%icon.png"
-          alt="Dashboard TPM Urea 1B"
-          width="80"
-          height="80"
-          decoding="sync"
-        />
-      </div>
-    </div>
-    <script>
-      (function () {
-        try {
-          var ua = navigator.userAgent || '';
-          var isIOSDevice =
-            /iPad|iPhone|iPod/i.test(ua) ||
-            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-          var isStandalone =
-            window.navigator.standalone === true ||
-            (typeof window.matchMedia === 'function' &&
-              window.matchMedia('(display-mode: standalone)').matches);
-          if (isIOSDevice && isStandalone) {
-            var splash = document.getElementById('ios-pwa-splash');
-            if (splash) {
-              splash.style.display = 'flex';
-            }
-          }
-        } catch (e) {}
-      })();
-    </script>
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

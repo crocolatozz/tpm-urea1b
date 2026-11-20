@@ -1,8 +1,8 @@
 {
-  "version": "2.11.0",
+  "version": "2.12.0",
   "notes": [
-    "Perbaikan layar penuh iOS Safari / PWA bebas balok warna di tepi bawah serta splash screen khusus iOS",
-    "Validasi ketat pembaruan PWA anti-bypass yang hanya muncul setelah seluruh aset versi baru selesai diunduh dan siap",
-    "Toast peringatan interaktif pada kotak Caption WhatsApp, pembaruan catatan buka kunci data laporan, animasi masuk CSS 200ms, dan optimasi performa jadwal"
+    "Sistem splash screen 1 lapis native static PNG iOS bergaya Android WebAPK tanpa HTML overlay ganda",
+    "11 resolusi splash screen portrait iPhone otomatis masuk cache offline Service Worker",
+    "Transisi masuk CSS smooth fade-in 380ms bebas kedip dengan pengaman Safari iOS bfcache"
   ]
 }
